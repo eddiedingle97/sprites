@@ -320,7 +320,7 @@ void maker_load_tile_menu_from_file(char *filepath)
 
     fgets(buf, 256, f);
     tm->tilesize = atoi(buf);
-    int z = tm_add_tile_map(tm_load_tile_map(tm->tilemapfile));
+    int z = tm_add_tile_map(tm_load_tile_map(tm->tilemapfile, tm->tilesize));
     tm->tiles = list_create();
 
     while(fgets(buf, 256, f) != NULL)
