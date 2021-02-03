@@ -1,0 +1,10 @@
+/*int i, thick;
+	for(thick = 0; thick < 3; thick++)
+		for(i = 0; i < 400; i++)
+		{
+			al_draw_pixel(i, thick, RED);
+			al_draw_pixel(i, 399 - thick, RED);
+			al_draw_pixel(thick, i, RED);
+			al_draw_pixel(399 - thick, i, RED);
+		}
+	al_unlock_bitmap(box);*/
