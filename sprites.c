@@ -6,7 +6,6 @@
 #include <allegro5/allegro_native_dialog.h>
 #include <allegro5/allegro_font.h>
 #include <allegro5/allegro_ttf.h>
-#include "enums.h"
 #include "sprites.h"
 #include "keyboard.h"
 #include "alobj.h"

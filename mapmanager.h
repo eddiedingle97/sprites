@@ -13,4 +13,6 @@ struct chunk *mm_get_chunk_from_rel_coordinate(int x, int y);
 struct tile *mm_update_tile(int x, int y, struct tile *tile);
 struct tile *mm_get_tile(int x, int y);
 
+enum DIR2 {TOPLEFT = 0, TOPRIGHT = 1, BOTTOMLEFT = 2, BOTTOMRIGHT = 3};
+
 #endif

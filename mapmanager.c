@@ -10,7 +10,6 @@
 #include "tilemanager.h"
 #include "mapmanager.h"
 #include "colors.h"
-#include "enums.h"
 
 static struct chunk *corners[4];
 static struct list *maps;
@@ -18,6 +17,8 @@ static const int DISTANCE = HEIGHT / 2;
 
 void mm_add_chunk_to_layer(struct chunk *chunk, int chunksize);
 void mm_remove_chunk_from_layer(struct chunk *chunk, int chunksize);
+
+enum DIR {UP = 0, DOWN = 1, LEFT = 2, RIGHT = 3};
 
 void mm_init(struct map *map)
 {
