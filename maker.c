@@ -19,7 +19,6 @@
 #include "keyboard.h"
 #include "debug.h"
 #include "colors.h"
-#include "enums.h"
 
 static struct list *tilemenus;
 static int currenttilemenuindex;
@@ -52,6 +51,8 @@ void maker_null_current_tile();
 void maker_undo_remove();
 void maker_remove_edit_menu();
 void maker_show_solid_tiles();
+
+enum MAKERMODES {PLACE = 1, EDIT = 2, REMOVE = 4, GRAB = 8, SWAP = 16};
 
 void maker_init()
 {
@@ -242,7 +243,6 @@ void maker_show_solid_tiles()
                         struct sprite *sprite = sm_create_global_sprite(redbitmap, tm_get_tile_x(chunkleft->x, 16, c), tm_get_tile_y(chunkleft->y, 16, r), FOREGROUND, TRANSPARENT);
                         sm_add_sprite_to_layer(sprite);
                         list_append(foregroundsprites, sprite);
-                        printf("%d %d\n", sprite->x, sprite->y);
                     }
                 }
             }
@@ -423,7 +423,6 @@ void maker_show_tile_menu(int next)
     else if(next < 0)
     {
         currenttilemenuindex = (currenttilemenuindex + 1) % tilemenus->size;
-        printf("%d %d\n", currenttilemenuindex, tilemenus->size);
         tm = (struct tilemenu *)list_get(tilemenus, currenttilemenuindex);
         md_remove_menu(currenttilemenu->menu);
     }

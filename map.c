@@ -8,7 +8,6 @@
 #include "sprites.h"
 #include "map.h"
 #include "colors.h"
-#include "enums.h"
 
 static ALLEGRO_BITMAP *test, *purplebitmap;
 
@@ -288,6 +287,8 @@ struct map *map_load(const char *mapfile)
     }
 
     map_create_chunks(map, file, table);
+
+    free(table);
 
     fclose(file);
 

@@ -33,8 +33,11 @@ void sm_set_zoom(int z);
 float sm_get_zoom();
 int sm_get_coord(int i);
 int sm_get_sprite_count();
-
 void sm_move_coord(unsigned char up, unsigned char down, unsigned char left, unsigned char right);
+
+enum SPRITETYPE {LOCAL = 1, GLOBAL = 2, CENTERED = 4, NOZOOM = 8, TRANSPARENT = 16};
+enum LAYERENUM {TEST = 0, MENU = 1, FOREGROUND = 2, PLAYER = 3, SECOND = 4, BACKGROUND = 5};
+enum COORDENUM {X = 0, Y = 1};
 
 #define LAYERS 6
 

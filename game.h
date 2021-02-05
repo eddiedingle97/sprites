@@ -7,4 +7,6 @@ void game_tick(ALLEGRO_DISPLAY *display);
 
 #define MOVE 1
 
+enum GAMEMODES {NONE, REG, MAKER};
+
 #endif

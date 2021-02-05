@@ -5,7 +5,6 @@
 #include "list/list.h"
 #include "spritemanager.h"
 #include "colors.h"
-#include "enums.h"
 #include "debug.h"
 
 #define addlayer list_append(layers, list_create())

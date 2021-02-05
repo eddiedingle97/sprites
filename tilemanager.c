@@ -8,7 +8,6 @@
 #include "tilemanager.h"
 #include "debug.h"
 #include "colors.h"
-#include "enums.h"
 
 static struct list *chunks;
 static struct tilemap **tilemaps;

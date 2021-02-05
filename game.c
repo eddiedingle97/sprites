@@ -14,7 +14,6 @@
 #include "menu.h"
 #include "menudriver.h"
 #include "maker.h"
-#include "enums.h"
 #include "debug.h"
 
 void game_get_actions();
