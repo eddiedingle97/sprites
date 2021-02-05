@@ -17,5 +17,6 @@ char kb_get_tile_menu_save();
 char kb_get_gettext();
 char kb_get_enter();
 char kb_get_next_tile_menu();
+char kb_get_toggle_debug();
 
 #endif

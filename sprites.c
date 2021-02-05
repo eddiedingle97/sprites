@@ -251,6 +251,11 @@ char *s_get_heap_string(const char *str)
     return memcpy(s_malloc(sizeof(char) * (strlen(str) + 1), "s_get_heap_string"), str, strlen(str) + 1);
 }
 
+char s_string_match(char *one, char *two)
+{
+	return strlen(one) == strlen(two) && !strcmp(one, two);
+}
+
 char *s_get_root_dir()
 {
 	return rootdir;

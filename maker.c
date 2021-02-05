@@ -81,9 +81,9 @@ void maker_init()
         {
             if(*de->d_name != '.')
             {
+                memset(buf, 0, sizeof(char) * 128);
                 strcat(buf, "open ");
                 list_append(makermenuitems, menu_create_menu_item(s_get_heap_string(strcat(buf, de->d_name)), maker_load_tile_menu_function));
-                memset(buf, 0, sizeof(char) * 128);
             }
         }
         closedir(dr);
@@ -102,11 +102,7 @@ void maker_init()
 
 void *maker_load_tile_menu_function(void *file)
 {
-    char buf[128];
-    memset(buf, 0, 128 * sizeof(char));
-    strcat(buf, "tilemenus/");
-    strcat(buf, file);
-    maker_load_tile_menu_from_file(s_get_full_path(buf));
+    maker_load_tile_menu_from_file(s_get_full_path_with_dir("tilemenus", file));
     return NULL;
 }
 
@@ -115,11 +111,10 @@ void maker_destroy_tile(struct tile *tile)
     free(tile);
 }
 
-void maker_destroy_tilemenu(struct tilemenu *tm)
+void maker_destroy_tile_menu(struct tilemenu *tm)
 {
     md_remove_menu(tm);
     list_destroy_with_function(tm->tiles, (void (*)(void *))maker_destroy_tile);
-    al_destroy_bitmap(tm->tilem);
     free(tm->tilemapfile);
     sm_destroy_sprite(tm->menu->frame);
     al_destroy_bitmap(tm->menu->select);
@@ -131,7 +126,7 @@ void maker_destroy_tilemenu(struct tilemenu *tm)
 
 void maker_destroy()
 {
-    list_destroy_with_function(tilemenus, (void (*)(void *))maker_destroy_tilemenu);
+    list_destroy_with_function(tilemenus, (void (*)(void *))maker_destroy_tile_menu);
     md_remove_menu(makermenu);
     menu_destroy(makermenu);
     maker_remove_edit_menu();
@@ -244,9 +239,10 @@ void maker_show_solid_tiles()
                         ALLEGRO_BITMAP *redbitmap = al_create_bitmap(map->tilesize, map->tilesize);
                         al_set_target_bitmap(redbitmap);
                         al_clear_to_color(RED);
-                        struct sprite *sprite = sm_create_global_sprite(redbitmap, tm_get_tile_x(chunkleft->x, 16, c), tm_get_tile_y(chunkleft->y, 16, y), FOREGROUND, TRANSPARENT);
+                        struct sprite *sprite = sm_create_global_sprite(redbitmap, tm_get_tile_x(chunkleft->x, 16, c), tm_get_tile_y(chunkleft->y, 16, r), FOREGROUND, TRANSPARENT);
                         sm_add_sprite_to_layer(sprite);
                         list_append(foregroundsprites, sprite);
+                        printf("%d %d\n", sprite->x, sprite->y);
                     }
                 }
             }
@@ -298,6 +294,7 @@ char maker_get_tile_z(char *tilemapfile)
 void maker_load_tile_menu_from_file(char *filepath)
 {
     char buf[256];
+    memset(buf, 0, 256);
     FILE *f = fopen(filepath, "r");
     if(!f)
     {
@@ -308,19 +305,12 @@ void maker_load_tile_menu_from_file(char *filepath)
     struct tilemenu *tm = s_malloc(sizeof(struct tilemenu), "tm: maker_load_tile_menu_from_file");
 
     fgets(buf, 256, f);
+    buf[strlen(buf) - 1] = '\0';
     tm->tilemapfile = s_get_heap_string(buf);
-    tm->tilemapfile[strlen(tm->tilemapfile) - 1] = '\0';
-    ALLEGRO_BITMAP *tilemap = al_load_bitmap(s_get_full_path_with_dir("images", tm->tilemapfile));
-
-    if(!tilemap)
-    {
-        fprintf(stderr, "tilemap file failed to load\n");
-        return;
-    }
 
     fgets(buf, 256, f);
     tm->tilesize = atoi(buf);
-    int z = tm_add_tile_map(tm_load_tile_map(tm->tilemapfile, tm->tilesize));
+    int z = tm_load_tile_map(tm->tilemapfile, tm->tilesize);
     tm->tiles = list_create();
 
     while(fgets(buf, 256, f) != NULL)
@@ -333,11 +323,9 @@ void maker_load_tile_menu_from_file(char *filepath)
         tile->solid = atoi(strtok(NULL, ","));
         tile->breakable = atoi(strtok(NULL, ","));
         tile->damage = atoi(strtok(NULL, ","));
-        ALLEGRO_BITMAP *subbitmap = al_create_sub_bitmap(tilemap, tile->tilemap_x, tile->tilemap_y, tm->tilesize, tm->tilesize);
         list_append(tm->tiles, tile);
     }
     
-    tm->tilem = tilemap;
     tm->menu = menu_create(tm->tiles, al_load_ttf_font("./fonts/lcd.ttf", 10, 0), topleftcoord[X], topleftcoord[Y], maker_frame_handler, maker_select_handler);
     fclose(f);
     list_append(tilemenus, tm);
@@ -381,33 +369,25 @@ int maker_save_tile_menus()
         fclose(f);
     }
 
-    printf("here\n");
     return 0;
 }
 
 void maker_load_tile_menu_from_image(char *tilemapfile, int tilesize)
 {
-    ALLEGRO_BITMAP *tilemap = al_load_bitmap(s_get_full_path_with_dir("images", tilemapfile));
-
-    if(!tilemap)
-    {
-        fprintf(stderr, "tilemenu file failed to load\n");
-        return;
-    }
-
     struct tilemenu *tm = s_malloc(sizeof(struct tilemenu), "tm: maker_load_tile_menu_from_image");
     list_append(tilemenus, tm);
     
-    int z = tm_add_tile_map(tm_load_tile_map(tilemapfile, tilesize));
+    int z = tm_load_tile_map(tilemapfile, tilesize);
     tm->tiles = list_create();
+
+    ALLEGRO_BITMAP *tilemap = al_load_bitmap(s_get_full_path_with_dir("images", tilemapfile));
 
     int r, c;
     for(r = 0; r < al_get_bitmap_height(tilemap); r += tilesize)
     {
         for(c = 0; c < al_get_bitmap_width(tilemap); c += tilesize)
         {
-            ALLEGRO_BITMAP *subbitmap = al_create_sub_bitmap(tilemap, c, r, tilesize, tilesize);
-            struct tile *tile = s_malloc(sizeof(struct tile), "tile: maker_load_tile_menu_from_file");
+            struct tile *tile = s_malloc(sizeof(struct tile), "tile: maker_load_tile_menu_from_image");
             tile->tilemap_x = c;
             tile->tilemap_y = r;
             tile->tilemap_z = z;
@@ -417,8 +397,8 @@ void maker_load_tile_menu_from_image(char *tilemapfile, int tilesize)
             list_append(tm->tiles, tile);
         }
     }
-    
-    tm->tilem = tilemap;
+
+    al_destroy_bitmap(tilemap);
     tm->tilesize = tilesize;
     tm->tilemapfile = s_get_heap_string(tilemapfile);
     tm->menu = menu_create(tm->tiles, al_load_ttf_font("./fonts/lcd.ttf", 10, 0), topleftcoord[X], topleftcoord[Y], maker_frame_handler, maker_select_handler);
@@ -442,7 +422,8 @@ void maker_show_tile_menu(int next)
 
     else if(next < 0)
     {
-        currenttilemenuindex = currenttilemenuindex + 1 % tilemenus->size;
+        currenttilemenuindex = (currenttilemenuindex + 1) % tilemenus->size;
+        printf("%d %d\n", currenttilemenuindex, tilemenus->size);
         tm = (struct tilemenu *)list_get(tilemenus, currenttilemenuindex);
         md_remove_menu(currenttilemenu->menu);
     }
@@ -453,9 +434,6 @@ void maker_show_tile_menu(int next)
         tm = (struct tilemenu *)list_get(tilemenus, currenttilemenuindex);
         md_remove_menu(currenttilemenu->menu);
     }
-
-    if(!tm->menu)
-        tm->menu = menu_create(tm->tiles, al_load_ttf_font("./fonts/lcd.ttf", 10, 0), topleftcoord[X], topleftcoord[Y], maker_frame_handler, maker_select_handler);
 
     md_add_menu(tm->menu);
     currenttilemenu = tm;
@@ -481,6 +459,7 @@ void *maker_set_remove_mode(void *a)
 void maker_set_grab_mode(struct node *node)
 {
     maker_set_current_tile(node->p);
+    maker_remove_edit_menu();
     grabbedtilenode = node;
     mode = GRAB;// MODE
     node->p = ghosttile;

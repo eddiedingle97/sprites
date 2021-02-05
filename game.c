@@ -28,19 +28,17 @@ void game_init(char gamemode, char newmap, int width, int height)
     {
         case NONE:
             sm_init(0, 0);
-            tm_init(5, 16);
+            tm_init(5);
             mm_init(map_create(5, 16, 200, 200));
             break;
         case REG:
             break;
         case MAKER:
             sm_init(0, 0);
-            tm_init(5, 16);
-            //mm_init(newmap ? map_create(5, 16, 10, 10) : map_load("./maps/map1.map"));
-            mm_init(map_create(5, 16, 10, 10));
+            tm_init(5);
+            mm_init(newmap ? map_create(5, 16, width, height) : map_load("./maps/map1.map"));
             md_init();
             maker_init();
-            maker_load_tile_menu_from_image("0x72_16x16DungeonTileset.v4.png", 16);
             break;
     }
 }
@@ -65,6 +63,10 @@ void game_destroy()
             mm_destroy();
             if(debug_get())
                 printf("after mm_destroy\n");
+
+            tm_destroy();
+            if(debug_get())
+                printf("after tm_destroy\n");
 
             sm_destroy();
             if(debug_get())
@@ -104,8 +106,8 @@ void game_get_actions()
 
     scroll = mouse_get_scroll();
 
-    /*if(scroll)
-        printf("%d\n", scroll);*/
+    if(kb_get_toggle_debug())
+        tm_print_tile_maps();
 
     switch(mode)
     {
@@ -130,7 +132,7 @@ void game_get_actions()
                 mm_save_map();
 
             if(kb_get_tile_menu_save())
-                maker_save_tile_menus();
+                maker_show_solid_tiles();
 
             if(kb_get_gettext())
             {

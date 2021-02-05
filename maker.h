@@ -3,11 +3,10 @@
 
 struct tilemenu
 {
-    ALLEGRO_BITMAP *tilem;
     struct list *tiles;
     struct menu *menu;
-    char *tilemapfile;
     int tilesize;
+    char *tilemapfile;
 };
 
 void maker_init();
