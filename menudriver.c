@@ -7,13 +7,14 @@
 #include "map.h"
 #include "spritemanager.h"
 #include "mouse.h"
-#include "enums.h"
 
 static struct list *menus;
 static struct menu *grab;
 static int grabx;
 static int graby;
 static struct menu *menuhover;
+
+enum DIR {UP = 0, DOWN = 1, LEFT = 2, RIGHT = 3};
 
 void md_init()
 {

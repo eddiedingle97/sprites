@@ -8,7 +8,6 @@
 #include "spritemanager.h"
 #include "menu.h"
 #include "colors.h"
-#include "enums.h"
 
 struct menu *menu_create(struct list *itemlist, ALLEGRO_FONT *font, int x, int y, void (*framehandler)(struct menu *), void (*selecthandler)(struct menu *, int, int, char, char, char))
 {
