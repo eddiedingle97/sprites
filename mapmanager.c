@@ -75,9 +75,7 @@ void mm_test_color_chunk(struct chunk *chunk)
     int r, c;
     for(r = 0; r < 5; r++)
         for(c = 0; c < 5; c++)
-        {
             chunk->tiles[r][c].tilemap_z = 1;
-        }
 }
 
 void mm_test_color_tile(int x, int y)
@@ -96,7 +94,7 @@ void mm_test_color_tile(int x, int y)
     chunk->tiles[y][x].tilemap_z = 1;
 }
 
-struct chunk *mm_get_chunk_from_coordinate(int x, int y)
+struct chunk *mm_get_chunk_from_rel_coordinate(int x, int y)
 {
     return map_get_chunk_from_coordinate(list_get(maps, 0), sm_rel_to_global_x(x), sm_rel_to_global_y(y));
 }
@@ -195,22 +193,23 @@ struct chunk **mm_get_corners()
     return corners;
 }
 
-/*void mm_add_tile_map(char *filepath)
+void mm_add_tile_map(char *filepath, int tilesize)
 {
     struct map *map = mm_get_top_map();
     struct node *node;
     char nomatch = 1;
     for(node = map->tilemaps->head; node != NULL; node = node->next)
-        nomatch = nomatch & strcmp(filepath, (char *)node->p);
+        nomatch = nomatch & s_string_match(filepath, (char *)node->p);
 
     if(nomatch)
     {
         struct tilemap *tm = s_malloc(sizeof(struct tilemap), "tm: mm_add_tile_map");
-        tm->tilemapfile = strcpy(filepath, s_malloc(sizeof(char) * strlen(filepath), "filepath: mm_add_tile_map"));
+        tm->tilemapfile = s_get_heap_string(filepath);
         tm->bitmap = al_load_bitmap(filepath);
+        tm->tilesize = tilesize;
         list_append(map->tilemaps, tm);
     }
-}*/
+}
 
 struct tile *mm_get_tile(int x, int y)
 {
@@ -232,6 +231,9 @@ struct tile *mm_update_tile(int x, int y, struct tile *tile)
     oldtile->solid = tile->solid;
     oldtile->breakable = tile->breakable;
     oldtile->damage = tile->damage;
+
+    struct tilemap *tm = tm_get_tile_map_from_z(tile->tilemap_z);
+    mm_add_tile_map(tm->tilemapfile, tm->tilesize);
 
     return oldtile;
 }

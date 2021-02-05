@@ -3,6 +3,7 @@
 #include <allegro5/allegro.h>
 #include "list/list.h"
 #include "spritemanager.h"
+#include "map.h"
 #include "tilemanager.h"
 #include "sprites.h"
 #include "map.h"
@@ -11,49 +12,10 @@
 
 static ALLEGRO_BITMAP *test, *purplebitmap;
 
-struct chunk *map_init_chunk(struct map *map, FILE *file, int x, int y);
-struct chunk *map_create_test_chunk(int x, int y, int chunksize, int tilesize);
+struct chunk *map_init_chunk(struct map *map, FILE *file, int x, int y, int *table);
+struct chunk *map_create_test_chunk(int x, int y, int chunksize);
 void map_create_test_chunk_list(struct map *map);
-void map_create_chunks(struct map *map, FILE *file);
-
-/*void map_init()
-{
-    test = al_create_bitmap(16, 16);
-    al_set_target_bitmap(test);
-    al_clear_to_color(WHITE);
-
-    al_lock_bitmap(test, 0, 0);
-    int r, c;
-    for(r = 0; r < 16; r++)
-    {
-        for(c = 0; c < 16; c++)
-        {
-            if(r == 0 || r == 15)
-                al_draw_pixel(r, c, BLACK);
-            if(c == 0 || c == 15)
-                al_draw_pixel(r, c, BLACK);
-        }
-    }
-    al_unlock_bitmap(test);
-
-    purplebitmap = al_create_bitmap(16, 16);
-    al_set_target_bitmap(purplebitmap);
-    al_lock_bitmap(purplebitmap, 0, 0);
-    for(r = 0; r < 16; r++)
-    {
-        for(c = 0; c < 16; c++)
-        {
-            al_draw_pixel(r, c, PURPLE);
-        }
-    }
-    al_unlock_bitmap(purplebitmap);
-}
-
-void map_destroy()
-{
-    al_destroy_bitmap(test);
-    al_destroy_bitmap(purplebitmap);
-}*/
+void map_create_chunks(struct map *map, FILE *file, int *table);
 
 struct map *map_create(int chunksize, int tilesize, int width, int height)
 {
@@ -62,6 +24,7 @@ struct map *map_create(int chunksize, int tilesize, int width, int height)
     map->tilesize = tilesize;
     map->height = height;
     map->width = width;
+    map->tilemaps = list_create();
     map_create_test_chunk_list(map);
 
     return map;
@@ -82,7 +45,7 @@ void map_create_test_chunk_list(struct map *map)
         map->chunks[r] = s_malloc(sizeof(struct chunk *) * map->width, "map->chunks[r]: map_create_test_chunk_list");
         for(c = 0; c < map->width; c++)
         {
-            map->chunks[r][c] = map_create_test_chunk(x, y, map->chunksize, map->tilesize);
+            map->chunks[r][c] = map_create_test_chunk(x, y, map->chunksize);
             map->chunks[r][c]->index_x = c;
             map->chunks[r][c]->index_y = r;
             map->chunks[r][c]->id = NULL;
@@ -93,7 +56,7 @@ void map_create_test_chunk_list(struct map *map)
     }
 }
 
-struct chunk *map_create_test_chunk(int x, int y, int chunksize, int tilesize)
+struct chunk *map_create_test_chunk(int x, int y, int chunksize)
 {
     struct chunk *chunk;
     chunk = s_malloc(sizeof(struct chunk), "chunk: map_create_test_chunk");
@@ -108,7 +71,6 @@ struct chunk *map_create_test_chunk(int x, int y, int chunksize, int tilesize)
 
         for(c = 0; c < chunksize; c++)
         {
-            //chunk->tiles[r][c].sprite = sm_create_global_sprite(al_clone_bitmap(test), c * tilesize + x, -r * tilesize + y, BACKGROUND, 0);
             chunk->tiles[r][c].tilemap_x = 0;
             chunk->tiles[r][c].tilemap_y = 0;
             chunk->tiles[r][c].tilemap_z = 0;
@@ -126,8 +88,8 @@ struct chunk *map_get_chunk_from_coordinate(struct map *map, int x, int y)
     int chunkgrid = map->chunksize * map->tilesize;
     int pixelheight = map->height * chunkgrid;
     int pixelwidth = map->width * chunkgrid;
-    y = pixelheight / 2 - y;
-    x = pixelwidth / 2 + x;
+    y = pixelheight / 2 - y;//height in pixels
+    x = pixelwidth / 2 + x;//width in pixels
 
     if(x < 0 || y < 0 || x >= pixelwidth || y >= pixelheight)
         return NULL;
@@ -143,32 +105,8 @@ struct chunk *map_get_chunk_from_index(struct map *map, int x, int y)
     return map->chunks[y][x];
 }
 
-/*struct chunk *map_init_chunk_to_layer(ALLEGRO_BITMAP *bitmap, int x, int y, int chunksize, int tilesize)
-{
-    struct chunk *chunk;
-    chunk = s_malloc(sizeof(chunk), "chunk: map_init_chunk_to_layer");
-    chunk->tiles = s_malloc(sizeof(struct tile *) * chunksize, "chunk->tiles: map_init_chunk_to_layer");
-    chunk->x = x;
-    chunk->y = y;
-
-    int r, c;
-    for(r = 0; r < chunksize; r++)
-    {
-        chunk->tiles[r] = s_malloc(chunksize * sizeof(struct tile), "chunk->tiles[r]: map_init_chunk_to_layer");
-
-        for(c = 0; c < chunksize; c++)
-        {
-            chunk->tiles[r][c].sprite = sm_create_global_sprite(bitmap, c * tilesize + x, r * tilesize + y, BACKGROUND, 0);
-            sm_add_sprite_to_layer(chunk->tiles[r][c].sprite);
-        }
-    }
-
-    return chunk;
-}*/
-
 int map_save(struct map *map, const char *filepath)
 {
-    printf("here\n");
     FILE *file = fopen(filepath, "w");
 
     if(!file)
@@ -179,6 +117,7 @@ int map_save(struct map *map, const char *filepath)
 
     int count;
     char buf[1024];
+    memset(buf, 0, 1024);
     if((count = sprintf(buf, "%d,%d,%d,%d\n", map->width, map->height, map->chunksize, map->tilesize)) < 0)
     {
         perror("Error in map_save");
@@ -188,13 +127,15 @@ int map_save(struct map *map, const char *filepath)
 
     int i;
     if(map->tilemaps)
+    {
         for(i = 0; i < map->tilemaps->size; i++)
         {
-            char *tilemapfile = ((struct tilemap *)list_get(map->tilemaps, i))->tilemapfile;
-            memcpy(buf, tilemapfile, strlen(tilemapfile));
+            memset(buf, 0, 1024);
+            struct tilemap *tm = list_get(map->tilemaps, i);
+            count = sprintf(buf, "%s\n", tm->tilemapfile);
             fwrite(buf, sizeof(char), strlen(buf), file);
-            putc('\n', file);
         }
+    }
 
     putc('\n', file);
     int r, c;
@@ -219,10 +160,10 @@ int map_save(struct map *map, const char *filepath)
     return 0;
 }
 
-struct chunk *map_init_chunk(struct map *map, FILE *file, int x, int y)
+struct chunk *map_init_chunk(struct map *map, FILE *file, int x, int y, int *table)
 {
     struct chunk *chunk;
-    chunk = s_malloc(sizeof(chunk), "chunk: map_init_chunk");
+    chunk = s_malloc(sizeof(struct chunk), "chunk: map_init_chunk");
     chunk->tiles = s_malloc(sizeof(struct tile *) * map->chunksize, "chunk->tiles: map_init_chunk");
     chunk->x = x;
     chunk->y = y;
@@ -245,25 +186,10 @@ struct chunk *map_init_chunk(struct map *map, FILE *file, int x, int y)
             
             tile->tilemap_x = atoi(strtok(buf, ","));
             tile->tilemap_y = atoi(strtok(NULL, ","));
-            tile->tilemap_z = atoi(strtok(NULL, ","));
+            tile->tilemap_z = table[atoi(strtok(NULL, ","))];
             tile->solid = atoi(strtok(NULL, ","));
             tile->breakable = atoi(strtok(NULL, ","));
             tile->damage = atoi(strtok(NULL, ","));
-
-            /*if(tile->tilemap_z < 0)
-            {
-                if(tile->tilemap_z == -1)
-                {
-                    tile->sprite = sm_create_global_sprite(al_clone_bitmap(test), c * map->tilesize + x, -r * map->tilesize + y, BACKGROUND, 0);
-                }
-                else
-                    tile->sprite = sm_create_global_sprite(al_clone_bitmap(purplebitmap), c * map->tilesize + x, -r * map->tilesize + y, BACKGROUND, 0);
-            }
-            else
-            {
-                ALLEGRO_BITMAP *tilemap = ((struct tilemap *)list_get(map->tilemaps, tile->tilemap_z))->bitmap;
-                tile->sprite = sm_create_global_sprite(al_create_sub_bitmap(tilemap, tile->tilemap_x, tile->tilemap_y, map->tilesize, map->tilesize), c * map->tilesize + x, -r * map->tilesize + y, BACKGROUND, 0);
-            }*/
         }
     }
 
@@ -285,7 +211,7 @@ struct tile *map_get_tile_from_coordinate(struct map *map, int x, int y)
     return &chunk->tiles[y][x];
 }
 
-void map_create_chunks(struct map *map, FILE *file)
+void map_create_chunks(struct map *map, FILE *file, int *table)
 {
     map->chunks = s_malloc(sizeof(struct chunk **) * map->height, "map->chunks: map_create_chunks");
 
@@ -300,7 +226,7 @@ void map_create_chunks(struct map *map, FILE *file)
         map->chunks[r] = s_malloc(sizeof(struct chunk *) * map->width, "map->chunks[r]: map_create_chunks");
         for(c = 0; c < map->width; c++)
         {
-            map->chunks[r][c] = map_init_chunk(map, file, x, y);
+            map->chunks[r][c] = map_init_chunk(map, file, x, y, table);
             map->chunks[r][c]->index_x = c;
             map->chunks[r][c]->index_y = r;
             x += gridsize;
@@ -332,26 +258,36 @@ struct map *map_load(const char *mapfile)
     map->tilesize = atoi(strtok(NULL, ","));
 
     map->tilemaps = list_create();
+    int *table = s_malloc(2 * sizeof(int), "table: map_load");
+    table[0] = 0;
+    table[1] = 1;
+    int size = 2;
+    
     memset(buf, 0, 1024);
 
     while(strcmp(fgets(buf, 1024, file), "\n"))
     {
-        struct tilemap *tm = s_malloc(sizeof(struct tilemap), "tilemap: map_load");
         buf[strlen(buf) - 1] = '\0';
-        tm->tilemapfile = s_get_heap_string(buf);
-        memset(buf, 0, 1024);
-        strcat(buf, "images/");
-        tm->bitmap = al_load_bitmap(s_get_full_path(strcat(buf, tm->tilemapfile)));
-
-        if(!tm->bitmap)
-            fprintf(stderr, "Error loading tilemap");
-        else
-            list_append(map->tilemaps, tm);
-            
+        
+        int z = tm_load_tile_map(buf, map->tilesize);
+        int nomatch = 1;
+        int i;
+        for(i = 0; i < size; i++)
+        {
+            if(table[i] == z)
+                nomatch = 0;
+        }
+        if(nomatch)
+        {
+            table = s_realloc(table, sizeof(int), "table: map_load");
+            table[size++] = z;
+            list_append(map->tilemaps, tm_get_tile_map_from_z(z));
+        }
+        
         memset(buf, 0, 1024);
     }
 
-    map_create_chunks(map, file);
+    map_create_chunks(map, file, table);
 
     fclose(file);
 
@@ -360,18 +296,10 @@ struct map *map_load(const char *mapfile)
 
 void map_destroy_chunk(struct chunk *chunk, int chunksize)
 {
-    int r, c;
+    int r;
     for(r = 0; r < chunksize; r++)
-    {
-        /*for(c = 0; c < chunksize; c++)
-        {
-            if(chunk->tiles[r][c].sprite->id == NULL)
-                sm_destroy_sprite(chunk->tiles[r][c].sprite);
-            else
-                sm_destroy_sprite_from_layer(chunk->tiles[r][c].sprite);
-        }*/
         free(chunk->tiles[r]);
-    }
+
     free(chunk->tiles);
     free(chunk);
 }
@@ -383,12 +311,8 @@ void map_destroy(struct map *map)
 
     int r, c;
     for(r = 0; r < map->height; r++)
-    {
         for(c = 0; c < map->width; c++)
-        {
             map_destroy_chunk(map->chunks[r][c], map->chunksize);
-        }
-    }
 
     free(map);
 }
