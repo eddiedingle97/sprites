@@ -35,7 +35,6 @@ void tm_destroy_tile_map(struct tilemap *tm)
 
 void tm_destroy()
 {
-    printf("here %d\n", tilemapssize);
     list_destroy(chunks);
     int i;
     for(i = 0; i < tilemapssize; i++)

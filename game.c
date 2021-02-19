@@ -55,6 +55,8 @@ void game_destroy()
 
             sm_destroy();
             debug_printf("after sm_destroy\n");
+
+            
             break;
         case REG:
             break;
@@ -103,8 +105,9 @@ void game_tick(ALLEGRO_DISPLAY *display)
 
 void game_get_actions()
 {
-    unsigned char shift = 1, ctrl = 0, up = kb_get_up(), down = kb_get_down(), left = kb_get_left(), right = kb_get_right();
+    float shift = 1, ctrl = 0, up = kb_get_up(), down = kb_get_down(), left = kb_get_left(), right = kb_get_right();
     char scroll = 0;
+    float coef = .5;
 
     scroll = mouse_get_scroll();
 
@@ -117,7 +120,7 @@ void game_get_actions()
     switch(mode)
     {
         case NONE:
-            sm_move_coord(up, down, left, right);
+            sm_move_coord(up * coef, down * coef, left * coef, right * coef);
             sm_set_zoom(scroll);
 
             if(mouse_get_single_one())
@@ -129,7 +132,7 @@ void game_get_actions()
 
         case MAKER:
             md_menu_tick();
-            sm_move_coord(up, down, left, right);
+            sm_move_coord(up * coef, down * coef, left * coef, right * coef);
             sm_set_zoom(scroll);
             maker_actions();
 

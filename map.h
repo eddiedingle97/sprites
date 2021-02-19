@@ -22,8 +22,8 @@ struct chunk
 {
     struct tile **tiles;
     struct node *id;
-    int x;
-    int y;
+    float x;
+    float y;
     int index_x;
     int index_y;
 };

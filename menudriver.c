@@ -27,7 +27,6 @@ void md_init()
 
 void md_destroy()
 {
-    printf("%d\n", menus->size);
     list_destroy_with_function(menus, (void (*)(void *))menu_destroy);
 }
 

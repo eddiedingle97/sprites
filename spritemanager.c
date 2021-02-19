@@ -17,10 +17,10 @@ static const float MAXZOOM = 4;
 static const float MINZOOM = 1;
 
 static int nosprites = 0;
-static int coord[2];
+static float coord[2];
 static char move[LAYERS][2];
 static float zoom = MAXZOOM;
-static float zoominc = .1;
+static float zoominc = .125;
 
 void sm_init(int x, int y)
 {
@@ -142,8 +142,6 @@ void sm_draw_sprites(ALLEGRO_DISPLAY *display)
 		for(j = 0; j < layer->size; j++)
 		{
 			sprite = (struct sprite *)node->p;
-			/*sprite->x += move[i][X];
-			sprite->y += move[i][Y];*/
 			int w = al_get_bitmap_width(sprite->bitmap);
 			int h = al_get_bitmap_height(sprite->bitmap);
 			int neww = w * zoom;
@@ -280,8 +278,6 @@ void sm_draw_sprites(ALLEGRO_DISPLAY *display)
 
 			node = node->next;
 		}
-		move[i][X] = 0;
-		move[i][Y] = 0;
 	}
 
 	/*layer = list_get(layers, 0);
@@ -325,13 +321,14 @@ int sm_rel_to_global_y(int y)
 	return y / zoom + coord[Y];
 }
 
-void sm_move_coord(unsigned char up, unsigned char down, unsigned char left, unsigned char right)
+void sm_move_coord(float up, float down, float left, float right)
 {
+	printf("%.2f\n", up);
 	coord[X] += right - left;
 	coord[Y] += up - down;
 }
 
-int sm_get_coord(int i)
+float sm_get_coord(int i)
 {
 	return coord[i];
 }

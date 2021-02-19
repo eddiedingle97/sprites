@@ -164,7 +164,6 @@ void maker_destroy()
     maker_destroy_tile(ghosttile);
     if(foregroundsprites)
         list_destroy_with_function(foregroundsprites,(void (*)(void *))sm_destroy_sprite);
-    
 }
 
 void maker_remove_edit_menu()
@@ -213,12 +212,11 @@ void maker_actions()
 
         case 130: //single two & edit mode
             currenttile = mm_get_tile(sm_rel_to_global_x(mouse_get_rel_x()), sm_rel_to_global_y(mouse_get_rel_y()));
-            editmenu->x = mouse_get_rel_x() + editmenu->width / 2;
-            editmenu->y = mouse_get_rel_y() - editmenu->height / 2;
+            editmenu->x = mouse_get_rel_x();
+            editmenu->y = mouse_get_rel_y();
             maker_add_edit_menu();
 
-            if(debug_get())
-                printf("%d, %d, %d\n", currenttile->tilemap_x, currenttile->tilemap_y, currenttile->tilemap_z);
+            debug_printf("%d, %d, %d\n", currenttile->tilemap_x, currenttile->tilemap_y, currenttile->tilemap_z);
             break;
 
         case 264: //menuhover & grab mode
@@ -299,26 +297,6 @@ void maker_undo_remove()
     if(tile)
         list_append(tm->tiles, tile);
 }
-
-/*char maker_get_tile_z(char *tilemapfile)
-{
-    struct map *map = mm_get_top_map();
-    int i;
-    for(i = 0; i < map->tilemaps->size; i++)
-    {
-        struct tilemap *tm = list_get(map->tilemaps, i);
-        if(strlen(tm->tilemapfile) == strlen(tilemapfile) && !strcmp(tm->tilemapfile, tilemapfile))
-            return i;
-    }
-    
-    struct tilemap *new = s_malloc(sizeof(struct tilemap), "maker_get_tile_z");
-    new->tilemapfile = s_get_heap_string(tilemapfile);
-    char buf[256];
-    memset(buf, 0, 256);
-    strcat(buf, "tilemenus/");
-    new->bitmap = al_load_bitmap(s_get_full_path(strcat(buf, new->tilemapfile)));
-    return list_append(map->tilemaps, new);
-}*/
 
 void maker_load_tile_menu_from_file(char *filepath)
 {
@@ -519,8 +497,13 @@ void maker_edit_frame_handler(struct menu *m)
     m->width = 250;
     m->movable = 1;
 
-    ALLEGRO_BITMAP *frame = al_create_bitmap(m->width, m->height);
-    al_set_target_bitmap(frame);
+    if(!m->frame)
+    {
+        ALLEGRO_BITMAP *frame = al_create_bitmap(m->width, m->height);
+        m->frame = sm_create_sprite(frame, m->x, m->y, MENU, NOZOOM);
+    }
+    
+    al_set_target_bitmap(m->frame->bitmap);
     al_clear_to_color(WHITE);
 
     if(currenttile)
@@ -558,7 +541,8 @@ void maker_edit_frame_handler(struct menu *m)
         al_draw_text(m->font, BLACK, 10, texty, 0, buf);
     }
 
-    sm_update_sprite(m->frame, frame, m->x, m->y);
+    m->frame->x = m->x;
+    m->frame->y = m->y;
 }
 
 void maker_set_current_tile(struct tile *tile)
@@ -570,6 +554,7 @@ void maker_set_current_tile(struct tile *tile)
 
 void maker_null_current_tile()
 {
+    maker_remove_edit_menu();
     mouse_destroy();
     currenttile = NULL;
 }

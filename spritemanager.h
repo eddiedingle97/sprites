@@ -6,8 +6,8 @@ struct sprite
 	char *name;
 	char type;
 	ALLEGRO_BITMAP *bitmap;
-	int x;
-	int y;
+	float x;
+	float y;
 	struct node *id;
     char layer;
 };
@@ -31,9 +31,9 @@ int sm_get_x(int x, int bitmapwidth);
 int sm_get_y(int y, int bitmapheight);
 void sm_set_zoom(int z);
 float sm_get_zoom();
-int sm_get_coord(int i);
+float sm_get_coord(int i);
 int sm_get_sprite_count();
-void sm_move_coord(unsigned char up, unsigned char down, unsigned char left, unsigned char right);
+void sm_move_coord(float up, float down, float left, float right);
 
 enum SPRITETYPE {LOCAL = 1, GLOBAL = 2, CENTERED = 4, NOZOOM = 8, TRANSPARENT = 16};
 enum LAYERENUM {TEST = 0, MENU = 1, FOREGROUND = 2, PLAYER = 3, SECOND = 4, BACKGROUND = 5};

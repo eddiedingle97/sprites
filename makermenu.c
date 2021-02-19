@@ -4,39 +4,6 @@ struct menuentrysub
     struct menu *menu;
 };
 
-/*void maker_main_menu_initializer(struct menu *m)
-{
-    m->height = al_get_font_line_height(m->font) * (m->items->size + 2);
-    m->width = 400;
-    m->movable = 0;
-    ALLEGRO_BITMAP *frame = al_create_bitmap(m->width, m->height);
-    m->frame = sm_create_sprite(frame, m->x, m->y, MENU, NOZOOM);
-    m->framehandler(m);
-
-    m->select = al_create_bitmap(380, al_get_font_line_height(m->font));
-    al_set_target_bitmap(m->select);
-    al_lock_bitmap(m->select, 0, 0);
-    int r, c;
-    for(r = 0; r < al_get_bitmap_height(m->select); r++)
-        for(c = 0; c < al_get_bitmap_width(m->select); c++)
-        {
-            if(c == 0 || c == al_get_bitmap_width(m->select) - 1)
-                al_draw_pixel(c, r, BLACK);
-
-            if(r == 0 || r == al_get_bitmap_height(m->select) - 1)
-                al_draw_pixel(c, r, BLACK);
-        }
-    al_unlock_bitmap(m->select);
-}*/
-
-/*void maker_main_menu_destructor(struct menu *m)
-{
-    al_destroy_font(m->font);
-    al_destroy_bitmap(m->select);
-    sm_destroy_sprite(m->frame);
-    list_destroy_with_function(m->items, (void (*)(void *))menu_destroy_menu_item);// change this function
-}*/
-
 void maker_main_menu_frame_handler(struct menu *m)
 {
     m->height = al_get_font_line_height(m->font) * (m->items->size + 2);
@@ -107,26 +74,6 @@ void maker_main_menu_select_handler(struct menu *m, int x, int y, char one, char
     else if(mi && item > -1 && one)
         mi->func(mi->entry);
 }
-
-/*void maker_sub_menu_select_handler(struct menu *m, int x, int y, char one, char two, char scroll)
-{
-    if(!m->select)
-    {
-
-    }
-
-    int item = y / al_get_font_line_height(m->font);
-    m->framehandler(m);
-
-    al_set_target_bitmap(m->frame->bitmap);
-    if(item > 0 && item < m->items->size + 1)
-        al_draw_bitmap(m->select, 10, item * al_get_font_line_height(m->font), 0);
-
-    item--;
-    struct menuitem *mi = list_get(m->items, item);
-    if(mi && item > -1 && one)
-        mi->func(mi->entry);
-}*/
 
 void *maker_load_tile_menu_function(void *file)
 {
