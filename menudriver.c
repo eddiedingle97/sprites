@@ -27,12 +27,14 @@ void md_init()
 
 void md_destroy()
 {
+    printf("%d\n", menus->size);
     list_destroy_with_function(menus, (void (*)(void *))menu_destroy);
 }
 
 void md_add_menu(struct menu *m)
 {
     list_push(menus, m);
+    m->framehandler(m);
     sm_add_sprite_to_layer(m->frame);
 }
 
@@ -45,19 +47,31 @@ struct menu *md_remove_last_menu()
     return out;
 }
 
-void md_remove_menu(struct menu *m)
+char md_has_menu(struct menu *m)
 {
     if(!menus->size)
-        return;
+        return 0;
+    struct node *node;
+    for(node = menus->head; node != NULL; node = node->next)
+        if(node->p == m)
+            return 1;
+    return 0;
+}
+
+struct menu *md_remove_menu(struct menu *m)
+{
+    if(!menus->size)
+        return NULL;
     struct node *node;
     for(node = menus->head; node != NULL; node = node->next)
         if(node->p == m)
         {
-            struct menu *menu = node->p;
-            sm_remove_sprite_from_layer(menu->frame);
+            struct menu *m = node->p;
+            sm_remove_sprite_from_layer(m->frame);
             list_delete_node(menus, node);
-            break;
+            return m;
         }
+    return NULL;
 }
 
 struct menu *md_menu_hover()

@@ -26,5 +26,6 @@ void *list_pop(struct list *l);
 void list_swap_node(struct list *l, struct node *one, struct node *two);
 void *list_delete(struct list *l, int index);
 void *list_delete_node(struct list *l, struct node *node);
+void *list_for_each(struct list *l, void (*func)(void *));
 
 #endif

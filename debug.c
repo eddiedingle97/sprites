@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <time.h>
+#include <stdarg.h>
 #include <allegro5/allegro.h>
 #include <allegro5/allegro_font.h>
 #include <allegro5/allegro_ttf.h>
@@ -60,6 +61,36 @@ void debug_toggle_sprites()
     {
         sm_add_sprite_to_layer(dbinfo);
         sm_add_sprite_to_layer(frame);
+    }
+}
+
+void debug_printf(char *format, ...)
+{
+    if(debug)
+    {
+        va_list vl;
+        va_start(vl, format);
+        vprintf(format, vl);
+        va_end(vl);
+    }
+}
+
+void debug_print_error(char *format, ...)
+{
+    if(debug)
+    {
+        if(!errno)
+        {
+            va_list vl;
+            va_start(vl, format);
+            vfprintf(stderr, format, vl);
+            va_end(vl);
+        }
+
+        else
+        {
+            perror(format);
+        }
     }
 }
 

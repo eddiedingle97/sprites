@@ -1,10 +1,11 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include "../sprites.h"
 #include "list.h"
 
 struct list *list_create()
 {
-	struct list *l = malloc(sizeof(struct list));
+	struct list *l = s_malloc(sizeof(struct list), "list_create");
 	l->size = 0;
 	l->head = NULL;
 	l->tail = NULL;
@@ -33,8 +34,8 @@ void *list_destroy_with_function(struct list *l, void (*destroyfunc)(void *))
 	struct node *temp = l->head;
 	for(i = 0; i < l->size; i++)
 	{
-		destroyfunc(l->head->p);
 		l->head = l->head->next;
+		destroyfunc(temp->p);
 		free(temp);
 		temp = l->head;
 	}
@@ -83,14 +84,14 @@ int list_append(struct list *l, void *p)//append to back
 {
 	if(l->size == 0)
 	{
-		l->head = malloc(sizeof(struct node));
+		l->head = s_malloc(sizeof(struct node), "list_append");
 		l->tail = l->head;
 		l->head->prev = NULL;
 	}
 	
 	else
 	{
-		l->tail->next = malloc(sizeof(struct node));
+		l->tail->next = s_malloc(sizeof(struct node), "list_append");
 		struct node *temp = l->tail;
 		l->tail = l->tail->next;
 		l->tail->prev = temp;
@@ -107,14 +108,14 @@ int list_queue(struct list *l, void *p)//place in front
 {
 	if(l->size == 0)
 	{
-		l->head = malloc(sizeof(struct node));
+		l->head = s_malloc(sizeof(struct node), "list_queue");
 		l->tail = l->head;
 		l->head->next = NULL;
 	}
 
 	else
 	{
-		struct node *newhead = malloc(sizeof(struct node));
+		struct node *newhead = s_malloc(sizeof(struct node), "list_queue");
 		newhead->next = l->head;
 		l->head->prev = newhead;
 		l->head = newhead;
@@ -131,14 +132,14 @@ int list_push(struct list *l, void *p)//place in front
 {
 	if(l->size == 0)
 	{
-		l->head = malloc(sizeof(struct node));
+		l->head = s_malloc(sizeof(struct node), "list_push");
 		l->tail = l->head;
 		l->head->next = NULL;
 	}
 
 	else
 	{
-		struct node *newhead = malloc(sizeof(struct node));
+		struct node *newhead = s_malloc(sizeof(struct node), "list_push");
 		newhead->next = l->head;
 		l->head->prev = newhead;
 		l->head = newhead;
@@ -335,4 +336,18 @@ void *list_delete_node(struct list *l, struct node *node)
 
 	l->size--;
 	return p;
+}
+
+void *list_for_each(struct list *l, void (*func)(void *))
+{
+	int i;
+	struct node *temp = l->head;
+	for(i = 0; i < l->size; i++)
+	{
+		l->head = l->head->next;
+		func(temp->p);
+		temp = l->head;
+	}
+
+	return NULL;
 }

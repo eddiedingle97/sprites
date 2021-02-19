@@ -55,6 +55,22 @@ void sm_add_sprite_to_layer(struct sprite *sprite)
 	nosprites++;
 }
 
+void sm_error_local_and_global(struct sprite *sprite)
+{
+	if(!sprite->name)
+		fprintf(stderr, "Error: sprite cannot be both local and global\n");
+	else
+		fprintf(stderr, "Error: sprite \"%s\" cannot be both local and global\n", sprite->name);
+}
+
+void sm_error_local_nor_global(struct sprite *sprite)
+{
+	if(!sprite->name)
+		fprintf(stderr, "Error: sprite must be either local or global\n");
+	else
+		fprintf(stderr, "Error: sprite \"%s\" must be either local or global\n", sprite->name);
+}
+
 void sm_draw_sprites(ALLEGRO_DISPLAY *display)
 {
 	al_set_target_bitmap(al_get_backbuffer(display));
@@ -144,17 +160,11 @@ void sm_draw_sprites(ALLEGRO_DISPLAY *display)
 					break;
 
 				case 3://LOCAL + GLOBAL
-					if(!sprite->name)
-						fprintf(stderr, "Error: sprite cannot be both local and global\n");
-					else
-						fprintf(stderr, "Error: sprite \"%s\" cannot be both local and global\n", sprite->name);
+					sm_error_local_and_global(sprite);
 					break;
 
 				case 4:
-					if(!sprite->name)
-						fprintf(stderr, "Error: sprite must be either local or global\n");
-					else
-						fprintf(stderr, "Error: sprite \"%s\" must be either local or global\n", sprite->name);
+					sm_error_local_nor_global(sprite);
 					break;
 
 				case 5://LOCAL + CENTERED
@@ -166,21 +176,14 @@ void sm_draw_sprites(ALLEGRO_DISPLAY *display)
 					break;
 				
 				case 7://LOCAL + GLOBAL + CENTERED
-					if(!sprite->name)
-						fprintf(stderr, "Error: sprite cannot be both local and global\n");
-					else
-						fprintf(stderr, "Error: sprite \"%s\" cannot be both local and global\n", sprite->name);
+					sm_error_local_and_global(sprite);
 					break;
 
 				case 8://NOZOOM
-					if(!sprite->name)
-						fprintf(stderr, "Error: sprite must be either local or global\n");
-					else
-						fprintf(stderr, "Error: sprite \"%s\" must be either local or global\n", sprite->name);
+					sm_error_local_nor_global(sprite);
 					break;
 
 				case 9://LOCAL + NOZOOM
-					
 					al_draw_bitmap(sprite->bitmap, sm_get_x(sprite->x, 0), sm_get_y(sprite->y, 0), 0);
 					break;
 
@@ -189,17 +192,11 @@ void sm_draw_sprites(ALLEGRO_DISPLAY *display)
 					break;
 
 				case 11://LOCAL + GLOBAL + NOZOOM
-					if(!sprite->name)
-						fprintf(stderr, "Error: sprite cannot be both local and global\n");
-					else
-						fprintf(stderr, "Error: sprite \"%s\" cannot be both local and global\n", sprite->name);
+					sm_error_local_and_global(sprite);
 					break;
 
 				case 12://CENTERED + NOZOOM
-					if(!sprite->name)
-						fprintf(stderr, "Error: sprite must be either local or global\n");
-					else
-						fprintf(stderr, "Error: sprite \"%s\" must be either local or global\n", sprite->name);
+					sm_error_local_nor_global(sprite);
 					break;
 
 				case 13://LOCAL + CENTERED + NOZOOM
@@ -211,17 +208,11 @@ void sm_draw_sprites(ALLEGRO_DISPLAY *display)
 					break;
 
 				case 15://LOCAL + GLOBAL + CENTERED + NOZOOM
-					if(!sprite->name)
-						fprintf(stderr, "Error: sprite cannot be both local and global\n");
-					else
-						fprintf(stderr, "Error: sprite \"%s\" cannot be both local and global\n", sprite->name);
+					sm_error_local_and_global(sprite);
 					break;
 
 				case 16://TRANSPARENT
-					if(!sprite->name)
-						fprintf(stderr, "Error: sprite must be either local or global\n");
-					else
-						fprintf(stderr, "Error: sprite \"%s\" must be either local or global\n", sprite->name);
+					sm_error_local_nor_global(sprite);
 					break;
 
 				case 17://LOCAL + TRANSPARENT
@@ -235,17 +226,11 @@ void sm_draw_sprites(ALLEGRO_DISPLAY *display)
 					break;
 
 				case 19://LOCAL + GLOBAL + TRANSPARENT
-					if(!sprite->name)
-						fprintf(stderr, "Error: sprite cannot be both local and global\n");
-					else
-						fprintf(stderr, "Error: sprite \"%s\" cannot be both local and global\n", sprite->name);
+					sm_error_local_and_global(sprite);
 					break;
 				
 				case 20://CENTERED + TRANSPARENT
-					if(!sprite->name)
-						fprintf(stderr, "Error: sprite must be either local or global\n");
-					else
-						fprintf(stderr, "Error: sprite \"%s\" must be either local or global\n", sprite->name);
+					sm_error_local_nor_global(sprite);
 					break;
 				
 				case 21://LOCAL + CENTERED + TRANSPARENT
@@ -257,17 +242,11 @@ void sm_draw_sprites(ALLEGRO_DISPLAY *display)
 					break;
 				
 				case 23://LOCAL + GLOBAL + CENTERED + TRANSPARENT
-					if(!sprite->name)
-						fprintf(stderr, "Error: sprite cannot be both local and global\n");
-					else
-						fprintf(stderr, "Error: sprite \"%s\" cannot be both local and global\n", sprite->name);
+					sm_error_local_and_global(sprite);
 					break;
 
 				case 24://NOZOOM + TRANSPARENT
-					if(!sprite->name)
-						fprintf(stderr, "Error: sprite must be either local or global\n");
-					else
-						fprintf(stderr, "Error: sprite \"%s\" must be either local or global\n", sprite->name);
+					sm_error_local_nor_global(sprite);
 					break;
 				
 				case 25://LOCAL + NOZOOM + TRANSPARENT
@@ -279,17 +258,11 @@ void sm_draw_sprites(ALLEGRO_DISPLAY *display)
 					break;
 
 				case 27://LOCAL + GLOBAL + NOZOOM + TRANSPARENT
-					if(!sprite->name)
-						fprintf(stderr, "Error: sprite cannot be both local and global\n");
-					else
-						fprintf(stderr, "Error: sprite \"%s\" cannot be both local and global\n", sprite->name);
+					sm_error_local_and_global(sprite);
 					break;
 
 				case 28://CENTERED + NOZOOM + TRANSPARENT
-					if(!sprite->name)
-						fprintf(stderr, "Error: sprite must be either local or global\n");
-					else
-						fprintf(stderr, "Error: sprite \"%s\" must be either local or global\n", sprite->name);
+					sm_error_local_nor_global(sprite);
 					break;
 				
 				case 29://LOCAL + CENTERED + NOZOOM + TRANSPARENT
@@ -301,10 +274,7 @@ void sm_draw_sprites(ALLEGRO_DISPLAY *display)
 					break;
 
 				case 31://LOCAL + GLOBAL + CENTERED + NOZOOM + TRANSPARENT
-					if(!sprite->name)
-						fprintf(stderr, "Error: sprite cannot be both local and global\n");
-					else
-						fprintf(stderr, "Error: sprite \"%s\" cannot be both local and global\n", sprite->name);
+					sm_error_local_and_global(sprite);
 					break;
 			}
 
@@ -438,9 +408,10 @@ void sm_destroy_sprite(struct sprite *sprite)
 		return;
 
 	if(sprite->id)
+	{
 		sm_remove_sprite_from_layer(sprite);
-	else
 		nosprites--;
+	}
 
 	al_destroy_bitmap(sprite->bitmap);
 

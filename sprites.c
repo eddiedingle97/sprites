@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <unistd.h>
+#include <dirent.h>
 #include <sys/time.h>
 #include <allegro5/allegro.h>
 #include <allegro5/allegro_image.h>
@@ -22,7 +23,7 @@
 static const float FPS = 1/60.0;
 static char debug;
 static unsigned long bytes = 0;
-static char rootdir[512];
+static char *rootdir;
 static char buf[512];
 
 int main(int argc, char **argv)
@@ -32,8 +33,7 @@ int main(int argc, char **argv)
 
 	printf("%ld\n", sizeof(struct tile));
 
-	memset(rootdir, 0, 512);
-	getcwd(rootdir, 512);
+	rootdir = al_get_current_directory();
 
 	while((opt = getopt(argc, argv, "dmn:")) != -1)
         switch(opt)
@@ -170,43 +170,34 @@ int main(int argc, char **argv)
 	}
 
 	game_destroy();
-	if(debug)
-		printf("after game_destroy\n");
+	debug_printf("after game_destroy\n");
 
 	mouse_destroy();
-	if(debug)
-		printf("after mouse_destroy\n");
+	debug_printf("after mouse_destroy\n");
 
 	debug_destroy();
-	if(debug)
-		printf("after debug\n");
+	debug_printf("after debug_destroy\n");
 
 	al_uninstall_keyboard();
-	if(debug)
-		printf("after keyboard\n");
+	debug_printf("after al_uninstall_keyboard\n");
 
 	al_uninstall_mouse();
-	if(debug)
-		printf("after mouse\n");
+	debug_printf("after al_uninstall_mouse\n");
 
 	al_shutdown_image_addon();
-	if(debug)
-		printf("after image_addon\n");
+	debug_printf("after al_shutdown_image_addon\n");
 
 	al_shutdown_ttf_addon();
-	if(debug)
-		printf("after ttf_addon\n");
+	debug_printf("after al_shutdown_ttf_addon\n");
 
 	al_shutdown_font_addon();
-	if(debug)
-		printf("after font_addon\n");
+	debug_printf("after al_shutdown_font_addon\n");
 
 	alobj_destroy(al);
-	if(debug)
-	{
-		printf("after alobj_destroy\n");
-		printf("%ld bytes allocated\n", bytes);
-	}
+	debug_printf("after alobj_destroy\n");
+	debug_printf("%ld bytes allocated\n", bytes);
+
+	al_free(rootdir);
 
 	return 0;
 }
@@ -216,7 +207,7 @@ void *s_malloc(int b, const char *msg)
 	void *out = malloc(b);
 	if(!out)
 	{
-		fprintf(stderr, "Error allocating memory, shutting down\n");
+		debug_print_error("Error allocating memory, shutting down\n");
 		exit(1);
 	}
 	if(debug && msg)
@@ -233,7 +224,7 @@ void *s_realloc(void *ptr, int b, const char *msg)
 	void *out = realloc(ptr, b);
 	if(!out)
 	{
-		fprintf(stderr, "Error reallocating memory, shutting down\n");
+		debug_print_error("Error reallocating memory, shutting down\n");
 		exit(1);
 	}
 	if(debug && msg)
@@ -265,7 +256,7 @@ char *s_get_full_path(char *file)
 	memset(buf, 0, 512);
 	if(strlen(rootdir) + strlen(file) > 510)
 	{
-		fprintf(stderr, "s_get_full_path argument too long, returning null\n");
+		debug_print_error("s_get_full_path argument too long, returning null\n");
 		return NULL;
 	}
 	memcpy(buf, rootdir, strlen(rootdir));
@@ -278,7 +269,7 @@ char *s_get_full_path_with_dir(char *dir, char *file)
 	memset(buf, 0, 512);
 	if(strlen(rootdir) + strlen(dir) + strlen(file) > 509)
 	{
-		fprintf(stderr, "s_get_full_path_with_dir arguments too long, returning null\n");
+		debug_print_error("s_get_full_path_with_dir arguments too long, returning null\n");
 		return NULL;
 	}
 	memcpy(buf, rootdir, strlen(rootdir));
@@ -286,4 +277,25 @@ char *s_get_full_path_with_dir(char *dir, char *file)
 	strcat(buf, dir);
 	strcat(buf, "/");
 	return strcat(buf, file);
+}
+
+struct list *s_get_file_list_from_dir(char *dir)
+{
+	DIR *dr = opendir(s_get_full_path(dir));
+    struct dirent *de;
+	struct list *out = list_create();
+
+    if(dr)
+    {
+        while((de = readdir(dr)) != NULL)
+        {
+            if(*de->d_name != '.')
+            {
+				list_append(out, s_get_heap_string(de->d_name));
+            }
+        }
+        closedir(dr);
+    }
+
+	return out;
 }

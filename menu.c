@@ -12,13 +12,14 @@
 struct menu *menu_create(struct list *itemlist, ALLEGRO_FONT *font, int x, int y, void (*framehandler)(struct menu *), void (*selecthandler)(struct menu *, int, int, char, char, char))
 {
     struct menu *m = s_malloc(sizeof(struct menu), "menu_create");
-    m->items = itemlist;
-    m->font = font;
-    m->x = x;
-    m->y = y;
-    m->frame = NULL;
     m->framehandler = menu_default_frame_handler;
     m->selecthandler = menu_default_select_handler;
+    m->items = itemlist;
+    m->x = x;
+    m->y = y;
+    m->font = font;
+    m->select = NULL;
+    m->frame = NULL;
 
     if(framehandler)
         m->framehandler = framehandler;
@@ -26,7 +27,18 @@ struct menu *menu_create(struct list *itemlist, ALLEGRO_FONT *font, int x, int y
     if(selecthandler)
         m->selecthandler = selecthandler;
 
-    m->framehandler(m);
+    return m;
+}
+
+struct menu *menu_create_default(struct list *itemlist, ALLEGRO_FONT *font, int x, int y)
+{
+    struct menu *m = s_malloc(sizeof(struct menu), "menu_create");
+    m->framehandler = menu_default_frame_handler;
+    m->selecthandler = menu_default_select_handler;
+    m->items = itemlist;
+    m->x = x;
+    m->y = y;
+    m->font = font;
 
     return m;
 }
@@ -39,9 +51,10 @@ void menu_append_menu_item(struct menu *m, struct menuitem *mi)
 
 void menu_destroy(struct menu *m)
 {
-    sm_destroy_sprite_from_layer(m->frame);
     al_destroy_font(m->font);
+    al_destroy_bitmap(m->select);
     list_destroy_with_function(m->items, (void (*)(void *))menu_destroy_menu_item);
+    sm_destroy_sprite(m->frame);
     free(m);
 }
 
@@ -61,12 +74,16 @@ void menu_destroy_menu_item(struct menuitem *mi)
 
 void menu_default_frame_handler(struct menu *m)
 {
+    m->movable = 1;
     m->height = al_get_font_line_height(m->font) * (m->items->size + 2);
     m->width = 200;
-    m->movable = 1;
+    if(!m->frame)
+    {
+        ALLEGRO_BITMAP *frame = al_create_bitmap(m->width, m->height);
+        m->frame = sm_create_sprite(frame, m->x, m->y, MENU, CENTERED | NOZOOM);
+    }
 
-    ALLEGRO_BITMAP *frame = al_create_bitmap(m->width, m->height);
-    al_set_target_bitmap(frame);
+    al_set_target_bitmap(m->frame->bitmap);
     al_clear_to_color(WHITE);
 
     int i, texty = al_get_font_line_height(m->font);
@@ -77,13 +94,6 @@ void menu_default_frame_handler(struct menu *m)
         al_draw_text(m->font, BLACK, 10, texty, 0, mi->entry);
         texty += al_get_font_line_height(m->font);
         node = node->next;
-    }
-    
-    if(!m->frame)
-        m->frame = sm_create_sprite(frame, m->x, m->y, MENU, CENTERED | NOZOOM);
-    else
-    {
-        sm_update_sprite(m->frame, frame, m->x, m->y);
     }
 }
 
@@ -117,5 +127,5 @@ void menu_default_select_handler(struct menu *m, int x, int y, char one, char tw
     item--;
     struct menuitem *mi = list_get(m->items, item);
     if(mi && item > -1 && one)
-        mi->func(NULL);
+        mi->func(mi->entry);
 }

@@ -47,29 +47,32 @@ void game_destroy()
     switch(mode)
     {
         case NONE:
+            mm_destroy();
+            debug_printf("after mm_destroy\n");
+            
+            tm_destroy();
+            debug_printf("after tm_destroy\n");
+
+            sm_destroy();
+            debug_printf("after sm_destroy\n");
             break;
         case REG:
             break;
         case MAKER:
             maker_destroy();
-            if(debug_get())
-                printf("after maker_destroy\n");
+            debug_printf("after maker_destroy\n");
 
             md_destroy();
-            if(debug_get())
-                printf("after md_destroy\n");
-                
+            debug_printf("after md_destroy\n");
+
             mm_destroy();
-            if(debug_get())
-                printf("after mm_destroy\n");
+            debug_printf("after mm_destroy\n");
 
             tm_destroy();
-            if(debug_get())
-                printf("after tm_destroy\n");
+            debug_printf("after tm_destroy\n");
 
             sm_destroy();
-            if(debug_get())
-                printf("after sm_destroy\n");
+            debug_printf("after sm_destroy\n");
             break;
     }
     
@@ -106,7 +109,10 @@ void game_get_actions()
     scroll = mouse_get_scroll();
 
     if(kb_get_toggle_debug())
-        tm_print_tile_maps();
+        debug_toggle_sprites();
+
+    if(kb_get_single_key(MISC))
+        md_remove_last_menu();
 
     switch(mode)
     {

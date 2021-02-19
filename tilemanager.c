@@ -40,7 +40,6 @@ void tm_destroy()
     int i;
     for(i = 0; i < tilemapssize; i++)
     {
-        printf("here %d %p\n", i, tilemaps[i]);
         tm_destroy_tile_map(tilemaps[i]);
     }
     free(tilemaps);
@@ -52,7 +51,7 @@ void tm_print_tile_maps()
     for(i = 0; i < tilemapssize; i++)
     {
         struct tilemap *tm = tilemaps[i];
-        printf("%s, %p, %d\n", tm->tilemapfile, tm->bitmap, tm->tilesize);
+        //printf("%s, %p, %d\n", tm->tilemapfile, tm->bitmap, tm->tilesize);
     }
 }
 
@@ -196,6 +195,7 @@ void tm_draw_tiles(ALLEGRO_DISPLAY *display)
 
     struct node *node;
     struct chunk *chunk;
+    struct tilemap *tilemap;
     struct tile *tile;
     int r, c;
     al_hold_bitmap_drawing(1);
@@ -207,7 +207,8 @@ void tm_draw_tiles(ALLEGRO_DISPLAY *display)
             for(c = 0; c < chunksize; c++)
             {
                 tile = &chunk->tiles[r][c];
-                al_draw_scaled_bitmap(tilemaps[tile->tilemap_z]->bitmap, tile->tilemap_x, tile->tilemap_y, tilemaps[tile->tilemap_z]->tilesize, tilemaps[tile->tilemap_z]->tilesize, sm_get_x(sm_global_to_rel_x(tm_get_tile_x(chunk->x, tilemaps[tile->tilemap_z]->tilesize, c)), 0), sm_get_y(sm_global_to_rel_y(tm_get_tile_y(chunk->y, tilemaps[tile->tilemap_z]->tilesize, r)), 0), newsize, newsize, 0);
+                tilemap = tilemaps[tile->tilemap_z];
+                al_draw_scaled_bitmap(tilemap->bitmap, tile->tilemap_x, tile->tilemap_y, tilemap->tilesize, tilemap->tilesize, sm_get_x(sm_global_to_rel_x(tm_get_tile_x(chunk->x, tilemap->tilesize, c)), 0), sm_get_y(sm_global_to_rel_y(tm_get_tile_y(chunk->y, tilemap->tilesize, r)), 0), newsize, newsize, 0);
             }
         }
     }

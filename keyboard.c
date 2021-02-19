@@ -9,10 +9,8 @@ static struct
     unsigned char key:1;
 } keys[ALLEGRO_KEY_MAX];
 
-enum keypositions {UP, LEFT, DOWN, RIGHT, PAUSE, SHIFT, MAPSAVE, UNDO, TILEMENUSAVE,
-GETTEXT, ENTER, NEXTTILEMENU, TOGGLEDEBUG};
 static char keyconfig[] = {ALLEGRO_KEY_W, ALLEGRO_KEY_A, ALLEGRO_KEY_S, ALLEGRO_KEY_D, ALLEGRO_KEY_ESCAPE, ALLEGRO_KEY_LSHIFT, ALLEGRO_KEY_M, ALLEGRO_KEY_Z, ALLEGRO_KEY_N,
-ALLEGRO_KEY_T, ALLEGRO_KEY_ENTER, ALLEGRO_KEY_TAB, ALLEGRO_KEY_SLASH};
+ALLEGRO_KEY_T, ALLEGRO_KEY_ENTER, ALLEGRO_KEY_TAB, ALLEGRO_KEY_SLASH, ALLEGRO_KEY_TILDE};
 static char gettext = 0;
 static char *textfield = NULL;
 static int textfieldsize = 0;
@@ -77,12 +75,12 @@ char kb_get_key(unsigned char k)
     return keys[keyconfig[k]].key;
 }
 
-char kb_get_single_key(unsigned char k)
+char kb_get_single_key(int k)
 {
     return keys[keyconfig[k]].key && (keys[keyconfig[k]].hist & 1);
 }
 
-char kb_get_shifted_single_key(unsigned char k)
+char kb_get_shifted_single_key(int k)
 {
     return kb_get_single_key(k) && kb_get_key(SHIFT);
 }
