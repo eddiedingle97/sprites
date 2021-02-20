@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include "../sprites.h"
+#include "sprites.h"
 #include "list.h"
 
 struct list *list_create()

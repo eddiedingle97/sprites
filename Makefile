@@ -3,12 +3,12 @@ ALLEGRO := $(shell pkg-config --libs allegro-5 allegro_font-5 allegro_ttf-5 alle
 #LOADER := $(shell export LD_LIBRARY_PATH=/usr/lib64)
 FLAGS = -Wall -O2 -march=native
 IGNORE = -Wno-unused-but-set-variable -Wno-unused-variable -Wno-char-subscripts -Wno-unused-function
-SOURCES = sprites.c alobj.c spritemanager.c mouse.c list/list.c game.c map.c mapmanager.c debug.c maker.c menu.c menudriver.c keyboard.c tilemanager.c
+SOURCES = src/sprites.c src/alobj.c src/spritemanager.c src/mouse.c src/list.c src/game.c src/map.c src/mapmanager.c src/debug.c src/maker.c src/menu.c src/menudriver.c src/keyboard.c src/tilemanager.c
 
 
 
-sprites: sprites.c
+sprites: 
 	gcc $(SOURCES) -o sprites $(FLAGS) $(IGNORE) $(ALLEGRO) 
 
-all: sprites.c 
+all:
 	gcc $(SOURCES) -o sprites $(FLAGS) $(ALLEGRO)

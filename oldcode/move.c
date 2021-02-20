@@ -1,5 +1,5 @@
 #include <allegro5/allegro.h>
-#include "list/list.h"
+#include "list.h"
 #include "move.h"
 #include "colors.h"
 
