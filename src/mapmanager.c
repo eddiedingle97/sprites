@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <stdio.h>
+#include <stdarg.h>
 #include <math.h>
 #include <string.h>
 #include <allegro5/allegro.h>
@@ -9,6 +10,7 @@
 #include "spritemanager.h"
 #include "tilemanager.h"
 #include "mapmanager.h"
+#include "debug.h"
 #include "colors.h"
 
 static struct chunk *corners[4];
@@ -20,9 +22,31 @@ void mm_remove_chunk_from_layer(struct chunk *chunk, int chunksize);
 
 enum DIR {UP = 0, DOWN = 1, LEFT = 2, RIGHT = 3};
 
-void mm_init(struct map *map)
+void mm_init(char *mapdir, ...)
 {
     maps = list_create();
+    struct map *map;
+    if(s_string_match(mapdir, "new"))
+    {
+        va_list vl;
+        va_start(vl, mapdir);
+        int chunksize = va_arg(vl, int);
+        int tilesize = va_arg(vl, int);
+        int width = va_arg(vl, int);
+        int height = va_arg(vl, int);
+        map = map_create(chunksize, tilesize, width, height);
+        va_end(vl);
+    }
+    else
+        map = map_load(mapdir);
+        
+    if(!map)
+    {
+        debug_perror("Failed to create/open map\n");
+        exit(1);
+    }
+    tm_init(map->chunksize);
+    tm_load_tile_maps(mapdir);
     list_append(maps, map);
 
     int distance = DISTANCE / sm_get_zoom();
@@ -64,6 +88,7 @@ void mm_init(struct map *map)
 void mm_destroy()
 {
     list_destroy_with_function(maps, (void (*)(void *))map_destroy);
+    tm_destroy();
 }
 
 struct map *mm_get_top_map()
@@ -184,32 +209,33 @@ void mm_update_chunks()
     corners[BOTTOMRIGHT] = map_get_chunk_from_index(map, corners[BOTTOMRIGHT]->index_x, r);
 }
 
-void mm_save_map()
+void mm_save_map(char *mapname)
 {
-    map_save(list_get(maps, 0), "./maps/map1.map");
+    if(!al_make_directory(s_get_full_path_with_dir("maps", mapname)))
+    {
+        debug_perror("Error creating directory %s\n", s_get_full_path_with_dir("maps", mapname));
+        return;
+    }
+
+    map_save(list_get(maps, 0), mapname);
+
+    tm_save_tile_maps(mapname);
+}
+
+void mm_load_map(char *mapname)
+{
+    char *dir = s_get_heap_string(s_get_full_path(mapname));
+
+    list_append(maps, map_load(dir));
+
+    tm_load_tile_maps(dir);
+
+    free(dir);
 }
 
 struct chunk **mm_get_corners()
 {
     return corners;
-}
-
-void mm_add_tile_map(char *filepath, int tilesize)
-{
-    struct map *map = mm_get_top_map();
-    struct node *node;
-    char nomatch = 1;
-    for(node = map->tilemaps->head; node != NULL; node = node->next)
-        nomatch = nomatch & s_string_match(filepath, (char *)node->p);
-
-    if(nomatch)
-    {
-        struct tilemap *tm = s_malloc(sizeof(struct tilemap), "tm: mm_add_tile_map");
-        tm->tilemapfile = s_get_heap_string(filepath);
-        tm->bitmap = al_load_bitmap(filepath);
-        tm->tilesize = tilesize;
-        list_append(map->tilemaps, tm);
-    }
 }
 
 struct tile *mm_get_tile(int x, int y)
@@ -232,9 +258,6 @@ struct tile *mm_update_tile(int x, int y, struct tile *tile)
     oldtile->solid = tile->solid;
     oldtile->breakable = tile->breakable;
     oldtile->damage = tile->damage;
-
-    struct tilemap *tm = tm_get_tile_map_from_z(tile->tilemap_z);
-    mm_add_tile_map(tm->tilemapfile, tm->tilesize);
 
     return oldtile;
 }

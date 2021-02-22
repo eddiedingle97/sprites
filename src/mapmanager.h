@@ -1,12 +1,12 @@
 #ifndef __MAPMANAGER_H__
 #define __MAPMANAGER_H__
 
-void mm_init(struct map *map);
+void mm_init(char *mapdir, ...);
 void mm_destroy();
 void mm_update_chunks();
 void mm_test_color_chunk(struct chunk *chunk);
 void mm_test_color_tile(int x, int y);
-void mm_save_map();
+void mm_save_map(char *mapname);
 struct map *mm_get_top_map();
 struct chunk **mm_get_corners();
 struct chunk *mm_get_chunk_from_rel_coordinate(int x, int y);

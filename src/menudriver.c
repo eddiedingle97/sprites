@@ -22,7 +22,7 @@ void md_init()
     grab = NULL;
     grabx = 0;
     graby = 0;
-    menuhover = 0;
+    menuhover = NULL;
 }
 
 void md_destroy()

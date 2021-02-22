@@ -84,14 +84,14 @@ int list_append(struct list *l, void *p)//append to back
 {
 	if(l->size == 0)
 	{
-		l->head = s_malloc(sizeof(struct node), "list_append");
+		l->head = s_malloc(sizeof(struct node), NULL);
 		l->tail = l->head;
 		l->head->prev = NULL;
 	}
 	
 	else
 	{
-		l->tail->next = s_malloc(sizeof(struct node), "list_append");
+		l->tail->next = s_malloc(sizeof(struct node), NULL);
 		struct node *temp = l->tail;
 		l->tail = l->tail->next;
 		l->tail->prev = temp;
@@ -108,14 +108,14 @@ int list_queue(struct list *l, void *p)//place in front
 {
 	if(l->size == 0)
 	{
-		l->head = s_malloc(sizeof(struct node), "list_queue");
+		l->head = s_malloc(sizeof(struct node), NULL);
 		l->tail = l->head;
 		l->head->next = NULL;
 	}
 
 	else
 	{
-		struct node *newhead = s_malloc(sizeof(struct node), "list_queue");
+		struct node *newhead = s_malloc(sizeof(struct node), NULL);
 		newhead->next = l->head;
 		l->head->prev = newhead;
 		l->head = newhead;
@@ -132,14 +132,14 @@ int list_push(struct list *l, void *p)//place in front
 {
 	if(l->size == 0)
 	{
-		l->head = s_malloc(sizeof(struct node), "list_push");
+		l->head = s_malloc(sizeof(struct node), NULL);
 		l->tail = l->head;
 		l->head->next = NULL;
 	}
 
 	else
 	{
-		struct node *newhead = s_malloc(sizeof(struct node), "list_push");
+		struct node *newhead = s_malloc(sizeof(struct node), NULL);
 		newhead->next = l->head;
 		l->head->prev = newhead;
 		l->head = newhead;

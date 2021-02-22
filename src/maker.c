@@ -67,6 +67,7 @@ void maker_init()
     grabbedtilenode = NULL;
     mode = EDIT;
     ghosttile = s_malloc(sizeof(struct tile), "ghosttile: maker_init");
+    memset(ghosttile, 0, sizeof(struct tile));
     
     struct list *makermenuitems = list_create();
     
@@ -82,7 +83,7 @@ void maker_init()
     for(node = images->head; node != NULL; node = node->next)
         list_append(imagemenuitems, menu_create_menu_item(node->p, maker_load_image_function));
     list_destroy(images);
-    image->menu = menu_create_default(imagemenuitems, al_load_ttf_font("./fonts/lcd.ttf", 15, 0), -WIDTH / 2 + 400, HEIGHT / 2);
+    image->menu = menu_create_default(imagemenuitems, al_load_ttf_font("./fonts/lcd.ttf", 15, 0), -WIDTH / 2 + 400, 400);
     list_append(makermenuitems, menu_create_menu_item(image, (void *(*)(void *))maker_open_sub_menu));
 
     struct menuentrysub *file = s_malloc(sizeof(struct menuentrysub), "file: maker_init");
@@ -92,7 +93,7 @@ void maker_init()
     for(node = files->head; node != NULL; node = node->next)
         list_append(filemenuitems, menu_create_menu_item(node->p, maker_load_tile_menu_function));
     list_destroy(files);
-    file->menu = menu_create_default(filemenuitems, al_load_ttf_font("./fonts/lcd.ttf", 15, 0), -WIDTH / 2 + 400, HEIGHT / 2);
+    file->menu = menu_create_default(filemenuitems, al_load_ttf_font("./fonts/lcd.ttf", 15, 0), -WIDTH / 2 + 400, 400);
     list_append(makermenuitems, menu_create_menu_item(file, (void *(*)(void *))maker_open_sub_menu));
 
     makermenu = menu_create(makermenuitems, al_load_ttf_font("./fonts/lcd.ttf", 20, 0), -WIDTH / 2, HEIGHT / 2, maker_main_menu_frame_handler, maker_main_menu_select_handler);
@@ -128,7 +129,6 @@ void maker_destroy_maker_menu(struct menu *m)
 {
     al_destroy_font(m->font);
 
-    int i;
     struct node *node = m->items->head;
     menu_destroy_menu_item(node->p);
     node = node->next;

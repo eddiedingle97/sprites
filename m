@@ -1,7 +1,8 @@
 #!/bin/sh
 
-export LDLIBRARYPATH=$LDLIBRARYPATH:/usr/local/lib
 rm sprites
+export LDLIBRARYPATH=$LDLIBRARYPATH:/usr/local/lib
+
 if [ $# -eq "0" ] 
 then
     make sprites

@@ -22,7 +22,7 @@ void maker_main_menu_frame_handler(struct menu *m)
     struct node *node = m->items->head;
     for(i = 0; i < 2; i++)
     {
-        struct menuitem *mi = (struct menuitem *)node->p;
+        struct menuitem *mi = node->p;
         al_draw_text(m->font, BLACK, 10, texty, 0, mi->entry);
         texty += al_get_font_line_height(m->font);
         node = node->next;

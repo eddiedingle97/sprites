@@ -32,13 +32,15 @@ struct menu *menu_create(struct list *itemlist, ALLEGRO_FONT *font, int x, int y
 
 struct menu *menu_create_default(struct list *itemlist, ALLEGRO_FONT *font, int x, int y)
 {
-    struct menu *m = s_malloc(sizeof(struct menu), "menu_create");
+    struct menu *m = s_malloc(sizeof(struct menu), "menu_create_default");
     m->framehandler = menu_default_frame_handler;
     m->selecthandler = menu_default_select_handler;
     m->items = itemlist;
     m->x = x;
     m->y = y;
     m->font = font;
+    m->select = NULL;
+    m->frame = NULL;
 
     return m;
 }
@@ -90,7 +92,7 @@ void menu_default_frame_handler(struct menu *m)
     struct node *node = m->items->head;
     for(i = 0; i < m->items->size; i++)
     {
-        struct menuitem *mi = (struct menuitem *)node->p;
+        struct menuitem *mi = node->p;
         al_draw_text(m->font, BLACK, 10, texty, 0, mi->entry);
         texty += al_get_font_line_height(m->font);
         node = node->next;

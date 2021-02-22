@@ -10,11 +10,13 @@
 #include "mouse.h"
 #include "colors.h"
 
+#define BUFSIZE 512
+
 static int debug = 0;
 static struct sprite *frame;
 static ALLEGRO_FONT *font;
 static struct sprite *dbinfo;
-static char buf[32];
+static char buf[BUFSIZE];
 
 void debug_init(char d)
 {
@@ -75,7 +77,7 @@ void debug_printf(char *format, ...)
     }
 }
 
-void debug_print_error(char *format, ...)
+void debug_perror(char *format, ...)
 {
     if(debug)
     {
@@ -89,7 +91,12 @@ void debug_print_error(char *format, ...)
 
         else
         {
-            perror(format);
+            va_list vl;
+            va_start(vl, format);
+            memset(buf, 0, BUFSIZE);
+            vsprintf(buf, format, vl);
+            perror(buf);
+            va_end(vl);
         }
     }
 }

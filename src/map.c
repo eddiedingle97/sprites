@@ -1,20 +1,16 @@
 #include <stdio.h>
 #include <string.h>
 #include <allegro5/allegro.h>
-#include "list.h"
-#include "spritemanager.h"
 #include "map.h"
-#include "tilemanager.h"
 #include "sprites.h"
 #include "map.h"
+#include "debug.h"
 #include "colors.h"
 
-static ALLEGRO_BITMAP *test, *purplebitmap;
-
-struct chunk *map_init_chunk(struct map *map, FILE *file, int x, int y, int *table);
+struct chunk *map_init_chunk(struct map *map, ALLEGRO_FILE *file, int x, int y);
 struct chunk *map_create_test_chunk(int x, int y, int chunksize);
 void map_create_test_chunk_list(struct map *map);
-void map_create_chunks(struct map *map, FILE *file, int *table);
+void map_create_chunks(struct map *map, ALLEGRO_FILE *file);
 
 struct map *map_create(int chunksize, int tilesize, int width, int height)
 {
@@ -23,7 +19,7 @@ struct map *map_create(int chunksize, int tilesize, int width, int height)
     map->tilesize = tilesize;
     map->height = height;
     map->width = width;
-    map->tilemaps = list_create();
+    map->name = NULL;
     map_create_test_chunk_list(map);
 
     return map;
@@ -31,8 +27,7 @@ struct map *map_create(int chunksize, int tilesize, int width, int height)
 
 void map_create_test_chunk_list(struct map *map)
 {
-    map->chunks = s_malloc(sizeof(struct chunk **) * map->height, "map->chunks: map_create_test_chunk_list");
-
+    map->chunks = s_malloc(sizeof(struct chunk **) * map->height, NULL);
     int gridsize = map->tilesize * map->chunksize;
     int x = -(gridsize * map->width / 2);
     int smx = x;
@@ -41,7 +36,7 @@ void map_create_test_chunk_list(struct map *map)
     int r, c;
     for(r = 0; r < map->height; r++)
     {
-        map->chunks[r] = s_malloc(sizeof(struct chunk *) * map->width, "map->chunks[r]: map_create_test_chunk_list");
+        map->chunks[r] = s_malloc(sizeof(struct chunk *) * map->width, NULL);
         for(c = 0; c < map->width; c++)
         {
             map->chunks[r][c] = map_create_test_chunk(x, y, map->chunksize);
@@ -58,15 +53,15 @@ void map_create_test_chunk_list(struct map *map)
 struct chunk *map_create_test_chunk(int x, int y, int chunksize)
 {
     struct chunk *chunk;
-    chunk = s_malloc(sizeof(struct chunk), "chunk: map_create_test_chunk");
-    chunk->tiles = s_malloc(sizeof(struct tile *) * chunksize, "chunk->tiles: map_create_test_chunk");
+    chunk = s_malloc(sizeof(struct chunk), NULL);
+    chunk->tiles = s_malloc(sizeof(struct tile *) * chunksize, NULL);
     chunk->x = x;
     chunk->y = y;
 
     int r, c;
     for(r = 0; r < chunksize; r++)
     {
-        chunk->tiles[r] = s_malloc(sizeof(struct tile) * chunksize, "chunk->tiles[r]: map_create_test_chunk");
+        chunk->tiles[r] = s_malloc(sizeof(struct tile) * chunksize, NULL);
 
         for(c = 0; c < chunksize; c++)
         {
@@ -104,39 +99,29 @@ struct chunk *map_get_chunk_from_index(struct map *map, int x, int y)
     return map->chunks[y][x];
 }
 
-int map_save(struct map *map, const char *filepath)
+int map_save(struct map *map, char *mapname)
 {
-    FILE *file = fopen(filepath, "w");
+    char buf[1024];
+    memset(buf, 0, 1024);
+    strcat(buf, "maps/");
+    strcat(buf, mapname);
+    ALLEGRO_FILE *file = al_fopen(s_get_full_path_with_dir(buf, "mapfile"), "w");
 
     if(!file)
     {
         perror("Error in map_save");
-        return -1;        
+        return -1;
     }
 
     int count;
-    char buf[1024];
     memset(buf, 0, 1024);
     if((count = sprintf(buf, "%d,%d,%d,%d\n", map->width, map->height, map->chunksize, map->tilesize)) < 0)
     {
         perror("Error in map_save");
         return -1;
     }
-    fwrite(buf, sizeof(char), count, file);
+    al_fwrite(file, buf, count);
 
-    int i;
-    if(map->tilemaps)
-    {
-        for(i = 0; i < map->tilemaps->size; i++)
-        {
-            memset(buf, 0, 1024);
-            struct tilemap *tm = list_get(map->tilemaps, i);
-            count = sprintf(buf, "%s\n", tm->tilemapfile);
-            fwrite(buf, sizeof(char), strlen(buf), file);
-        }
-    }
-
-    putc('\n', file);
     int r, c;
     for(r = 0; r < map->height; r++)
     {
@@ -147,48 +132,53 @@ int map_save(struct map *map, const char *filepath)
             {
                 for(c2 = 0; c2 < map->chunksize; c2++)
                 {
-                    struct tile tile = map->chunks[r][c]->tiles[r2][c2];
-                    count = sprintf(buf, "%d,%d,%d,%d,%d,%d\n", tile.tilemap_x, tile.tilemap_y, tile.tilemap_z, tile.solid, tile.breakable, tile.damage);
-                    fwrite(buf, sizeof(char), count, file);
+                    struct tile *tile = &map->chunks[r][c]->tiles[r2][c2];
+                    count = sprintf(buf, "%d,%d,%d,%d,%d,%d\n", tile->tilemap_x, tile->tilemap_y, tile->tilemap_z, tile->solid, tile->breakable, tile->damage);
+                    al_fwrite(file, buf, count);
                 }
             }
         }
     }
 
-    fclose(file);
+    al_fclose(file);
     return 0;
 }
 
-struct chunk *map_init_chunk(struct map *map, FILE *file, int x, int y, int *table)
+struct chunk *map_init_chunk(struct map *map, ALLEGRO_FILE *file, int x, int y)
 {
     struct chunk *chunk;
-    chunk = s_malloc(sizeof(struct chunk), "chunk: map_init_chunk");
-    chunk->tiles = s_malloc(sizeof(struct tile *) * map->chunksize, "chunk->tiles: map_init_chunk");
+    chunk = s_malloc(sizeof(struct chunk), NULL);
+    chunk->tiles = s_malloc(sizeof(struct tile *) * map->chunksize, NULL);
     chunk->x = x;
     chunk->y = y;
     chunk->id = NULL;
 
     char buf[32];
-
     int r, c;
     for(r = 0; r < map->chunksize; r++)
     {
-        chunk->tiles[r] = s_malloc(sizeof(struct tile) * map->chunksize, "chunk->tiles[r]: map_init_chunk");
+        chunk->tiles[r] = s_malloc(sizeof(struct tile) * map->chunksize, NULL);
         for(c = 0; c < map->chunksize; c++)
         {
-            struct tile *tile = &chunk->tiles[r][c];
-            if(!fgets(buf, 32, file))
+            if(!al_fgets(file, buf, 32))
             {
-                fprintf(stderr, "Corrupted map file: not enough tiles\n");
-                exit(1);
+                debug_perror("Corrupted map file: not enough tiles\n");
+                chunk->tiles[r][c].tilemap_x = 0;
+                chunk->tiles[r][c].tilemap_y = 0;
+                chunk->tiles[r][c].tilemap_z = 1;
+                chunk->tiles[r][c].solid = 0;
+                chunk->tiles[r][c].breakable = 0;
+                chunk->tiles[r][c].damage = 0;
             }
-            
-            tile->tilemap_x = atoi(strtok(buf, ","));
-            tile->tilemap_y = atoi(strtok(NULL, ","));
-            tile->tilemap_z = table[atoi(strtok(NULL, ","))];
-            tile->solid = atoi(strtok(NULL, ","));
-            tile->breakable = atoi(strtok(NULL, ","));
-            tile->damage = atoi(strtok(NULL, ","));
+            else
+            {
+                chunk->tiles[r][c].tilemap_x = atoi(strtok(buf, ","));
+                chunk->tiles[r][c].tilemap_y = atoi(strtok(NULL, ","));
+                chunk->tiles[r][c].tilemap_z = atoi(strtok(NULL, ","));
+                chunk->tiles[r][c].solid = atoi(strtok(NULL, ","));
+                chunk->tiles[r][c].breakable = atoi(strtok(NULL, ","));
+                chunk->tiles[r][c].damage = atoi(strtok(NULL, ","));
+            }
         }
     }
 
@@ -210,9 +200,9 @@ struct tile *map_get_tile_from_coordinate(struct map *map, int x, int y)
     return &chunk->tiles[y][x];
 }
 
-void map_create_chunks(struct map *map, FILE *file, int *table)
+void map_create_chunks(struct map *map, ALLEGRO_FILE *file)
 {
-    map->chunks = s_malloc(sizeof(struct chunk **) * map->height, "map->chunks: map_create_chunks");
+    map->chunks = s_malloc(sizeof(struct chunk **) * map->height, NULL);
 
     int gridsize = map->tilesize * map->chunksize;
     int x = -(gridsize * map->width / 2);
@@ -222,10 +212,11 @@ void map_create_chunks(struct map *map, FILE *file, int *table)
     int r, c;
     for(r = 0; r < map->height; r++)
     {
-        map->chunks[r] = s_malloc(sizeof(struct chunk *) * map->width, "map->chunks[r]: map_create_chunks");
+        map->chunks[r] = s_malloc(sizeof(struct chunk *) * map->width, NULL);
+
         for(c = 0; c < map->width; c++)
         {
-            map->chunks[r][c] = map_init_chunk(map, file, x, y, table);
+            map->chunks[r][c] = map_init_chunk(map, file, x, y);
             map->chunks[r][c]->index_x = c;
             map->chunks[r][c]->index_y = r;
             x += gridsize;
@@ -235,62 +226,46 @@ void map_create_chunks(struct map *map, FILE *file, int *table)
     }
 }
 
-struct map *map_load(const char *mapfile)
+struct map *map_load(char *dir)
 {
     struct map *map = s_malloc(sizeof(struct map), "map: map_load");
 
-    FILE *file = fopen(mapfile, "r");
+    map->name = s_get_heap_string(dir);
 
-    if(!file)
+    char buf[32];
+    memset(buf, 0, 32);
+    strcat(buf, "maps/");
+    strcat(buf, dir);
+
+    ALLEGRO_FILE *mapfile = al_fopen(s_get_full_path_with_dir(buf, "mapfile"), "r");
+
+    if(!mapfile)
     {
+        free(map->name);
         free(map);
-        perror("Error in map_load");
+        al_fclose(mapfile);
+        debug_perror("Error in map_load\n");
         return NULL;
     }
 
-    char buf[1024];
-    fgets(buf, 1024, file);
+    memset(buf, 0, 32);
+    if(!al_fgets(mapfile, buf, 32))
+    {
+        free(map->name);
+        free(map);
+        al_fclose(mapfile);
+        debug_perror("Error in map_load\n");
+        return NULL;
+    }
 
     map->width = atoi(strtok(buf, ","));
     map->height = atoi(strtok(NULL, ","));
     map->chunksize = atoi(strtok(NULL, ","));
     map->tilesize = atoi(strtok(NULL, ","));
 
-    map->tilemaps = list_create();
-    int *table = s_malloc(2 * sizeof(int), "table: map_load");
-    table[0] = 0;
-    table[1] = 1;
-    int size = 2;
-    
-    memset(buf, 0, 1024);
+    map_create_chunks(map, mapfile);
 
-    while(strcmp(fgets(buf, 1024, file), "\n"))
-    {
-        buf[strlen(buf) - 1] = '\0';
-        
-        int z = tm_load_tile_map(buf, map->tilesize);
-        int nomatch = 1;
-        int i;
-        for(i = 0; i < size; i++)
-        {
-            if(table[i] == z)
-                nomatch = 0;
-        }
-        if(nomatch)
-        {
-            table = s_realloc(table, sizeof(int), "table: map_load");
-            table[size++] = z;
-            list_append(map->tilemaps, tm_get_tile_map_from_z(z));
-        }
-        
-        memset(buf, 0, 1024);
-    }
-
-    map_create_chunks(map, file, table);
-
-    free(table);
-
-    fclose(file);
+    al_fclose(mapfile);
 
     return map;
 }
@@ -312,8 +287,17 @@ void map_destroy(struct map *map)
 
     int r, c;
     for(r = 0; r < map->height; r++)
+    {
         for(c = 0; c < map->width; c++)
+        {
             map_destroy_chunk(map->chunks[r][c], map->chunksize);
+        }
+        free(map->chunks[r]);
+    }
+    free(map->chunks);
+
+    if(map->name)
+        free(map->name);
 
     free(map);
 }

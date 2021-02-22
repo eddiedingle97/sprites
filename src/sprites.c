@@ -31,7 +31,7 @@ int main(int argc, char **argv)
 	char opt, mode = 0, newmap = 0;
 	int width = 0, height = 0;
 
-	printf("%ld\n", sizeof(struct tile));
+	printf("%ld\n", sizeof(struct list));
 
 	rootdir = al_get_current_directory();
 
@@ -207,12 +207,13 @@ void *s_malloc(int b, const char *msg)
 	void *out = malloc(b);
 	if(!out)
 	{
-		debug_print_error("Error allocating memory, shutting down\n");
+		debug_perror("Error allocating %d bytes of memory, shutting down\n", b);
 		exit(1);
 	}
-	if(debug && msg)
+	if(debug)
 	{
-		puts(msg);
+		if(msg)
+			printf("%s: %d\n", msg, b);
 		bytes += b;
 	}
 
@@ -224,12 +225,13 @@ void *s_realloc(void *ptr, int b, const char *msg)
 	void *out = realloc(ptr, b);
 	if(!out)
 	{
-		debug_print_error("Error reallocating memory, shutting down\n");
+		debug_perror("Error reallocating %d bytes memory, shutting down\n", b);
 		exit(1);
 	}
-	if(debug && msg)
+	if(debug)
 	{
-		puts(msg);
+		if(msg)
+			printf("%s: %d\n", msg, b);
 		bytes += b;
 	}
 	
@@ -238,7 +240,9 @@ void *s_realloc(void *ptr, int b, const char *msg)
 
 char *s_get_heap_string(const char *str)
 {
-    return memcpy(s_malloc(sizeof(char) * (strlen(str) + 1), "s_get_heap_string"), str, strlen(str) + 1);
+    char *out = memcpy(s_malloc(sizeof(char) * (strlen(str) + 1), "s_get_heap_string"), str, strlen(str) + 1);
+	printf("%s\n", out);
+	return out;
 }
 
 char s_string_match(char *one, char *two)
@@ -256,7 +260,7 @@ char *s_get_full_path(char *file)
 	memset(buf, 0, 512);
 	if(strlen(rootdir) + strlen(file) > 510)
 	{
-		debug_print_error("s_get_full_path argument too long, returning null\n");
+		debug_perror("s_get_full_path argument too long, returning null\n");
 		return NULL;
 	}
 	memcpy(buf, rootdir, strlen(rootdir));
@@ -269,7 +273,7 @@ char *s_get_full_path_with_dir(char *dir, char *file)
 	memset(buf, 0, 512);
 	if(strlen(rootdir) + strlen(dir) + strlen(file) > 509)
 	{
-		debug_print_error("s_get_full_path_with_dir arguments too long, returning null\n");
+		debug_perror("s_get_full_path_with_dir arguments too long, returning null\n");
 		return NULL;
 	}
 	memcpy(buf, rootdir, strlen(rootdir));

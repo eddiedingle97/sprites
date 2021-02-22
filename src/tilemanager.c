@@ -50,8 +50,67 @@ void tm_print_tile_maps()
     for(i = 0; i < tilemapssize; i++)
     {
         struct tilemap *tm = tilemaps[i];
-        //printf("%s, %p, %d\n", tm->tilemapfile, tm->bitmap, tm->tilesize);
+        printf("%s, %p, %d\n", tm->tilemapfile, tm->bitmap, tm->tilesize);
     }
+}
+
+void tm_save_tile_maps(char *dir)
+{
+    char buf[512];
+    memset(buf, 0, 512);
+    strcat(buf, "maps/");
+    strcat(buf, dir);
+    ALLEGRO_FILE *tilemapconfig = al_fopen(s_get_full_path_with_dir(buf, "tilemapconfig"), "w");
+    if(!tilemapconfig)
+    {
+        debug_perror("Error opening file in tm_save_tilemaps in dir %s\n", buf);
+        return;
+    }
+    int i, count;
+    
+    struct tilemap *tm;
+    for(i = 2; i < tilemapssize; i++)
+    {
+        memset(buf, 0, 512);
+        tm = tilemaps[i];
+        count = sprintf(buf, "%s,%d\n", tm->tilemapfile, tm->tilesize);
+        if(al_fwrite(tilemapconfig, buf, count) != count)
+            debug_perror("Error writing to file in tm_save_tilemaps");
+    }
+
+    al_fclose(tilemapconfig);
+}
+
+int tm_load_tile_maps(char *dir)
+{
+    char buf[512];
+    memset(buf, 0, 512);
+    strcat(buf, "maps/");
+    strcat(buf, dir);
+    ALLEGRO_FILE *tilemapconfig = al_fopen(s_get_full_path_with_dir(buf, "tilemapconfig"), "r");
+    if(!tilemapconfig)
+    {
+        debug_perror("Error opening tilemapconfig for map \"%s\"\n", dir);
+        return -1;
+    }
+
+    char *comma;
+    memset(buf, 0, 512);
+    while(al_fgets(tilemapconfig, buf, 512))
+    {
+        comma = strchr(buf, ',');
+        *comma = '\0';
+        if(strchr(comma + 1, ','))
+        {
+            debug_perror("Error: tilemap image file name contains a comma\n");
+            return -1;
+        }
+
+        tm_load_tile_map(buf, atoi(comma + 1));
+        memset(buf, 0, 512);
+    }
+    al_fclose(tilemapconfig);
+    return 0;
 }
 
 int tm_load_tile_map(char *tilemapfile, int tilesize)
@@ -83,7 +142,7 @@ struct tilemap *tm_load_tile_map_from_file(char *tilemapfile, int tilesize)
     return out;
 }
 
-void tm_add_tile_map_list(struct list *l)
+/*void tm_add_tile_map_list(struct list *l)
 {
     struct node *node;
     struct tilemap *tm = NULL;
@@ -102,7 +161,7 @@ void tm_add_tile_map_list(struct list *l)
             tm_add_tile_map(tm);
         nomatch = 1;
     }
-}
+}*/
 
 struct tilemap *tm_get_tile_map_for_tile(struct tile *tile)
 {
@@ -127,7 +186,7 @@ int tm_add_tile_map(struct tilemap *tm)
         return ERROR;
     }
 
-    tilemaps = s_realloc(tilemaps, sizeof(struct tilemap *), "tm_add_tile_map");
+    tilemaps = s_realloc(tilemaps, sizeof(struct tilemap *) * (tilemapssize + 1), "tm_add_tile_map");
     tilemaps[tilemapssize] = tm;
     return tilemapssize++;
 }

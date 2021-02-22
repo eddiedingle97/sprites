@@ -15,5 +15,7 @@ int tm_get_tile_x(int chunk_x, int tilesize, int column);
 int tm_get_tile_y(int chunk_y, int tilesize, int row);
 void tm_print_tile_maps();
 struct tilemap *tm_get_tile_map_from_z(int z);
+void tm_save_tile_maps(char *dir);
+int tm_load_tile_maps(char *dir);
 
 #endif

@@ -27,15 +27,13 @@ void game_init(char gamemode, char newmap, int width, int height)
     {
         case NONE:
             sm_init(0, 0);
-            tm_init(5);
-            mm_init(map_create(5, 16, 200, 200));
+            mm_init("new", 5, 16, 20, 20);
             break;
         case REG:
             break;
         case MAKER:
             sm_init(0, 0);
-            tm_init(5);
-            mm_init(newmap ? map_create(5, 16, width, height) : map_load("./maps/map1.map"));
+            newmap ? mm_init("new", 5, 16, width, height) : mm_init("map1");
             md_init();
             maker_init();
             break;
@@ -49,14 +47,10 @@ void game_destroy()
         case NONE:
             mm_destroy();
             debug_printf("after mm_destroy\n");
-            
-            tm_destroy();
-            debug_printf("after tm_destroy\n");
 
             sm_destroy();
             debug_printf("after sm_destroy\n");
 
-            
             break;
         case REG:
             break;
@@ -69,9 +63,6 @@ void game_destroy()
 
             mm_destroy();
             debug_printf("after mm_destroy\n");
-
-            tm_destroy();
-            debug_printf("after tm_destroy\n");
 
             sm_destroy();
             debug_printf("after sm_destroy\n");
@@ -115,7 +106,7 @@ void game_get_actions()
         debug_toggle_sprites();
 
     if(kb_get_single_key(MISC))
-        md_remove_last_menu();
+        tm_print_tile_maps();
 
     switch(mode)
     {
@@ -137,7 +128,7 @@ void game_get_actions()
             maker_actions();
 
             if(kb_get_mapsave())
-                mm_save_map();
+                mm_save_map("map1");
 
             if(kb_get_tile_menu_save())
                 maker_show_solid_tiles();

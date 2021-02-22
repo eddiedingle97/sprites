@@ -7,6 +7,6 @@ void debug_destroy();
 void debug_tick(long time);
 void debug_toggle_sprites();
 void debug_printf(char *format, ...);
-void debug_print_error(char *format, ...);
+void debug_perror(char *format, ...);
 
 #endif
