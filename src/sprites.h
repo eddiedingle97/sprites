@@ -12,5 +12,7 @@ char *s_get_root_dir();
 char *s_get_full_path(char *str);
 char *s_get_full_path_with_dir(char *dir, char *file);
 struct list *s_get_file_list_from_dir(char *dir);
+int s_round(float f);
+int s_floor(float f);
 
 #endif

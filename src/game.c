@@ -14,6 +14,7 @@
 #include "menu.h"
 #include "menudriver.h"
 #include "maker.h"
+#include "movementandcollision.h"
 #include "debug.h"
 
 void game_get_actions();
@@ -36,6 +37,7 @@ void game_init(char gamemode, char newmap, int width, int height)
             newmap ? mm_init("new", 5, 16, width, height) : mm_init("map1");
             md_init();
             maker_init();
+            mc_init();
             break;
     }
 }
@@ -78,7 +80,7 @@ void game_tick(ALLEGRO_DISPLAY *display)
         case NONE:
             game_get_actions();
             mm_update_chunks();
-            tm_draw_tiles(display);
+            tm_draw_chunks(display);
             sm_draw_sprites(display);
             break;
 
@@ -88,7 +90,7 @@ void game_tick(ALLEGRO_DISPLAY *display)
         case MAKER:
             game_get_actions();
             mm_update_chunks();
-            tm_draw_tiles(display);
+            tm_draw_chunks(display);
             sm_draw_sprites(display);
             break;
     }
@@ -105,13 +107,13 @@ void game_get_actions()
     if(kb_get_toggle_debug())
         debug_toggle_sprites();
 
-    if(kb_get_single_key(MISC))
-        tm_print_tile_maps();
+    if(kb_get_mapsave())
+        mm_save_map("map1");
 
     switch(mode)
     {
         case NONE:
-            sm_move_coord(up * coef, down * coef, left * coef, right * coef);
+            mc_do_movement(up * coef, down * coef, left * coef, right * coef);
             sm_set_zoom(scroll);
 
             if(mouse_get_single_one())
@@ -123,7 +125,7 @@ void game_get_actions()
 
         case MAKER:
             md_menu_tick();
-            sm_move_coord(up * coef, down * coef, left * coef, right * coef);
+            mc_do_movement(up * coef, down * coef, left * coef, right * coef);
             sm_set_zoom(scroll);
             maker_actions();
 
@@ -138,6 +140,9 @@ void game_get_actions()
                 memset(buf, 0, 64);
                 kb_get_text(buf, 64);
             }
+
+            if(kb_get_single_key(MISC))
+                maker_save_tile_menus();
 
             if(kb_get_next_tile_menu())
                 maker_show_tile_menu(-1);

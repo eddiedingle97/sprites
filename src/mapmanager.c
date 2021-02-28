@@ -104,7 +104,7 @@ void mm_test_color_chunk(struct chunk *chunk)
             chunk->tiles[r][c].tilemap_z = 1;
 }
 
-void mm_test_color_tile(int x, int y)
+void mm_test_color_tile(float x, float y)
 {
     struct map *map = list_get(maps, 0);
     struct chunk *chunk = map_get_chunk_from_coordinate(map, x, y);
@@ -117,10 +117,10 @@ void mm_test_color_tile(int x, int y)
     x /= map->tilesize;
     y /= map->tilesize;
 
-    chunk->tiles[y][x].tilemap_z = 1;
+    chunk->tiles[s_floor(y)][s_floor(x)].tilemap_z = 1;
 }
 
-struct chunk *mm_get_chunk_from_rel_coordinate(int x, int y)
+struct chunk *mm_get_chunk_from_rel_coordinate(float x, float y)
 {
     return map_get_chunk_from_coordinate(list_get(maps, 0), sm_rel_to_global_x(x), sm_rel_to_global_y(y));
 }
@@ -149,7 +149,7 @@ void mm_update_chunks()
     /*
         This code checks to see if there are chunks to load or unload on the sides of what is currently loaded
     */
-    
+
     int r, c;
     for(c = corners[TOPRIGHT]->index_x + 1; c <= corners[TOPRIGHT]->index_x + range[RIGHT] && c < map->width; c++)//adds chunks to the right
         for(r = corners[BOTTOMRIGHT]->index_y; r >= corners[TOPRIGHT]->index_y; r--)
@@ -238,12 +238,12 @@ struct chunk **mm_get_corners()
     return corners;
 }
 
-struct tile *mm_get_tile(int x, int y)
+struct tile *mm_get_tile(float x, float y)
 {
     return map_get_tile_from_coordinate(mm_get_top_map(), x, y);
 }
 
-struct tile *mm_update_tile(int x, int y, struct tile *tile)
+struct tile *mm_update_tile(float x, float y, struct tile *tile)
 {
     if(!tile)
         return NULL;

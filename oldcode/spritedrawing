@@ -1,0 +1,65 @@
+/*case 16://TRANSPARENT
+					sm_error_local_nor_global(sprite);
+					break;
+
+				case 17://LOCAL + TRANSPARENT
+					al_draw_tinted_scaled_bitmap(sprite->bitmap, al_map_rgba_f(1, 1, 1, .5), 0, 0, w, h, sm_get_x(sprite->x * zoom, 0), sm_get_y(sprite->y * zoom, 0), neww, newh, 0);
+					break;
+
+				case 18://GLOBAL + TRANSPARENT
+					if(sprite->name)
+						printf("%s\n", sprite->name);
+					al_draw_tinted_scaled_bitmap(sprite->bitmap, al_map_rgba_f(1, 1, 1, .5), 0, 0, w, h, sm_get_x(sm_global_to_rel_x(sprite->x), 0), sm_get_y(sm_global_to_rel_y(sprite->y), 0), neww, newh, 0);
+					break;
+
+				case 19://LOCAL + GLOBAL + TRANSPARENT
+					sm_error_local_and_global(sprite);
+					break;
+				
+				case 20://CENTERED + TRANSPARENT
+					sm_error_local_nor_global(sprite);
+					break;
+				
+				case 21://LOCAL + CENTERED + TRANSPARENT
+					al_draw_tinted_scaled_bitmap(sprite->bitmap, al_map_rgba_f(1, 1, 1, .5), 0, 0, w, h, sm_get_x(sprite->x * zoom, w), sm_get_y(sprite->y * zoom, h), neww, newh, 0);
+					break;
+				
+				case 22://GLOBAL + CENTERED + TRANSPARENT
+					al_draw_tinted_scaled_bitmap(sprite->bitmap, al_map_rgba_f(1, 1, 1, .5), 0, 0, w, h, sm_get_x(sm_global_to_rel_x(sprite->x), w), sm_get_y(sm_global_to_rel_y(sprite->y), h), neww, newh, 0);
+					break;
+				
+				case 23://LOCAL + GLOBAL + CENTERED + TRANSPARENT
+					sm_error_local_and_global(sprite);
+					break;
+
+				case 24://NOZOOM + TRANSPARENT
+					sm_error_local_nor_global(sprite);
+					break;
+				
+				case 25://LOCAL + NOZOOM + TRANSPARENT
+					al_draw_tinted_bitmap(sprite->bitmap, al_map_rgba_f(1, 1, 1, .5), sm_get_x(sprite->x, 0), sm_get_y(sprite->y * zoom, 0), 0);
+					break;
+
+				case 26://GLOBAL + NOZOOM + TRANSPARENT
+					al_draw_tinted_bitmap(sprite->bitmap, al_map_rgba_f(1, 1, 1, .5), sm_get_x(sm_global_to_rel_x(sprite->x), 0), sm_get_y(sm_global_to_rel_y(sprite->y), 0), 0);
+					break;
+
+				case 27://LOCAL + GLOBAL + NOZOOM + TRANSPARENT
+					sm_error_local_and_global(sprite);
+					break;
+
+				case 28://CENTERED + NOZOOM + TRANSPARENT
+					sm_error_local_nor_global(sprite);
+					break;
+				
+				case 29://LOCAL + CENTERED + NOZOOM + TRANSPARENT
+					al_draw_tinted_bitmap(sprite->bitmap, al_map_rgba_f(1, 1, 1, .5), sm_get_x(sprite->x, w), sm_get_y(sprite->y * zoom, h), 0);
+					break;
+
+				case 30://GLOBAL + CENTERED + NOZOOM + TRANSPARENT
+					al_draw_tinted_bitmap(sprite->bitmap, al_map_rgba_f(1, 1, 1, .5), sm_get_x(sm_global_to_rel_x(sprite->x), w), sm_get_y(sm_global_to_rel_y(sprite->y), h), 0);
+					break;
+
+				case 31://LOCAL + GLOBAL + CENTERED + NOZOOM + TRANSPARENT
+					sm_error_local_and_global(sprite);
+					break;*/

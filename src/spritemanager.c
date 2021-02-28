@@ -17,6 +17,8 @@ static const float MAXZOOM = 4;
 static const float MINZOOM = 1;
 
 static int nosprites = 0;
+static const int TICKRESET = 256;
+static int tick = 0;
 static float coord[2];
 static char move[LAYERS][2];
 static float zoom = MAXZOOM;
@@ -74,6 +76,8 @@ void sm_error_local_nor_global(struct sprite *sprite)
 void sm_draw_sprites(ALLEGRO_DISPLAY *display)
 {
 	al_set_target_bitmap(al_get_backbuffer(display));
+
+	tick = (tick + 1) & ~TICKRESET;
 
 	int i, j;
 	struct list *layer;
@@ -144,8 +148,8 @@ void sm_draw_sprites(ALLEGRO_DISPLAY *display)
 			sprite = (struct sprite *)node->p;
 			int w = al_get_bitmap_width(sprite->bitmap);
 			int h = al_get_bitmap_height(sprite->bitmap);
-			int neww = w * zoom;
-			int newh = h * zoom;
+			float neww = w * zoom;
+			float newh = h * zoom;
 
 			switch(sprite->type)
 			{
@@ -166,11 +170,11 @@ void sm_draw_sprites(ALLEGRO_DISPLAY *display)
 					break;
 
 				case 5://LOCAL + CENTERED
-					al_draw_scaled_bitmap(sprite->bitmap, 0, 0, w, h, sm_get_x(sprite->x * zoom, w), sm_get_y(sprite->y * zoom, h), neww, newh, 0);
+					al_draw_scaled_bitmap(sprite->bitmap, 0, 0, w, h, sm_get_x(sprite->x, neww), sm_get_y(sprite->y, newh), neww, newh, 0);
 					break;
 
 				case 6://GLOBAL + CENTERED
-					al_draw_scaled_bitmap(sprite->bitmap, 0, 0, w, h, sm_get_x(sm_global_to_rel_x(sprite->x), w), sm_get_y(sm_global_to_rel_y(sprite->y), h), neww, newh, 0);
+					al_draw_scaled_bitmap(sprite->bitmap, 0, 0, w, h, sm_get_x(sm_global_to_rel_x(sprite->x), neww), sm_get_y(sm_global_to_rel_y(sprite->y), newh), neww, newh, 0);
 					break;
 				
 				case 7://LOCAL + GLOBAL + CENTERED
@@ -208,72 +212,6 @@ void sm_draw_sprites(ALLEGRO_DISPLAY *display)
 				case 15://LOCAL + GLOBAL + CENTERED + NOZOOM
 					sm_error_local_and_global(sprite);
 					break;
-
-				case 16://TRANSPARENT
-					sm_error_local_nor_global(sprite);
-					break;
-
-				case 17://LOCAL + TRANSPARENT
-					al_draw_tinted_scaled_bitmap(sprite->bitmap, al_map_rgba_f(1, 1, 1, .5), 0, 0, w, h, sm_get_x(sprite->x * zoom, 0), sm_get_y(sprite->y * zoom, 0), neww, newh, 0);
-					break;
-
-				case 18://GLOBAL + TRANSPARENT
-					if(sprite->name)
-						printf("%s\n", sprite->name);
-					al_draw_tinted_scaled_bitmap(sprite->bitmap, al_map_rgba_f(1, 1, 1, .5), 0, 0, w, h, sm_get_x(sm_global_to_rel_x(sprite->x), 0), sm_get_y(sm_global_to_rel_y(sprite->y), 0), neww, newh, 0);
-					break;
-
-				case 19://LOCAL + GLOBAL + TRANSPARENT
-					sm_error_local_and_global(sprite);
-					break;
-				
-				case 20://CENTERED + TRANSPARENT
-					sm_error_local_nor_global(sprite);
-					break;
-				
-				case 21://LOCAL + CENTERED + TRANSPARENT
-					al_draw_tinted_scaled_bitmap(sprite->bitmap, al_map_rgba_f(1, 1, 1, .5), 0, 0, w, h, sm_get_x(sprite->x * zoom, w), sm_get_y(sprite->y * zoom, h), neww, newh, 0);
-					break;
-				
-				case 22://GLOBAL + CENTERED + TRANSPARENT
-					al_draw_tinted_scaled_bitmap(sprite->bitmap, al_map_rgba_f(1, 1, 1, .5), 0, 0, w, h, sm_get_x(sm_global_to_rel_x(sprite->x), w), sm_get_y(sm_global_to_rel_y(sprite->y), h), neww, newh, 0);
-					break;
-				
-				case 23://LOCAL + GLOBAL + CENTERED + TRANSPARENT
-					sm_error_local_and_global(sprite);
-					break;
-
-				case 24://NOZOOM + TRANSPARENT
-					sm_error_local_nor_global(sprite);
-					break;
-				
-				case 25://LOCAL + NOZOOM + TRANSPARENT
-					al_draw_tinted_bitmap(sprite->bitmap, al_map_rgba_f(1, 1, 1, .5), sm_get_x(sprite->x, 0), sm_get_y(sprite->y * zoom, 0), 0);
-					break;
-
-				case 26://GLOBAL + NOZOOM + TRANSPARENT
-					al_draw_tinted_bitmap(sprite->bitmap, al_map_rgba_f(1, 1, 1, .5), sm_get_x(sm_global_to_rel_x(sprite->x), 0), sm_get_y(sm_global_to_rel_y(sprite->y), 0), 0);
-					break;
-
-				case 27://LOCAL + GLOBAL + NOZOOM + TRANSPARENT
-					sm_error_local_and_global(sprite);
-					break;
-
-				case 28://CENTERED + NOZOOM + TRANSPARENT
-					sm_error_local_nor_global(sprite);
-					break;
-				
-				case 29://LOCAL + CENTERED + NOZOOM + TRANSPARENT
-					al_draw_tinted_bitmap(sprite->bitmap, al_map_rgba_f(1, 1, 1, .5), sm_get_x(sprite->x, w), sm_get_y(sprite->y * zoom, h), 0);
-					break;
-
-				case 30://GLOBAL + CENTERED + NOZOOM + TRANSPARENT
-					al_draw_tinted_bitmap(sprite->bitmap, al_map_rgba_f(1, 1, 1, .5), sm_get_x(sm_global_to_rel_x(sprite->x), w), sm_get_y(sm_global_to_rel_y(sprite->y), h), 0);
-					break;
-
-				case 31://LOCAL + GLOBAL + CENTERED + NOZOOM + TRANSPARENT
-					sm_error_local_and_global(sprite);
-					break;
 			}
 
 			node = node->next;
@@ -291,40 +229,40 @@ void sm_draw_sprites(ALLEGRO_DISPLAY *display)
 	}*/
 }
 
-int sm_get_x(int x, int bitmapwidth)
+float sm_get_x(float x, int bitmapwidth)
 {
 	return x + HWIDTH - bitmapwidth / 2;
 }
 
-int sm_get_y(int y, int bitmapheight)
+float sm_get_y(float y, int bitmapheight)
 {
 	return HHEIGHT - y - bitmapheight / 2;
 }
 
-int sm_global_to_rel_x(int x)
+float sm_global_to_rel_x(float x)
 {
-	return x * zoom - coord[X] * zoom;
+	return (x - coord[X]) * zoom;
 }
 
-int sm_global_to_rel_y(int y)
+float sm_global_to_rel_y(float y)
 {
-	return y * zoom - coord[Y] * zoom;
+	return (y - coord[Y]) * zoom;
 }
 
-int sm_rel_to_global_x(int x)
+float sm_rel_to_global_x(float x)
 {
 	return x / zoom + coord[X];
 }
 
-int sm_rel_to_global_y(int y)
+float sm_rel_to_global_y(float y)
 {
 	return y / zoom + coord[Y];
 }
 
-void sm_move_coord(float up, float down, float left, float right)
+void sm_move_coord(float dx, float dy)
 {
-	coord[X] += right - left;
-	coord[Y] += up - down;
+	coord[X] += dx;
+	coord[Y] += dy;
 }
 
 float sm_get_coord(int i)
@@ -346,7 +284,23 @@ float sm_get_zoom()
 	return zoom;
 }
 
-struct sprite *sm_create_global_sprite(ALLEGRO_BITMAP *bitmap, int x, int y, int layer, int typeflags)
+struct sprite *sm_create_global_dynamic_sprite(void (*draw)(float x, float y, float zoom, void *data, int tick), float x, float y, int layer, int typeflags)
+{
+	struct sprite *out = s_malloc(sizeof(struct sprite), "sm_create_global_dynamic_sprite");
+
+	out->name = NULL;
+	out->type = GLOBAL | SELFDRAW | typeflags;
+	out->x = x;
+	out->y = y;
+	out->id = NULL;
+	out->layer = layer;
+	out->d.draw = draw;
+	out->d.data = NULL;
+
+	return out;
+}
+
+struct sprite *sm_create_global_sprite(ALLEGRO_BITMAP *bitmap, float x, float y, int layer, int typeflags)
 {
 	struct sprite *out = s_malloc(sizeof(struct sprite), "sm_create_global_sprite");
 
@@ -361,7 +315,7 @@ struct sprite *sm_create_global_sprite(ALLEGRO_BITMAP *bitmap, int x, int y, int
 	return out;
 }
 
-struct sprite *sm_create_sprite(ALLEGRO_BITMAP *bitmap, int x, int y, int layer, int typeflags)
+struct sprite *sm_create_sprite(ALLEGRO_BITMAP *bitmap, float x, float y, int layer, int typeflags)
 {
 	struct sprite *out = s_malloc(sizeof(struct sprite), "sm_create_sprite");
 
@@ -409,8 +363,9 @@ void sm_destroy_sprite(struct sprite *sprite)
 		nosprites--;
 	}
 
-	al_destroy_bitmap(sprite->bitmap);
-
+	if(!(sprite->type & SELFDRAW))
+		al_destroy_bitmap(sprite->bitmap);
+	
 	free(sprite);
 }
 

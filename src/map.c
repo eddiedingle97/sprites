@@ -77,18 +77,18 @@ struct chunk *map_create_test_chunk(int x, int y, int chunksize)
     return chunk;
 }
 
-struct chunk *map_get_chunk_from_coordinate(struct map *map, int x, int y)
+struct chunk *map_get_chunk_from_coordinate(struct map *map, float x, float y)
 {
     int chunkgrid = map->chunksize * map->tilesize;
-    int pixelheight = map->height * chunkgrid;
-    int pixelwidth = map->width * chunkgrid;
-    y = pixelheight / 2 - y;//height in pixels
-    x = pixelwidth / 2 + x;//width in pixels
+    int pixelheight = map->height * chunkgrid;//height in pixels
+    int pixelwidth = map->width * chunkgrid;//width in pixels
+    y = pixelheight / 2 - y;
+    x = pixelwidth / 2 + x;
 
     if(x < 0 || y < 0 || x >= pixelwidth || y >= pixelheight)
         return NULL;
 
-    return map->chunks[y / chunkgrid][x / chunkgrid];
+    return map->chunks[s_floor(y) / chunkgrid][s_floor(x) / chunkgrid];
 }
 
 struct chunk *map_get_chunk_from_index(struct map *map, int x, int y)
@@ -185,7 +185,7 @@ struct chunk *map_init_chunk(struct map *map, ALLEGRO_FILE *file, int x, int y)
     return chunk;
 }
 
-struct tile *map_get_tile_from_coordinate(struct map *map, int x, int y)
+struct tile *map_get_tile_from_coordinate(struct map *map, float x, float y)
 {
     struct chunk *chunk = map_get_chunk_from_coordinate(map, x, y);
 
@@ -197,7 +197,7 @@ struct tile *map_get_tile_from_coordinate(struct map *map, int x, int y)
     x /= map->tilesize;
     y /= map->tilesize;
 
-    return &chunk->tiles[y][x];
+    return &chunk->tiles[s_floor(y)][s_floor(x)];
 }
 
 void map_create_chunks(struct map *map, ALLEGRO_FILE *file)

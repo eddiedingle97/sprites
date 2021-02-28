@@ -267,7 +267,7 @@ void maker_show_solid_tiles()
                         ALLEGRO_BITMAP *redbitmap = al_create_bitmap(map->tilesize, map->tilesize);
                         al_set_target_bitmap(redbitmap);
                         al_clear_to_color(RED);
-                        struct sprite *sprite = sm_create_global_sprite(redbitmap, tm_get_tile_x(chunkleft->x, 16, c), tm_get_tile_y(chunkleft->y, 16, r), FOREGROUND, TRANSPARENT);
+                        struct sprite *sprite = sm_create_global_sprite(redbitmap, tm_get_tile_x(chunkleft->x, 16, c), tm_get_tile_y(chunkleft->y, 16, r), FOREGROUND, 0);
                         sm_add_sprite_to_layer(sprite);
                         list_append(foregroundsprites, sprite);
                     }

@@ -31,8 +31,6 @@ int main(int argc, char **argv)
 	char opt, mode = 0, newmap = 0;
 	int width = 0, height = 0;
 
-	printf("%ld\n", sizeof(struct list));
-
 	rootdir = al_get_current_directory();
 
 	while((opt = getopt(argc, argv, "dmn:")) != -1)
@@ -240,9 +238,7 @@ void *s_realloc(void *ptr, int b, const char *msg)
 
 char *s_get_heap_string(const char *str)
 {
-    char *out = memcpy(s_malloc(sizeof(char) * (strlen(str) + 1), "s_get_heap_string"), str, strlen(str) + 1);
-	printf("%s\n", out);
-	return out;
+	return memcpy(s_malloc(sizeof(char) * (strlen(str) + 1), "s_get_heap_string"), str, strlen(str) + 1);
 }
 
 char s_string_match(char *one, char *two)
@@ -302,4 +298,19 @@ struct list *s_get_file_list_from_dir(char *dir)
     }
 
 	return out;
+}
+
+int s_round(float f)
+{
+	int out = (int)f;
+	float cmp = f - out;
+	if(cmp < .5)
+		return out;
+	else
+		return ++out;
+}
+
+int s_floor(float f)
+{
+	return (int)f;
 }

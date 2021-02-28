@@ -12,6 +12,8 @@
 static struct list *chunks;
 static struct tilemap **tilemaps;
 static int tilemapssize, chunksize;
+static const int HHEIGHT = HEIGHT / 2;
+static const int HWIDTH = WIDTH / 2;
 enum TILEMAPZ {EMPTY, ERROR};
 
 struct tilemap *tm_load_tile_map_from_file(char *tilemapfile, int tilesize);
@@ -23,6 +25,7 @@ void tm_init(int csize)
     tilemapssize = 0;
     tm_add_tile_map(tm_load_tile_map_from_file("defaulttile.bmp", 16));
     tm_add_tile_map(tm_load_tile_map_from_file("purplebitmap.bmp", 16));
+    tm_add_tile_map(tm_load_tile_map_from_file("blanktile.png", 16));
     chunksize = csize;
 }
 
@@ -69,7 +72,7 @@ void tm_save_tile_maps(char *dir)
     int i, count;
     
     struct tilemap *tm;
-    for(i = 2; i < tilemapssize; i++)
+    for(i = 3; i < tilemapssize; i++)
     {
         memset(buf, 0, 512);
         tm = tilemaps[i];
@@ -234,17 +237,37 @@ int tm_get_chunk_count()
     return chunks->size;
 }
 
-int tm_get_tile_x(int chunk_x, int tilesize, int column)
+float tm_get_tile_x(int chunk_x, int tilesize, int column)
 {
     return column * tilesize + chunk_x;
 }
-
-int tm_get_tile_y(int chunk_y, int tilesize, int row)
+//(((column * tilesize + chunk_x) - coord[X]) * zoom) + HWIDTH - tilesize / 2;
+float tm_get_tile_y(int chunk_y, int tilesize, int row)
 {
     return -row * tilesize + chunk_y;
 }
 
-void tm_draw_tiles(ALLEGRO_DISPLAY *display)
+float tm_get_x(float x, int bitmapwidth)
+{
+	return x + HWIDTH - bitmapwidth / 2;
+}
+
+float tm_get_y(float y, int bitmapheight)
+{
+	return HHEIGHT - y - bitmapheight / 2;
+}
+
+float tm_global_to_rel_x(float x)
+{
+	return (x - sm_get_coord(X)) * sm_get_zoom();
+}
+
+float tm_global_to_rel_y(float y)
+{
+	return (y - sm_get_coord(Y)) * sm_get_zoom();
+}
+
+void tm_draw_chunks(ALLEGRO_DISPLAY *display)
 {
     al_set_target_bitmap(al_get_backbuffer(display));
     al_clear_to_color(BLACK);
@@ -266,7 +289,7 @@ void tm_draw_tiles(ALLEGRO_DISPLAY *display)
             {
                 tile = &chunk->tiles[r][c];
                 tilemap = tilemaps[tile->tilemap_z];
-                al_draw_scaled_bitmap(tilemap->bitmap, tile->tilemap_x, tile->tilemap_y, tilemap->tilesize, tilemap->tilesize, sm_get_x(sm_global_to_rel_x(tm_get_tile_x(chunk->x, tilemap->tilesize, c)), 0), sm_get_y(sm_global_to_rel_y(tm_get_tile_y(chunk->y, tilemap->tilesize, r)), 0), newsize, newsize, 0);
+                al_draw_scaled_bitmap(tilemap->bitmap, tile->tilemap_x, tile->tilemap_y, tilemap->tilesize, tilemap->tilesize, tm_get_x(tm_global_to_rel_x(tm_get_tile_x(chunk->x, tilemap->tilesize, c)), 0), tm_get_y(tm_global_to_rel_y(tm_get_tile_y(chunk->y, tilemap->tilesize, r)), 0), newsize, newsize, 0);
             }
         }
     }

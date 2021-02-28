@@ -117,10 +117,10 @@ void debug_tick(long time)
         sprintf(buf, "Sprites drawn: %d", sm_get_sprite_count());
         al_draw_text(font, BLACK, 5, 5 + 2 * al_get_font_line_height(font), 0, buf);
         memset(buf, 0, 32);
-        sprintf(buf, "Mouse GX: %d", sm_rel_to_global_x(mouse_get_rel_x()));
+        sprintf(buf, "Mouse GX: %.2f", sm_rel_to_global_x(mouse_get_rel_x()));
         al_draw_text(font, BLACK, 5, 5 + 3 * al_get_font_line_height(font), 0, buf);
         memset(buf, 0, 32);
-        sprintf(buf, "Mouse GY: %d", sm_rel_to_global_y(mouse_get_rel_y()));
+        sprintf(buf, "Mouse GY: %.2f", sm_rel_to_global_y(mouse_get_rel_y()));
         al_draw_text(font, BLACK, 5, 5 + 4 * al_get_font_line_height(font), 0, buf);
     }
 }
