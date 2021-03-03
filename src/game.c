@@ -15,6 +15,7 @@
 #include "menudriver.h"
 #include "maker.h"
 #include "movementandcollision.h"
+#include "entitymanager.h"
 #include "debug.h"
 
 void game_get_actions();
@@ -38,6 +39,7 @@ void game_init(char gamemode, char newmap, int width, int height)
             md_init();
             maker_init();
             mc_init();
+            em_init();
             break;
     }
 }
@@ -57,6 +59,9 @@ void game_destroy()
         case REG:
             break;
         case MAKER:
+            em_destroy();
+            debug_printf("after em_destroy\n");
+
             maker_destroy();
             debug_printf("after maker_destroy\n");
 
@@ -89,6 +94,7 @@ void game_tick(ALLEGRO_DISPLAY *display)
 
         case MAKER:
             game_get_actions();
+            em_tick();
             mm_update_chunks();
             tm_draw_chunks(display);
             sm_draw_sprites(display);
@@ -113,7 +119,7 @@ void game_get_actions()
     switch(mode)
     {
         case NONE:
-            mc_do_movement(up * coef, down * coef, left * coef, right * coef);
+            mc_do_movement(NULL, up * coef, down * coef, left * coef, right * coef);
             sm_set_zoom(scroll);
 
             if(mouse_get_single_one())
@@ -125,7 +131,6 @@ void game_get_actions()
 
         case MAKER:
             md_menu_tick();
-            mc_do_movement(up * coef, down * coef, left * coef, right * coef);
             sm_set_zoom(scroll);
             maker_actions();
 

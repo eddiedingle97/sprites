@@ -2,6 +2,6 @@
 #define __MOVEMENTANDCOLLISION_H__
 
 void mc_init();
-int mc_do_movement(float up, float down, float left, float right);
+int mc_do_movement(struct sprite *sprite, float up, float down, float left, float right);
 
 #endif

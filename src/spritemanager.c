@@ -212,6 +212,10 @@ void sm_draw_sprites(ALLEGRO_DISPLAY *display)
 				case 15://LOCAL + GLOBAL + CENTERED + NOZOOM
 					sm_error_local_and_global(sprite);
 					break;
+
+				case 22://GLOBAL + CENTERED + SELFDRAW
+					sprite->d.draw(sm_global_to_rel_x(sprite->x), sm_global_to_rel_y(sprite->y), zoom, sprite->d.data, tick);
+					break;
 			}
 
 			node = node->next;

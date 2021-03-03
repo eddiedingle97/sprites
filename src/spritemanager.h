@@ -25,6 +25,7 @@ struct sprite
 void sm_init(const int height, const int width);
 struct sprite *sm_create_sprite(ALLEGRO_BITMAP *bit, float x, float y, int layer, int typeflags);
 struct sprite *sm_create_global_sprite(ALLEGRO_BITMAP *bitmap, float x, float y, int layer, int typeflags);
+struct sprite *sm_create_global_dynamic_sprite(void (*draw)(float x, float y, float zoom, void *data, int tick), float x, float y, int layer, int typeflags);
 void sm_update_sprite(struct sprite *sprite, ALLEGRO_BITMAP *bitmap, int x, int y);
 void sm_add_sprite_to_layer(struct sprite *sprite);
 void sm_draw_sprites(ALLEGRO_DISPLAY *display);

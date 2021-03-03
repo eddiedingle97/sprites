@@ -31,7 +31,7 @@ void mc_init()
     collision = 1;
 }
 
-int mc_do_movement(float up, float down, float left, float right)
+int mc_do_movement(struct sprite *sprite, float up, float down, float left, float right)
 {
     float xcoord = sm_get_coord(X), ycoord = sm_get_coord(Y), dx = right - left, dy = up - down;
     struct tile *currenttile = mm_get_tile(xcoord, ycoord);
@@ -50,6 +50,11 @@ int mc_do_movement(float up, float down, float left, float right)
         }
     }
 
+    if(sprite)
+    {
+        sprite->x += dx;
+        sprite->y += dy;
+    }
     sm_move_coord(dx, dy);
-    return 0;
+    return dx || dy;
 }
