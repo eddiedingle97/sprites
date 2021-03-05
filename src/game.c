@@ -29,7 +29,9 @@ void game_init(char gamemode, char newmap, int width, int height)
     {
         case NONE:
             sm_init(0, 0);
-            mm_init("new", 5, 16, 20, 20);
+            newmap ? mm_init("new", 5, 16, width, height) : mm_init("map1");
+            mc_init();
+            em_init();
             break;
         case REG:
             break;
@@ -38,8 +40,6 @@ void game_init(char gamemode, char newmap, int width, int height)
             newmap ? mm_init("new", 5, 16, width, height) : mm_init("map1");
             md_init();
             maker_init();
-            mc_init();
-            em_init();
             break;
     }
 }
@@ -49,6 +49,9 @@ void game_destroy()
     switch(mode)
     {
         case NONE:
+            em_destroy();
+            debug_printf("after em_destroy\n");
+
             mm_destroy();
             debug_printf("after mm_destroy\n");
 
@@ -59,8 +62,6 @@ void game_destroy()
         case REG:
             break;
         case MAKER:
-            em_destroy();
-            debug_printf("after em_destroy\n");
 
             maker_destroy();
             debug_printf("after maker_destroy\n");
@@ -84,6 +85,7 @@ void game_tick(ALLEGRO_DISPLAY *display)
     {
         case NONE:
             game_get_actions();
+            em_tick();
             mm_update_chunks();
             tm_draw_chunks(display);
             sm_draw_sprites(display);
@@ -94,7 +96,6 @@ void game_tick(ALLEGRO_DISPLAY *display)
 
         case MAKER:
             game_get_actions();
-            em_tick();
             mm_update_chunks();
             tm_draw_chunks(display);
             sm_draw_sprites(display);
@@ -119,11 +120,7 @@ void game_get_actions()
     switch(mode)
     {
         case NONE:
-            mc_do_movement(NULL, up * coef, down * coef, left * coef, right * coef);
             sm_set_zoom(scroll);
-
-            if(mouse_get_single_one())
-                mm_test_color_tile(sm_rel_to_global_x(mouse_get_rel_x()), sm_rel_to_global_y(mouse_get_rel_y()));
             break;
 
         case REG:
@@ -133,6 +130,7 @@ void game_get_actions()
             md_menu_tick();
             sm_set_zoom(scroll);
             maker_actions();
+            mc_do_movement(NULL, up, down, left, right);
 
             if(kb_get_mapsave())
                 mm_save_map("map1");

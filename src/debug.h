@@ -3,6 +3,7 @@
 
 void debug_init(char d);
 char debug_get();
+void debug_add_sprites();
 void debug_destroy();
 void debug_tick(long time);
 void debug_toggle_sprites();

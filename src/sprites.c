@@ -127,8 +127,10 @@ int main(int argc, char **argv)
 
 	kb_init();
 	mouse_init(&mousestate);
-	game_init(mode, newmap, width, height);
 	debug_init(debug);
+	game_init(mode, newmap, width, height);
+	debug_add_sprites();
+	
 
 	clock_t start, stop;
 

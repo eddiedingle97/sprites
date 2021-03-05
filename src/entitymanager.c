@@ -2,14 +2,19 @@
 #include <allegro5/allegro.h>
 #include "entity.h"
 #include "spritemanager.h"
+#include "debug.h"
 
 #include "knight.c"
 
 struct entity *knight;
+ALLEGRO_BITMAP *spritesheet;
 
 void em_init()
 {
-    knight = create_knight();
+    spritesheet = al_load_bitmap(s_get_full_path_with_dir("images", "DungeonAllEntities.png"));
+    if(!spritesheet)
+        debug_perror("Spritesheet failed to load in em_init\n");
+    knight = create_knight(spritesheet);
     sm_add_sprite_to_layer(knight->sprite);
 }
 

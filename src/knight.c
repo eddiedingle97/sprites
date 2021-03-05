@@ -28,7 +28,7 @@ void draw_knight(float x, float y, float zoom, struct knightdata *data, int tick
     float neww = data->width * zoom, newh = data->height * zoom;
     data->cycle = data->cycle % data->spritecount;
 
-    al_draw_scaled_bitmap(data->bitmap, data->x + data->cycle * data->width + (data->idle * data->spritecount * data->width), data->y, data->width, data->height, sm_get_x(x, neww), sm_get_y(y, newh * 3 / 2), neww, newh, data->alflags);
+    al_draw_scaled_bitmap(data->bitmap, data->x + data->cycle * data->width + (!data->idle * data->spritecount * data->width), data->y, data->width, data->height, sm_get_x(x, neww), sm_get_y(y, newh * 3 / 2), neww, newh, data->alflags);
 }
 
 void knight_behaviour(struct sprite *sprite, struct knightdata *data)
@@ -40,13 +40,13 @@ void knight_behaviour(struct sprite *sprite, struct knightdata *data)
     else if(right && !left)
         data->alflags = 0;
 
-    if(!mc_do_movement(sprite, up, down, left, right))
+    if(mc_do_movement(sprite, up, down, left, right))
         data->idle = 0;
     else
         data->idle = 1;
 }
 
-struct entity *create_knight()
+struct entity *create_knight(ALLEGRO_BITMAP *spritesheet)
 {
     struct knightdata *kd = s_malloc(sizeof(struct knightdata), "create_knight");
     kd->width = 16;
@@ -56,9 +56,9 @@ struct entity *create_knight()
     kd->spritecount = 4;
     kd->cycle = 0;
     kd->idle = 1;
-    kd->ticks = 8;
+    kd->ticks = 6;
     kd->speed = 1;
-    kd->bitmap = al_load_bitmap(s_get_full_path_with_dir("images", "DungeonPlayersprites.png"));
+    kd->bitmap = spritesheet;//al_load_bitmap(s_get_full_path_with_dir("images", "DungeonPlayersprites.png"));
     kd->alflags = 0;
     struct entity *out = e_create(draw_knight, knight_behaviour, 0, 0, kd);
     return out;

@@ -5,6 +5,7 @@
 #include "movementandcollision.h"
 #include "map.h"
 #include "mapmanager.h"
+#include "debug.h"
 #include "colors.h"
 
 static char collision;
@@ -27,7 +28,9 @@ void mc_init()
         }
     al_unlock_bitmap(boxbitmap);
     collisionbox = sm_create_sprite(boxbitmap, 0, 0, PLAYER, CENTERED);
-    sm_add_sprite_to_layer(collisionbox);
+
+    if(debug_get())
+        sm_add_sprite_to_layer(collisionbox);
     collision = 1;
 }
 

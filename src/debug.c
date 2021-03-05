@@ -12,7 +12,7 @@
 
 #define BUFSIZE 512
 
-static int debug = 0;
+static char debug = 0;
 static struct sprite *frame;
 static ALLEGRO_FONT *font;
 static struct sprite *dbinfo;
@@ -21,8 +21,11 @@ static char buf[BUFSIZE];
 void debug_init(char d)
 {
     debug = d;
+}
 
-    if(d)
+void debug_add_sprites()
+{
+    if(debug)
     {
         int boxsize = HEIGHT;
         ALLEGRO_BITMAP *box = al_create_bitmap(boxsize, boxsize);
