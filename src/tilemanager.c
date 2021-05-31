@@ -14,7 +14,9 @@ static struct tilemap **tilemaps;
 static int tilemapssize, chunksize;
 static const int HHEIGHT = HEIGHT / 2;
 static const int HWIDTH = WIDTH / 2;
-enum TILEMAPZ {EMPTY, ERROR};
+static const int TILESIZE = 16;
+static int *matrix;
+enum TILEMAPZ {EMPTY, ERROR, BLANK};
 
 struct tilemap *tm_load_tile_map_from_file(char *tilemapfile, int tilesize);
 int tm_add_tile_map(struct tilemap *tm);
@@ -23,10 +25,15 @@ void tm_init(int csize)
 {
     chunks = list_create();
     tilemapssize = 0;
-    tm_add_tile_map(tm_load_tile_map_from_file("defaulttile.bmp", 16));
-    tm_add_tile_map(tm_load_tile_map_from_file("purplebitmap.bmp", 16));
-    tm_add_tile_map(tm_load_tile_map_from_file("blanktile.png", 16));
+    tm_add_tile_map(tm_load_tile_map_from_file("defaulttile.bmp", TILESIZE));
+    tm_add_tile_map(tm_load_tile_map_from_file("purplebitmap.bmp", TILESIZE));
+    tm_add_tile_map(tm_load_tile_map_from_file("blanktile.png", TILESIZE));
     chunksize = csize;
+
+    matrix = s_malloc(csize * sizeof(int), "tm_init: matrix");
+    int i;
+    for(i = 0; i < csize; i++)
+        matrix[i] = i * TILESIZE;
 }
 
 void tm_destroy_tile_map(struct tilemap *tm)
@@ -45,6 +52,7 @@ void tm_destroy()
         tm_destroy_tile_map(tilemaps[i]);
     }
     free(tilemaps);
+    free(matrix);
 }
 
 void tm_print_tile_maps()
@@ -57,7 +65,7 @@ void tm_print_tile_maps()
     }
 }
 
-void tm_save_tile_maps(char *dir)
+void tm_save_tile_maps(char *dir)//creates a tilemapconfig based on the list's current state file given a directory
 {
     char buf[512];
     memset(buf, 0, 512);
@@ -84,7 +92,7 @@ void tm_save_tile_maps(char *dir)
     al_fclose(tilemapconfig);
 }
 
-int tm_load_tile_maps(char *dir)
+int tm_load_tile_maps(char *dir)//loads tilemaps from a tilemapconfig file given the directory it's in
 {
     char buf[512];
     memset(buf, 0, 512);
@@ -109,14 +117,14 @@ int tm_load_tile_maps(char *dir)
             return -1;
         }
 
-        tm_load_tile_map(buf, atoi(comma + 1));
+        tm_add_tile_map_to_list(buf, atoi(comma + 1));
         memset(buf, 0, 512);
     }
     al_fclose(tilemapconfig);
     return 0;
 }
 
-int tm_load_tile_map(char *tilemapfile, int tilesize)
+int tm_add_tile_map_to_list(char *tilemapfile, int tilesize)//takes filepath and tilesize, adds a tile map struct to the list if it does not exist
 {
     int z = tm_get_tile_map_z(tilemapfile);
     if(z == 1)
@@ -125,7 +133,7 @@ int tm_load_tile_map(char *tilemapfile, int tilesize)
     return z;
 }
 
-struct tilemap *tm_load_tile_map_from_file(char *tilemapfile, int tilesize)
+struct tilemap *tm_load_tile_map_from_file(char *tilemapfile, int tilesize)//creates tilemap struct from filename and tilesize
 {
     int z = tm_get_tile_map_z(tilemapfile);
     if(z != ERROR)
@@ -138,33 +146,37 @@ struct tilemap *tm_load_tile_map_from_file(char *tilemapfile, int tilesize)
         return NULL;
     }
 
-    struct tilemap *out = s_malloc(sizeof(struct tilemap), "tm_load_tile_map");
+    struct tilemap *out = s_malloc(sizeof(struct tilemap), "tm_load_tile_map from");
     out->bitmap = bitmap;
     out->tilemapfile = s_get_heap_string(tilemapfile);
     out->tilesize = tilesize;
     return out;
 }
 
-/*void tm_add_tile_map_list(struct list *l)
+int tm_add_tile_map(struct tilemap *tm)//increases the list's size by 1 and adds the tilemap struct to the list
 {
-    struct node *node;
-    struct tilemap *tm = NULL;
-    char nomatch = 1;
-    int i;
-    for(node = l->head; node != NULL; node = node->next)
+    if(!tm)
     {
-        for(i = 0; i < tilemapssize; i++)
-        {
-            tm = node->p;
-            if(strlen(tm->tilemapfile) == strlen(tilemaps[i]->tilemapfile) && !strcmp(tm->tilemapfile, tilemaps[i]->tilemapfile))
-                nomatch = 0;
-        }
-
-        if(nomatch)
-            tm_add_tile_map(tm);
-        nomatch = 1;
+        fprintf(stderr, "Received null pointer in tm_add_tilemap\n");
+        return ERROR;
     }
-}*/
+
+    tilemaps = s_realloc(tilemaps, sizeof(struct tilemap *) * (tilemapssize + 1), "tm_add_tile_map");
+    tilemaps[tilemapssize] = tm;
+    return tilemapssize++;
+}
+
+int tm_get_tile_map_z(char *tilemapfile)//looks for filename in tilemap list
+{
+    int i;
+    for(i = 0; i < tilemapssize; i++)
+    {
+        if(s_string_match(tilemapfile, tilemaps[i]->tilemapfile))
+            return i;
+    }
+
+    return ERROR;
+}
 
 struct tilemap *tm_get_tile_map_for_tile(struct tile *tile)
 {
@@ -179,31 +191,6 @@ struct tilemap *tm_get_tile_map_from_z(int z)
 ALLEGRO_BITMAP *tm_get_tile_bitmap(struct tile *tile)
 {
     return al_create_sub_bitmap(tilemaps[tile->tilemap_z]->bitmap, tile->tilemap_x, tile->tilemap_y, tilemaps[tile->tilemap_z]->tilesize, tilemaps[tile->tilemap_z]->tilesize);
-}
-
-int tm_add_tile_map(struct tilemap *tm)
-{
-    if(!tm)
-    {
-        fprintf(stderr, "Received null pointer in tm_add_tilemap\n");
-        return ERROR;
-    }
-
-    tilemaps = s_realloc(tilemaps, sizeof(struct tilemap *) * (tilemapssize + 1), "tm_add_tile_map");
-    tilemaps[tilemapssize] = tm;
-    return tilemapssize++;
-}
-
-int tm_get_tile_map_z(char *tilemapfile)
-{
-    int i;
-    for(i = 0; i < tilemapssize; i++)
-    {
-        if(strlen(tilemapfile) == strlen(tilemaps[i]->tilemapfile) && !strcmp(tilemapfile, tilemaps[i]->tilemapfile))
-            return i;
-    }
-
-    return ERROR;
 }
 
 void tm_add_chunk(struct chunk *chunk)
@@ -239,12 +226,14 @@ int tm_get_chunk_count()
 
 float tm_get_tile_x(int chunk_x, int tilesize, int column)
 {
-    return column * tilesize + chunk_x;
+    //return column * tilesize + chunk_x;
+    return matrix[column] + chunk_x;
 }
 //(((column * tilesize + chunk_x) - coord[X]) * zoom) + HWIDTH - tilesize / 2;
 float tm_get_tile_y(int chunk_y, int tilesize, int row)
 {
-    return -row * tilesize + chunk_y;
+    //return -row * tilesize + chunk_y;
+    return -matrix[row] + chunk_y;
 }
 
 float tm_get_x(float x, int bitmapwidth)
@@ -272,7 +261,7 @@ void tm_draw_chunks(ALLEGRO_DISPLAY *display)
     al_set_target_bitmap(al_get_backbuffer(display));
     al_clear_to_color(BLACK);
     float zoom = sm_get_zoom();
-    int newsize = 16 * zoom;
+    int newsize = TILESIZE * zoom;
 
     struct node *node;
     struct chunk *chunk;

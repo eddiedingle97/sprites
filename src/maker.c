@@ -68,6 +68,7 @@ void maker_init()
     mode = EDIT;
     ghosttile = s_malloc(sizeof(struct tile), "ghosttile: maker_init");
     memset(ghosttile, 0, sizeof(struct tile));
+    ghosttile->tilemap_z = 2;
     
     struct list *makermenuitems = list_create();
     
@@ -83,7 +84,7 @@ void maker_init()
     for(node = images->head; node != NULL; node = node->next)
         list_append(imagemenuitems, menu_create_menu_item(node->p, maker_load_image_function));
     list_destroy(images);
-    image->menu = menu_create_default(imagemenuitems, al_load_ttf_font("./fonts/lcd.ttf", 15, 0), -WIDTH / 2 + 400, 400);
+    image->menu = menu_create_default(imagemenuitems, al_load_ttf_font("./fonts/lcd.ttf", 15, 0), -WIDTH / 2 + 400, 200);
     list_append(makermenuitems, menu_create_menu_item(image, (void *(*)(void *))maker_open_sub_menu));
 
     struct menuentrysub *file = s_malloc(sizeof(struct menuentrysub), "file: maker_init");
@@ -93,7 +94,7 @@ void maker_init()
     for(node = files->head; node != NULL; node = node->next)
         list_append(filemenuitems, menu_create_menu_item(node->p, maker_load_tile_menu_function));
     list_destroy(files);
-    file->menu = menu_create_default(filemenuitems, al_load_ttf_font("./fonts/lcd.ttf", 15, 0), -WIDTH / 2 + 400, 400);
+    file->menu = menu_create_default(filemenuitems, al_load_ttf_font("./fonts/lcd.ttf", 15, 0), -WIDTH / 2 + 400, 200);
     list_append(makermenuitems, menu_create_menu_item(file, (void *(*)(void *))maker_open_sub_menu));
 
     makermenu = menu_create(makermenuitems, al_load_ttf_font("./fonts/lcd.ttf", 20, 0), -WIDTH / 2, HEIGHT / 2, maker_main_menu_frame_handler, maker_main_menu_select_handler);
@@ -163,7 +164,7 @@ void maker_destroy()
     list_destroy_with_function(deletedtiles, (void(*)(void *))maker_destroy_tile);
     maker_destroy_tile(ghosttile);
     if(foregroundsprites)
-        list_destroy_with_function(foregroundsprites,(void (*)(void *))sm_destroy_sprite);
+        list_destroy_with_function(foregroundsprites, (void (*)(void *))sm_destroy_sprite);
 }
 
 void maker_remove_edit_menu()
@@ -187,7 +188,7 @@ void maker_add_edit_menu()
 
 void maker_actions()
 {
-    unsigned short action = mode | (mouse_get_one() << 5) | (mouse_get_single_one() << 6) | (mouse_get_single_two() << 7) | (md_menu_hover() ? 1 << 8 : 0) | (kb_get_undo() << 9);
+    unsigned short action = mode | (mouse_get_one() << 5) | (mouse_get_single_one() << 6) | (mouse_get_single_two() << 7) | (md_menu_hover() ? 1 << 8 : 0) | (kb_get_undo() << 9) | (foregroundsprites ? 1 << 10 : 0);
 
     switch(action)
     {
@@ -204,6 +205,10 @@ void maker_actions()
 
         case 97: //one & single one & place mode
             mm_update_tile(sm_rel_to_global_x(mouse_get_rel_x()), sm_rel_to_global_y(mouse_get_rel_y()), currenttile);
+            break;
+
+        case 100: //one & single one & place mode
+            mm_update_tile(sm_rel_to_global_x(mouse_get_rel_x()), sm_rel_to_global_y(mouse_get_rel_y()), ghosttile);
             break;
         
         case 129: //single two & place mode
@@ -233,9 +238,22 @@ void maker_actions()
         case 516: //undo & remove mode
             //NO BREAK
 
-        case 772: //undo & menu hover
+        case 772: //undo & menuhover
             maker_undo_remove();
             break;
+
+        case 1122://edit mode & one & single one & foregroundsprites
+            ;
+            /*struct map *map = mm_get_top_map();
+            ALLEGRO_BITMAP *redbitmap = al_create_bitmap(map->tilesize, map->tilesize);
+            al_set_target_bitmap(redbitmap);
+            al_clear_to_color(RED);*/
+            struct tile *t = mm_get_tile(sm_rel_to_global_x(mouse_get_rel_x()), sm_rel_to_global_y(mouse_get_rel_y()));
+            t->solid = !t->solid;
+            /*struct sprite *sprite = sm_create_global_sprite(redbitmap, sm_rel_to_global_x(mouse_get_rel_x()), sm_rel_to_global_y(mouse_get_rel_y()), FOREGROUND, 0);
+            sm_add_sprite_to_layer(sprite);
+            list_append(foregroundsprites, sprite);*/
+            break;        
     }
 }
 
@@ -317,7 +335,7 @@ void maker_load_tile_menu_from_file(char *filepath)
 
     fgets(buf, 256, f);
     tm->tilesize = atoi(buf);
-    int z = tm_load_tile_map(tm->tilemapfile, tm->tilesize);
+    int z = tm_add_tile_map_to_list(tm->tilemapfile, tm->tilesize);
     tm->tiles = list_create();
 
     while(fgets(buf, 256, f) != NULL)
@@ -384,7 +402,7 @@ void maker_load_tile_menu_from_image(char *tilemapfile, int tilesize)
     struct tilemenu *tm = s_malloc(sizeof(struct tilemenu), "tm: maker_load_tile_menu_from_image");
     list_append(tilemenus, tm);
     
-    int z = tm_load_tile_map(tilemapfile, tilesize);
+    int z = tm_add_tile_map_to_list(tilemapfile, tilesize);
     tm->tiles = list_create();
 
     ALLEGRO_BITMAP *tilemap = al_load_bitmap(s_get_full_path_with_dir("images", tilemapfile));

@@ -14,7 +14,7 @@ void em_init()
     spritesheet = al_load_bitmap(s_get_full_path_with_dir("images", "DungeonAllEntities.png"));
     if(!spritesheet)
         debug_perror("Spritesheet failed to load in em_init\n");
-    knight = create_knight(spritesheet);
+    knight = knight_create(spritesheet);
     sm_add_sprite_to_layer(knight->sprite);
 }
 
@@ -25,5 +25,6 @@ void em_tick()
 
 void em_destroy()
 {
-    destroy_knight(knight);
+    knight_destroy(knight);
+    al_destroy_bitmap(spritesheet);
 }

@@ -25,15 +25,6 @@ void kb_update(ALLEGRO_EVENT *event)
     switch(event->type)
     {
         case ALLEGRO_EVENT_KEY_DOWN:
-            switch(event->keyboard.keycode)
-            {
-                case ALLEGRO_KEY_ENTER:
-                    //NO BREAK
-                case ALLEGRO_KEY_ESCAPE:
-                    gettext = 0;
-                    textfield = 0;
-                    break;
-            }
             keys[event->keyboard.keycode].key = 1 ^ gettext;
             keys[event->keyboard.keycode].hist |= 1 ^ gettext;
 
@@ -44,21 +35,38 @@ void kb_update(ALLEGRO_EVENT *event)
             break;
 
         case ALLEGRO_EVENT_KEY_CHAR:
-            if(gettext && strlen(textfield) < textfieldsize)
-            {
-                const char *c = al_keycode_to_name(event->keyboard.keycode);
-                if(strlen(c) == 1)
-                    strcat(textfield, c);
-            }
+            if(gettext)
+                switch(event->keyboard.keycode)
+                {
+                    case ALLEGRO_KEY_ENTER:
+                        //NO BREAK
+                    case ALLEGRO_KEY_ESCAPE:
+                        gettext = 0;
+                        textfield = NULL;
+                        break;
+                    case ALLEGRO_KEY_BACKSPACE:
+                        if(strlen(textfield) != 0)
+                            textfield[strlen(textfield) - 1] = '\0';
+                        break;
+                    default:
+                        if(strlen(textfield) < textfieldsize)
+                        {
+                            const char *c = al_keycode_to_name(event->keyboard.keycode);
+                            char cat = *c;
+                            strcat(textfield, c);
+                        }
+                        break;
+                }
             break;
     }
 }
 
-void kb_get_text(char *buf, int size)
+char *kb_get_text(char *buf, int size)
 {
     gettext = 1;
     textfield = buf;
     textfieldsize = size;
+    return &gettext;
 }
 
 void kb_tick()

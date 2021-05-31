@@ -3,7 +3,7 @@
 
 void tm_init(int csize);
 void tm_destroy();
-int tm_load_tile_map(char *tilemapfile, int tilesize);
+int tm_add_tile_map_to_list(char *tilemapfile, int tilesize);
 int tm_get_tile_map_z(char *tilemapfile);
 void tm_add_chunk(struct chunk *chunk);
 void tm_remove_chunk(struct chunk *chunk);

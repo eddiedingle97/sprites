@@ -4,6 +4,7 @@
 #include "map.h"
 #include "sprites.h"
 #include "map.h"
+#include "spritemanager.h"
 #include "debug.h"
 #include "colors.h"
 

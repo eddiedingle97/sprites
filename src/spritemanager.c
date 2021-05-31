@@ -7,8 +7,6 @@
 #include "colors.h"
 #include "debug.h"
 
-#define addlayer list_append(layers, list_create())
-
 static struct list *layers;
 
 static const int HHEIGHT = HEIGHT / 2;
@@ -34,7 +32,7 @@ void sm_init(int x, int y)
 	int i;
 	for(i = 0; i < LAYERS; i++)
 	{
-		addlayer;
+		list_append(layers, list_create());
 		move[i][0] = 0;
 		move[i][1] = 0;
 	}
@@ -349,7 +347,7 @@ void sm_destroy_sprite_from_layer(struct sprite *sprite)
 
 void sm_remove_sprite_from_layer(struct sprite *sprite)
 {
-	if(!sprite->id)
+	if(!sprite->id || !layers)
 		return;
 	list_delete_node((struct list *)list_get(layers, sprite->layer), sprite->id);
 	sprite->id = NULL;
@@ -384,15 +382,11 @@ void sm_destroy()
 	struct node *layer = layers->head;
 	for(i = 0; i < layers->size; i++)
 	{
-		struct list *l = (struct list *)layer->p;
-		struct node *node = l->head;
-		for(j = 0; j < l->size; j++)
-		{
-			sm_destroy_sprite((struct sprite *)node->p);
-			node = node->next;
-		}
+		struct list *l = layer->p;
 		list_destroy(l);
+		layer->p = NULL;
 		layer = layer->next;
 	}
 	list_destroy(layers);
+	layers = NULL;
 }

@@ -21,6 +21,7 @@
 void game_get_actions();
 static char mode;
 char buf[64];
+static char *gt = NULL;
 
 void game_init(char gamemode, char newmap, int width, int height)
 {
@@ -117,6 +118,17 @@ void game_get_actions()
     if(kb_get_mapsave())
         mm_save_map("map1");
 
+    if(kb_get_gettext())
+    {
+        memset(buf, 0, 64);
+        gt = kb_get_text(buf, 64);
+    }
+    if(gt && !*gt)
+    {
+        printf("%s\n", buf);
+        gt = NULL;
+    }
+
     switch(mode)
     {
         case NONE:
@@ -138,11 +150,7 @@ void game_get_actions()
             if(kb_get_tile_menu_save())
                 maker_show_solid_tiles();
 
-            if(kb_get_gettext())
-            {
-                memset(buf, 0, 64);
-                kb_get_text(buf, 64);
-            }
+            
 
             if(kb_get_single_key(MISC))
                 maker_save_tile_menus();

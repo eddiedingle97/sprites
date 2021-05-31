@@ -29,8 +29,7 @@ void mc_init()
     al_unlock_bitmap(boxbitmap);
     collisionbox = sm_create_sprite(boxbitmap, 0, 0, PLAYER, CENTERED);
 
-    if(debug_get())
-        sm_add_sprite_to_layer(collisionbox);
+    debug_add_sprite(collisionbox);
     collision = 1;
 }
 
@@ -58,6 +57,8 @@ int mc_do_movement(struct sprite *sprite, float up, float down, float left, floa
         sprite->x += dx;
         sprite->y += dy;
     }
+
     sm_move_coord(dx, dy);
+
     return dx || dy;
 }

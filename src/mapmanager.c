@@ -87,7 +87,7 @@ void mm_init(char *mapdir, ...)
 
 void mm_destroy()
 {
-    list_destroy_with_function(maps, (void (*)(void *))map_destroy);
+    list_destroy_with_function(maps, map_destroy);
     tm_destroy();
 }
 
@@ -220,6 +220,8 @@ void mm_save_map(char *mapname)
     map_save(list_get(maps, 0), mapname);
 
     tm_save_tile_maps(mapname);
+
+    debug_printf("Map saved\n");
 }
 
 void mm_load_map(char *mapname)

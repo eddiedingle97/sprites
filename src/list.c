@@ -344,9 +344,8 @@ void *list_for_each(struct list *l, void (*func)(void *))
 	struct node *temp = l->head;
 	for(i = 0; i < l->size; i++)
 	{
-		l->head = l->head->next;
 		func(temp->p);
-		temp = l->head;
+		temp = temp->next;
 	}
 
 	return NULL;

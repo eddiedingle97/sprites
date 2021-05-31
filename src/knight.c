@@ -19,7 +19,7 @@ struct knightdata
     ALLEGRO_BITMAP *bitmap;
 };
 
-void draw_knight(float x, float y, float zoom, struct knightdata *data, int tick)
+void knight_draw(float x, float y, float zoom, struct knightdata *data, int tick)
 {
     tick = tick % data->ticks;
     if(!tick)
@@ -46,7 +46,7 @@ void knight_behaviour(struct sprite *sprite, struct knightdata *data)
         data->idle = 1;
 }
 
-struct entity *create_knight(ALLEGRO_BITMAP *spritesheet)
+struct entity *knight_create(ALLEGRO_BITMAP *spritesheet)
 {
     struct knightdata *kd = s_malloc(sizeof(struct knightdata), "create_knight");
     kd->width = 16;
@@ -60,12 +60,11 @@ struct entity *create_knight(ALLEGRO_BITMAP *spritesheet)
     kd->speed = 1;
     kd->bitmap = spritesheet;//al_load_bitmap(s_get_full_path_with_dir("images", "DungeonPlayersprites.png"));
     kd->alflags = 0;
-    struct entity *out = e_create(draw_knight, knight_behaviour, 0, 0, kd);
+    struct entity *out = e_create(knight_draw, knight_behaviour, 0, 0, kd);
     return out;
 }
 
-void destroy_knight(struct entity *knight)
+void knight_destroy(struct entity *knight)
 {
-    al_destroy_bitmap(((struct knightdata *)knight->data)->bitmap);
     e_destroy(knight);
 }

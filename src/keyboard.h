@@ -3,7 +3,7 @@
 
 void kb_init();
 void kb_update(ALLEGRO_EVENT *event);
-void kb_get_text(char *buf, int size);
+char *kb_get_text(char *buf, int size);
 void kb_tick();
 char kb_get_single_key(int k);
 char kb_get_shifted_single_key(int k);
