@@ -20,11 +20,11 @@ void *list_destroy(struct list *l)
 	for(i = 0; i < l->size; i++)
 	{
 		l->head = l->head->next;
-		free(temp);
+		s_free(temp, NULL);
 		temp = l->head;
 	}
 
-	free(l);
+	s_free(l, NULL);
 	return NULL;
 }
 
@@ -36,11 +36,11 @@ void *list_destroy_with_function(struct list *l, void (*destroyfunc)(void *))
 	{
 		l->head = l->head->next;
 		destroyfunc(temp->p);
-		free(temp);
+		s_free(temp, NULL);
 		temp = l->head;
 	}
 
-	free(l);
+	s_free(l, NULL);
 	return NULL;
 }
 
@@ -163,12 +163,12 @@ void *list_dequeue(struct list *l)//remove last element
 
 	if(l->size == 1)
 	{
-		free(l->head);
+		s_free(l->head, NULL);
 		l->head = NULL;
 	}
 	else
 	{
-		free(l->tail->next);
+		s_free(l->tail->next, NULL);
 		l->tail->next = NULL;
 	}
 
@@ -186,12 +186,12 @@ void *list_pop(struct list *l)//remove first element
 	l->head = l->head->next;
 	if(l->size == 1)
 	{
-		free(l->tail);
+		s_free(l->tail, NULL);
 		l->tail = NULL;
 	}
 	else
 	{
-		free(l->head->prev);
+		s_free(l->head->prev, NULL);
 		l->head->prev = NULL;
 	}
 
@@ -297,7 +297,7 @@ void *list_delete(struct list *l, int index)
 		prev->next->prev = prev;
 	}
 
-	free(temp);
+	s_free(temp, NULL);
 	l->size--;
 	return p;
 }
@@ -332,7 +332,7 @@ void *list_delete_node(struct list *l, struct node *node)
 		node->next->prev = node->prev;
 	}
 
-	free(node);	
+	s_free(node, NULL);	
 
 	l->size--;
 	return p;

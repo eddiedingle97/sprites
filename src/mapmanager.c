@@ -232,7 +232,7 @@ void mm_load_map(char *mapname)
 
     tm_load_tile_maps(dir);
 
-    free(dir);
+    s_free(dir, NULL);
 }
 
 struct chunk **mm_get_corners()

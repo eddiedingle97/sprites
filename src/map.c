@@ -242,8 +242,8 @@ struct map *map_load(char *dir)
 
     if(!mapfile)
     {
-        free(map->name);
-        free(map);
+        s_free(map->name, NULL);
+        s_free(map, NULL);
         al_fclose(mapfile);
         debug_perror("Error in map_load\n");
         return NULL;
@@ -252,8 +252,8 @@ struct map *map_load(char *dir)
     memset(buf, 0, 32);
     if(!al_fgets(mapfile, buf, 32))
     {
-        free(map->name);
-        free(map);
+        s_free(map->name, NULL);
+        s_free(map, NULL);
         al_fclose(mapfile);
         debug_perror("Error in map_load\n");
         return NULL;
@@ -275,10 +275,10 @@ void map_destroy_chunk(struct chunk *chunk, int chunksize)
 {
     int r;
     for(r = 0; r < chunksize; r++)
-        free(chunk->tiles[r]);
+        s_free(chunk->tiles[r], NULL);
 
-    free(chunk->tiles);
-    free(chunk);
+    s_free(chunk->tiles, NULL);
+    s_free(chunk, NULL);
 }
 
 void map_destroy(struct map *map)
@@ -293,12 +293,12 @@ void map_destroy(struct map *map)
         {
             map_destroy_chunk(map->chunks[r][c], map->chunksize);
         }
-        free(map->chunks[r]);
+        s_free(map->chunks[r], NULL);
     }
-    free(map->chunks);
+    s_free(map->chunks, NULL);
 
     if(map->name)
-        free(map->name);
+        s_free(map->name, NULL);
 
-    free(map);
+    s_free(map, "Freeing map");
 }

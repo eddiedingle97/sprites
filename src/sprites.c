@@ -23,6 +23,8 @@
 static const float FPS = 1/60.0;
 static char debug;
 static unsigned long bytes = 0;
+static unsigned int mcount = 0;
+static unsigned int fcount = 0;
 static char *rootdir;
 static char buf[512];
 
@@ -129,7 +131,6 @@ int main(int argc, char **argv)
 	mouse_init(&mousestate);
 	debug_init(debug);
 	game_init(mode, newmap, width, height);
-	debug_toggle_sprites();
 
 	clock_t start, stop;
 
@@ -195,6 +196,8 @@ int main(int argc, char **argv)
 	alobj_destroy(al);
 	debug_printf("after alobj_destroy\n");
 	debug_printf("%ld bytes allocated\n", bytes);
+	debug_printf("%d allocations\n", mcount);
+	debug_printf("%d frees\n", fcount);
 
 	al_free(rootdir);
 
@@ -214,6 +217,7 @@ void *s_malloc(int b, const char *msg)
 		if(msg)
 			printf("%s: %d\n", msg, b);
 		bytes += b;
+		mcount += 1;
 	}
 
 	return out;
@@ -232,9 +236,22 @@ void *s_realloc(void *ptr, int b, const char *msg)
 		if(msg)
 			printf("%s: %d\n", msg, b);
 		bytes += b;
+		if(!ptr)
+			mcount += 1;
 	}
 	
 	return out;
+}
+
+void s_free(void *ptr, const char *msg)
+{
+	if(debug)
+	{
+		if(msg)
+			printf("%s\n", msg);
+		fcount += 1;
+	}
+	free(ptr);
 }
 
 char *s_get_heap_string(const char *str)

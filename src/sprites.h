@@ -6,6 +6,7 @@
 
 void *s_malloc(int bytes, const char *msg);
 void *s_realloc(void *ptr, int b, const char *msg);
+void s_free(void *ptr, const char *msg);
 char *s_get_heap_string(const char *str);
 char  s_string_match(char *one, char *two);
 char *s_get_root_dir();

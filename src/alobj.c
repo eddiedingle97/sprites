@@ -12,7 +12,6 @@ struct alobj *alobj_create(int width, int height, double timer)
 
 	struct alobj *obj = malloc(sizeof(struct alobj));
 	obj->display = al_create_display(width, height);
-	al_set_window_position(obj->display, 0, 0);
 
 	if(!obj->display)
 	{	
@@ -22,6 +21,7 @@ struct alobj *alobj_create(int width, int height, double timer)
 		return NULL;
 	}
 
+	al_set_window_position(obj->display, 0, 0);
 	obj->event_queue = al_create_event_queue();
 
 	if(!obj->event_queue)

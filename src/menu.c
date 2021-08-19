@@ -57,7 +57,7 @@ void menu_destroy(struct menu *m)
     al_destroy_bitmap(m->select);
     list_destroy_with_function(m->items, (void (*)(void *))menu_destroy_menu_item);
     sm_destroy_sprite(m->frame);
-    free(m);
+    s_free(m, "Freeing menu");
 }
 
 struct menuitem *menu_create_menu_item(void *entry, void *(*func)(void *))
@@ -70,8 +70,8 @@ struct menuitem *menu_create_menu_item(void *entry, void *(*func)(void *))
 
 void menu_destroy_menu_item(struct menuitem *mi)
 {
-    free(mi->entry);
-    free(mi);
+    s_free(mi->entry, NULL);
+    s_free(mi, NULL);
 }
 
 void menu_default_frame_handler(struct menu *m)

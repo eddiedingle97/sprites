@@ -360,15 +360,18 @@ void sm_destroy_sprite(struct sprite *sprite)
 		return;
 
 	if(sprite->id)
-	{
 		sm_remove_sprite_from_layer(sprite);
-		nosprites--;
-	}
 
 	if(!(sprite->type & SELFDRAW))
 		al_destroy_bitmap(sprite->bitmap);
 	
-	free(sprite);
+	if(sprite->name)
+	{
+		debug_printf("Free sprite %s\n", sprite->name);
+		s_free(sprite->name, NULL);
+	}
+
+	s_free(sprite, NULL);
 }
 
 int sm_get_sprite_count()

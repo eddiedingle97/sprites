@@ -38,9 +38,9 @@ void tm_init(int csize)
 
 void tm_destroy_tile_map(struct tilemap *tm)
 {
-    free(tm->tilemapfile);
+    s_free(tm->tilemapfile, NULL);
     al_destroy_bitmap(tm->bitmap);
-    free(tm);
+    s_free(tm, NULL);
 }
 
 void tm_destroy()
@@ -51,8 +51,8 @@ void tm_destroy()
     {
         tm_destroy_tile_map(tilemaps[i]);
     }
-    free(tilemaps);
-    free(matrix);
+    s_free(tilemaps, NULL);
+    s_free(matrix, NULL);
 }
 
 void tm_print_tile_maps()

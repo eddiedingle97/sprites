@@ -110,20 +110,20 @@ void maker_init()
 
 void maker_destroy_tile(struct tile *tile)
 {
-    free(tile);
+    s_free(tile, NULL);
 }
 
 void maker_destroy_tile_menu(struct tilemenu *tm)
 {
     md_remove_menu(tm);
     list_destroy_with_function(tm->tiles, (void (*)(void *))maker_destroy_tile);
-    free(tm->tilemapfile);
+    s_free(tm->tilemapfile, NULL);
     sm_destroy_sprite(tm->menu->frame);
     al_destroy_bitmap(tm->menu->select);
     al_destroy_font(tm->menu->font);
     md_remove_menu(tm->menu);
-    free(tm->menu);
-    free(tm);
+    s_free(tm->menu, NULL);
+    s_free(tm, NULL);
 }
 
 void maker_destroy_maker_menu(struct menu *m)
@@ -141,16 +141,16 @@ void maker_destroy_maker_menu(struct menu *m)
     struct menuentrysub *mes = mi->entry;
     menu_destroy(mes->menu);
     md_remove_menu(mes->menu);
-    free(mi);
+    s_free(mi, NULL);
 
     node = node->next;
     mi = node->p;
     mes = mi->entry;
     menu_destroy(mes->menu);
     md_remove_menu(mes->menu);
-    free(mi);
+    s_free(mi, NULL);
 
-    free(m);
+    s_free(m, NULL);
     md_remove_menu(m);
 }
 
