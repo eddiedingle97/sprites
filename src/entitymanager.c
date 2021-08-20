@@ -1,7 +1,8 @@
 #include <stdio.h>
 #include <allegro5/allegro.h>
-#include "entity.h"
 #include "spritemanager.h"
+#include "entity.h"
+
 #include "debug.h"
 
 #include "knight.c"

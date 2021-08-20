@@ -17,16 +17,7 @@ struct entity
     void (*behaviour)(struct sprite *sprite, void *data);
 };
 
-struct animation
-{
-    char spritecount;
-    char cycle;
-    char ticks;
-    short x;
-    short y;
-};
-
-struct entity *e_create(void (*draw)(float x, float y, float zoom, void *data, int tick), void (*behaviour)(struct sprite *sprite, void *data), float x, float y, void *data);
+struct entity *e_create(ALLEGRO_BITMAP *bitmap, void (*draw)(float x, float y, float zoom, void *data, int tick), void (*behaviour)(struct sprite *sprite, void *data), float x, float y, struct animation *an, void *data);
 void e_destroy(struct entity *e);
 
 #endif
