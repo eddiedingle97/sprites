@@ -8,7 +8,7 @@ void maker_tile_menu_frame_handler(struct menu *m)
     m->x = topleftcoord[X] + w / 2;
     m->y = topleftcoord[Y] - h / 2;
     m->movable = 0;
-    struct tilemap *tm = tm_get_tile_map_for_tile(m->items->head->p);
+    struct tilemap *tm = mm_get_tile_map_for_tile(m->items->head->p);
 
     if(!m->frame)
     {

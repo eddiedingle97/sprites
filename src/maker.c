@@ -9,7 +9,6 @@
 #include "spritemanager.h"
 #include "sprites.h"
 #include "map.h"
-#include "tilemanager.h"
 #include "mapmanager.h"
 #include "menu.h"
 #include "menudriver.h"
@@ -217,6 +216,7 @@ void maker_actions()
 
         case 130: //single two & edit mode
             currenttile = mm_get_tile(sm_rel_to_global_x(mouse_get_rel_x()), sm_rel_to_global_y(mouse_get_rel_y()));
+            //printf("%d %d %d\n", currenttile->tilemap_x, currenttile->tilemap_y, currenttile->tilemap_z);
             editmenu->x = mouse_get_rel_x();
             editmenu->y = mouse_get_rel_y();
             maker_add_edit_menu();
@@ -285,7 +285,7 @@ void maker_show_solid_tiles()
                         ALLEGRO_BITMAP *redbitmap = al_create_bitmap(map->tilesize, map->tilesize);
                         al_set_target_bitmap(redbitmap);
                         al_clear_to_color(RED);
-                        struct sprite *sprite = sm_create_global_sprite(redbitmap, tm_get_tile_x(chunkleft->x, 16, c), tm_get_tile_y(chunkleft->y, 16, r), FOREGROUND, 0);
+                        struct sprite *sprite = sm_create_global_sprite(redbitmap, mm_get_tile_x(chunkleft->x, 16, c), mm_get_tile_y(chunkleft->y, 16, r), FOREGROUND, 0);
                         sm_add_sprite_to_layer(sprite);
                         list_append(foregroundsprites, sprite);
                     }
@@ -335,7 +335,7 @@ void maker_load_tile_menu_from_file(char *filepath)
 
     fgets(buf, 256, f);
     tm->tilesize = atoi(buf);
-    int z = tm_add_tile_map_to_list(tm->tilemapfile, tm->tilesize);
+    int z = mm_add_tile_map_to_list(tm->tilemapfile, tm->tilesize);
     tm->tiles = list_create();
 
     while(fgets(buf, 256, f) != NULL)
@@ -402,7 +402,7 @@ void maker_load_tile_menu_from_image(char *tilemapfile, int tilesize)
     struct tilemenu *tm = s_malloc(sizeof(struct tilemenu), "tm: maker_load_tile_menu_from_image");
     list_append(tilemenus, tm);
     
-    int z = tm_add_tile_map_to_list(tilemapfile, tilesize);
+    int z = mm_add_tile_map_to_list(tilemapfile, tilesize);
     tm->tiles = list_create();
 
     ALLEGRO_BITMAP *tilemap = al_load_bitmap(s_get_full_path_with_dir("images", tilemapfile));
@@ -565,7 +565,7 @@ void maker_edit_frame_handler(struct menu *m)
 
 void maker_set_current_tile(struct tile *tile)
 {
-    ALLEGRO_BITMAP *bit = tm_get_tile_bitmap(tile);
+    ALLEGRO_BITMAP *bit = mm_get_tile_bitmap(tile);
     mouse_set_bitmap(bit);
     currenttile = tile;
 }

@@ -9,7 +9,6 @@
 #include "mouse.h"
 #include "keyboard.h"
 #include "map.h"
-#include "tilemanager.h"
 #include "mapmanager.h"
 #include "menu.h"
 #include "menudriver.h"
@@ -88,7 +87,7 @@ void game_tick(ALLEGRO_DISPLAY *display)
             game_get_actions();
             em_tick();
             mm_update_chunks();
-            tm_draw_chunks(display);
+            mm_draw_chunks(display);
             sm_draw_sprites(display);
             break;
 
@@ -98,7 +97,7 @@ void game_tick(ALLEGRO_DISPLAY *display)
         case MAKER:
             game_get_actions();
             mm_update_chunks();
-            tm_draw_chunks(display);
+            mm_draw_chunks(display);
             sm_draw_sprites(display);
             break;
     }
@@ -107,16 +106,12 @@ void game_tick(ALLEGRO_DISPLAY *display)
 void game_get_actions()
 {
     float shift = 1, ctrl = 0, up = kb_get_up(), down = kb_get_down(), left = kb_get_left(), right = kb_get_right();
-    char scroll = 0;
     float coef = .5;
 
-    scroll = mouse_get_scroll();
+    char scroll = mouse_get_scroll();
 
     if(kb_get_toggle_debug())
         debug_toggle_sprites();
-
-    if(kb_get_mapsave())
-        mm_save_map("map1");
 
     if(kb_get_gettext())
     {
@@ -129,10 +124,17 @@ void game_get_actions()
         gt = NULL;
     }
 
+    /*if(mouse_get_single_one())
+    {
+        struct tile *tile = mm_get_tile_from_rel_coordinate(mouse_get_rel_x(), mouse_get_rel_y());
+        tile->damage--;
+    }*/
+
     switch(mode)
     {
         case NONE:
             sm_set_zoom(scroll);
+            
             break;
 
         case REG:
@@ -149,8 +151,6 @@ void game_get_actions()
 
             if(kb_get_tile_menu_save())
                 maker_show_solid_tiles();
-
-            
 
             if(kb_get_single_key(MISC))
                 maker_save_tile_menus();

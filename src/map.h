@@ -47,5 +47,4 @@ struct tile *map_get_tile_from_coordinate(struct map *map, float x, float y);
 int map_save(struct map *map, char *dir);
 void map_destroy_chunk(struct chunk *chunk, int chunksize);
 
-
 #endif

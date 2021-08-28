@@ -78,7 +78,7 @@ void tm_save_tile_maps(char *dir)//creates a tilemapconfig based on the list's c
         return;
     }
     int i, count;
-    
+
     struct tilemap *tm;
     for(i = 3; i < tilemapssize; i++)
     {

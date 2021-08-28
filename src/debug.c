@@ -7,7 +7,7 @@
 #include "list.h"
 #include "spritemanager.h"
 #include "map.h"
-#include "tilemanager.h"
+#include "mapmanager.h"
 #include "debug.h"
 #include "sprites.h"
 #include "mouse.h"
@@ -137,7 +137,7 @@ void debug_tick(long time)
         sprintf(buf, "Sprites drawn: %d", sm_get_sprite_count());
         al_draw_text(font, BLACK, 5, 5 + 2 * al_get_font_line_height(font), 0, buf);
         memset(buf, 0, 32);
-        sprintf(buf, "Chunks loaded: %d", tm_get_chunk_count());
+        sprintf(buf, "Chunks loaded: %d", mm_get_chunk_count());
         al_draw_text(font, BLACK, 5, 5 + 3 * al_get_font_line_height(font), 0, buf);
         memset(buf, 0, 32);
         sprintf(buf, "Mouse GX: %.2f", sm_rel_to_global_x(mouse_get_rel_x()));
