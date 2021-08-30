@@ -144,7 +144,7 @@ void game_get_actions()
             md_menu_tick();
             sm_set_zoom(scroll);
             maker_actions();
-            mc_do_movement(NULL, up, down, left, right);
+            mc_do_main_movement(NULL, up, down, left, right);
 
             if(kb_get_mapsave())
                 mm_save_map("map1");

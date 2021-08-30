@@ -17,7 +17,7 @@ struct entity
     void (*behaviour)(struct sprite *sprite, void *data);
 };
 
-struct entity *e_create(ALLEGRO_BITMAP *bitmap, void (*draw)(float x, float y, float zoom, void *data, int tick), void (*behaviour)(struct sprite *sprite, void *data), float x, float y, struct animation *an, void *data);
+struct entity *e_create(ALLEGRO_BITMAP *bitmap, void (*draw)(struct sprite *sprite, int tick), void (*behaviour)(struct sprite *sprite, void *data), float x, float y, struct animation *an, void *data);
 void e_destroy(struct entity *e);
 
 #endif

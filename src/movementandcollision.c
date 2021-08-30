@@ -33,7 +33,35 @@ void mc_init()
     collision = 1;
 }
 
-int mc_do_movement(struct sprite *sprite, float up, float down, float left, float right)
+int mc_do_entity_movement(struct sprite *sprite, float dx, float dy)
+{
+    struct tile *currenttile = mm_get_tile(sprite->x, sprite->y);
+    if(collision && currenttile)
+    {
+        struct tile *nexttile = mm_get_tile(sprite->x + dx, sprite->y);
+        if(nexttile && nexttile->solid)
+        {
+            dx = 0;
+        }
+        
+        nexttile = mm_get_tile(sprite->x, sprite->y + dy);
+        if(nexttile && nexttile->solid)
+        {
+            dy = 0;
+        }
+    }
+
+    if(sprite)
+    {
+        printf("here dx: %.2f, dy: %.2f, %.2f, %.2f\n", dx, dy, sprite->x, sprite->y);
+        sprite->x += dx;
+        sprite->y += dy;
+    }
+
+    return dx || dy;
+}
+
+int mc_do_main_movement(struct sprite *sprite, float up, float down, float left, float right)
 {
     float xcoord = sm_get_coord(X), ycoord = sm_get_coord(Y), dx = right - left, dy = up - down;
     struct tile *currenttile = mm_get_tile(xcoord, ycoord);

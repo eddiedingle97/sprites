@@ -7,6 +7,7 @@
 #include "spritemanager.h"
 #include "debug.h"
 #include "colors.h"
+#include "emath.h"
 
 struct chunk *map_init_chunk(struct map *map, ALLEGRO_FILE *file, int x, int y);
 struct chunk *map_create_test_chunk(int x, int y, int chunksize);
@@ -89,7 +90,7 @@ struct chunk *map_get_chunk_from_coordinate(struct map *map, float x, float y)
     if(x < 0 || y < 0 || x >= pixelwidth || y >= pixelheight)
         return NULL;
 
-    return map->chunks[s_floor(y) / chunkgrid][s_floor(x) / chunkgrid];
+    return map->chunks[math_floor(y) / chunkgrid][math_floor(x) / chunkgrid];
 }
 
 struct chunk *map_get_chunk_from_index(struct map *map, int x, int y)
@@ -198,7 +199,7 @@ struct tile *map_get_tile_from_coordinate(struct map *map, float x, float y)
     x /= map->tilesize;
     y /= map->tilesize;
 
-    return &chunk->tiles[s_floor(y)][s_floor(x)];
+    return &chunk->tiles[math_floor(y)][math_floor(x)];
 }
 
 void map_create_chunks(struct map *map, ALLEGRO_FILE *file)

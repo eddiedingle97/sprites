@@ -33,7 +33,7 @@ void knight_behaviour(struct sprite *sprite, struct knightdata *data)
     else if(right && !left)
         an->alflags = 0;
 
-    if(mc_do_movement(sprite, up, down, left, right))
+    if(mc_do_main_movement(sprite, up, down, left, right))
         data->idle = 0;
     else
         data->idle = 1;

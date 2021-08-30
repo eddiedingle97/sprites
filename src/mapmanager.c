@@ -1,7 +1,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdarg.h>
-#include <math.h>
 #include <string.h>
 #include <allegro5/allegro.h>
 #include "list.h"
@@ -11,6 +10,7 @@
 #include "mapmanager.h"
 #include "debug.h"
 #include "colors.h"
+#include "emath.h"
 
 static struct chunk *corners[4];
 static struct list *maps;
@@ -147,7 +147,7 @@ void mm_test_color_tile(float x, float y)
     x /= map->tilesize;
     y /= map->tilesize;
 
-    chunk->tiles[s_floor(y)][s_floor(x)].tilemap_z = 1;
+    chunk->tiles[math_floor(y)][math_floor(x)].tilemap_z = 1;
 }
 
 struct chunk *mm_get_chunk_from_rel_coordinate(float x, float y)

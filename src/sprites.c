@@ -317,18 +317,3 @@ struct list *s_get_file_list_from_dir(char *dir)
 
 	return out;
 }
-
-int s_round(float f)
-{
-	int out = (int)f;
-	float cmp = f - out;
-	if(cmp < .5)
-		return out;
-	else
-		return ++out;
-}
-
-int s_floor(float f)
-{
-	return (int)f;
-}
