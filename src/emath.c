@@ -1,4 +1,6 @@
+#include <stdlib.h>
 #include "emath.h"
+#include "time.h"
 
 float math_fast_inverse_sqrt(float no)
 {
@@ -38,4 +40,20 @@ float math_abs(float f)
 
     else 
         return f;
+}
+
+void math_seed(int seed)
+{
+    if(seed)
+        srand(seed);
+    else
+    {
+        time_t t;
+        srand((unsigned)time(&t));
+    }
+}
+
+unsigned int math_get_random(int max)
+{
+    return rand() % (max + 1);
 }

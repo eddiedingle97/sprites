@@ -53,7 +53,6 @@ int mc_do_entity_movement(struct sprite *sprite, float dx, float dy)
 
     if(sprite)
     {
-        printf("here dx: %.2f, dy: %.2f, %.2f, %.2f\n", dx, dy, sprite->x, sprite->y);
         sprite->x += dx;
         sprite->y += dy;
     }

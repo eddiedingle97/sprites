@@ -8,6 +8,7 @@
 #include "map.h"
 #include "spritemanager.h"
 #include "mapmanager.h"
+#include "mapgenerator.h"
 #include "debug.h"
 #include "colors.h"
 #include "emath.h"
@@ -36,7 +37,7 @@ enum DIR {UP = 0, DOWN = 1, LEFT = 2, RIGHT = 3};
 void mm_init(char *mapdir, ...)
 {
     maps = list_create();
-    struct map *map;
+    struct map *map;// = mg_create_map(30, 30);
     if(s_string_match(mapdir, "new"))
     {
         va_list vl;
@@ -45,7 +46,7 @@ void mm_init(char *mapdir, ...)
         int tilesize = va_arg(vl, int);
         int width = va_arg(vl, int);
         int height = va_arg(vl, int);
-        map = map_create(chunksize, tilesize, width, height);
+        map = mg_create_map(30, 30);//map_create(chunksize, tilesize, width, height);
         va_end(vl);
     }
     else
@@ -59,9 +60,10 @@ void mm_init(char *mapdir, ...)
 
     chunks = list_create();
     tilemapssize = 0;
-    mm_add_tile_map(mm_load_tile_map_from_file("defaulttile.bmp", TILESIZE));
-    mm_add_tile_map(mm_load_tile_map_from_file("purplebitmap.bmp", TILESIZE));
-    mm_add_tile_map(mm_load_tile_map_from_file("blanktile.png", TILESIZE));
+    mm_add_tile_map_to_list("defaulttile.bmp", TILESIZE);
+    mm_add_tile_map_to_list("purplebitmap.bmp", TILESIZE);
+    mm_add_tile_map_to_list("blanktile.png", TILESIZE);
+    mm_add_tile_map_to_list("DungeonTilesetIItiles.png", 16);
     chunksize = map->chunksize;
 
     matrix = s_malloc(map->chunksize * sizeof(int), "mm_init: matrix");
@@ -523,14 +525,14 @@ void mm_draw_chunks(ALLEGRO_DISPLAY *display)
             for(c = 0; c < chunksize; c++)
             {
                 tile = &chunk->tiles[r][c];
-                if(tile->damage < 0 && tile->breakable)
+                /*if(tile->damage < 0 && tile->breakable)
                 {
                     printf("damage: %d, breakable: %d\n", tile->damage, tile->breakable);
                     tile->tilemap_x = 0;
                     tile->tilemap_y = 0;
                     tile->tilemap_z = BLANK;
                     tile->damage = 10;
-                }
+                }*/
                 tilemap = tilemaps[tile->tilemap_z];
                 
                 al_draw_scaled_bitmap(tilemap->bitmap, tile->tilemap_x, tile->tilemap_y, tilemap->tilesize, tilemap->tilesize, mm_get_x(mm_global_to_rel_x(mm_get_tile_x(chunk->x, tilemap->tilesize, c)), 0), mm_get_y(mm_global_to_rel_y(mm_get_tile_y(chunk->y, tilemap->tilesize, r)), 0), newsize, newsize, 0);
