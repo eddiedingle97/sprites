@@ -10,9 +10,9 @@ struct tilemap
 
 struct tile
 {
-    unsigned short tilemap_x;
-    unsigned short tilemap_y;
-    unsigned short tilemap_z;
+    unsigned short tilemap_x:12;
+    unsigned short tilemap_y:12;
+    unsigned char tilemap_z:4;
     unsigned char solid:1;
     unsigned char breakable:1;
     char damage;

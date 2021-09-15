@@ -2,11 +2,17 @@
 #include <stdio.h>
 #include "sprites.h"
 #include "map.h"
-//#include "mapmanager.h"
+#include "mapmanager.h"
 #include "mapgenerator.h"
 #include "tilelist.h"
 #include "emath.h"
 #include "graph.h"
+
+struct coord
+{
+    int x;
+    int y;
+};
 
 struct room
 {
@@ -14,12 +20,15 @@ struct room
     int h;
     int x;
     int y;
+    struct coord *exits;
 };
 
 int mg_collides(struct room *rooms, int i, int x, int y);
 int mg_put_room_on_map(struct map *map, struct room *rooms, int gap);
 int mg_connect_rooms(struct map *map, struct room *rooms, struct graph *graph);
 struct tile *mg_update_tile(struct map * map, float x, float y, struct tile *tile);
+void mg_fill_area(struct map *map, int x1, int y1, int x2, int y2, struct tile *tile);
+void mg_create_simple_dungeon(struct map *map, int norooms);
 
 struct map *mg_create_map(int w, int h)
 {
@@ -28,8 +37,14 @@ struct map *mg_create_map(int w, int h)
     math_seed(0);
 
     int norooms = math_get_random(10);
-    //printf("room count %d\n", norooms);
 
+    mg_create_simple_dungeon(out, norooms);
+    
+    return out;
+}
+
+void mg_create_simple_dungeon(struct map *map, int norooms)
+{
     struct room *rooms = s_malloc(norooms * sizeof(struct room), "mg_create_map");
     struct graph *graph = graph_create(DIRECTED);
 
@@ -37,7 +52,7 @@ struct map *mg_create_map(int w, int h)
     rooms[0].h = 10;
     rooms[0].x = 0;
     rooms[0].y = 0;
-    mg_put_room_on_map(out, rooms, 0);
+    mg_put_room_on_map(map, rooms, 0);
     graph_add_vertex(graph, rooms, NULL);
 
     int i;
@@ -67,39 +82,38 @@ struct map *mg_create_map(int w, int h)
                 break;
         }
 
-        if(mg_collides(rooms, i - 1, rooms[i - 1].x + right, rooms[i - 1].y + up))
+        if(mg_collides(rooms, i - 1, rooms[i - 1].x + right * rooms[i].w, rooms[i - 1].y + up * rooms[i].h))
         {
             i--;
             continue;
         }
 
-        rooms[i].y = rooms[i - 1].y + up;
-        rooms[i].x = rooms[i - 1].x + right;
+        rooms[i].y = rooms[i - 1].y + up * rooms[i].h;
+        rooms[i].x = rooms[i - 1].x + right * rooms[i].w;
         //printf("%d %d\n", rooms[i].x, rooms[i].y);
-        mg_put_room_on_map(out, &rooms[i], 0);
+        mg_put_room_on_map(map, &rooms[i], 0);
         graph_add_vertex(graph, &rooms[i], NULL);
         graph_add_edge(graph, i - 1, i, 1);
     }
 
-    mg_connect_rooms(out, rooms, graph);
+    mg_connect_rooms(map, rooms, graph);
 
     s_free(rooms, NULL);
     graph_destroy(graph);
-    return out;
 }
 
 int mg_put_room_on_map(struct map *map, struct room *room, int gap)
 {
-    int i, r, c;
+    int r, c;
     int z = 3;
-    int startx = room->x * (room->w + gap) - room->w / 2, starty = room->y * (room->h + gap) + room->h / 2;
+    int startx = room->x + gap - room->w / 2, starty = room->y + gap + room->h / 2;
     struct tile *tile;
 
     for(c = 1; c < room->w - 1; c++)
     {
         tile = mg_update_tile(map, startx + c, starty, mg_get_tile(TOPWALL));
         tile->tilemap_z = z;
-        tile = mg_update_tile(map, startx + c, starty - 9, mg_get_tile(BOTTOMWALL));
+        tile = mg_update_tile(map, startx + c, starty - room->h + 1, mg_get_tile(BOTTOMWALL));
         tile->tilemap_z = z;
     }
 
@@ -107,18 +121,11 @@ int mg_put_room_on_map(struct map *map, struct room *room, int gap)
     {
         tile = mg_update_tile(map, startx, starty - r, mg_get_tile(LEFTWALL));
         tile->tilemap_z = z;
-        tile = mg_update_tile(map, startx + 9, starty - r, mg_get_tile(RIGHTWALL));
+        tile = mg_update_tile(map, startx + room->w - 1, starty - r, mg_get_tile(RIGHTWALL));
         tile->tilemap_z = z;
     }
 
-    for(r = 1; r < room->h - 1; r++)
-    {
-        for(c = 1; c < room->w - 1; c++)
-        {
-            tile = mg_update_tile(map, startx + c, starty - r, mg_get_tile(FLOOR));
-            tile->tilemap_z = z;
-        }
-    }
+    mg_fill_area(map, startx + 1, starty - 1, startx + room->w - 2, starty - room->h + 2, mg_get_tile(FLOOR));
 
     return 1;
 }
@@ -127,6 +134,7 @@ int mg_collides(struct room *rooms, int i, int x, int y)
 {
     for(; i >= 0; i--)
     {
+
         if(rooms[i].x == x && rooms[i].y == y)
             return 1;
     }
@@ -157,7 +165,7 @@ int mg_connect_rooms(struct map *map, struct room *rooms, struct graph *graph)
 {
     int i, j;
     struct vertex *v, *n;
-    printf("graph edges %d graph vertices: %d\n", graph->noedges, graph->novertices);
+    //printf("graph edges %d graph vertices: %d\n", graph->noedges, graph->novertices);
     for(i = 0; i < graph->novertices; i++)
     {
         v = &graph->vertices[i];
@@ -168,24 +176,24 @@ int mg_connect_rooms(struct map *map, struct room *rooms, struct graph *graph)
             int up = two->y - one->y;
             int right = two->x - one->x;
 
-            printf("one: %d %d, two: %d %d\n", one->x, one->y, two->x, two->y);
-            printf("up: %d, right: %d\n", up, right);
+            /*printf("one: %d %d, two: %d %d\n", one->x, one->y, two->x, two->y);
+            printf("up: %d, right: %d\n", up, right);*/
 
             if(right)
             {
                 if(right > 0)
                 {
-                    mg_update_tile(map, two->x * two->w - two->w / 2, one->y * one->h, mg_get_tile(FLOOR));
-                    mg_update_tile(map, two->x * two->w - two->w / 2, one->y * one->h + 1, mg_get_tile(FLOOR));
-                    mg_update_tile(map, two->x * two->w - two->w / 2 - 1, one->y * one->h, mg_get_tile(FLOOR));
-                    mg_update_tile(map, two->x * two->w - two->w / 2 - 1, one->y * one->h + 1, mg_get_tile(FLOOR));
+                    mg_update_tile(map, two->x - two->w / 2, one->y, mg_get_tile(FLOOR));
+                    mg_update_tile(map, two->x - two->w / 2, one->y + 1, mg_get_tile(FLOOR));
+                    mg_update_tile(map, two->x - two->w / 2 - 1, one->y, mg_get_tile(FLOOR));
+                    mg_update_tile(map, two->x - two->w / 2 - 1, one->y + 1, mg_get_tile(FLOOR));
                 }
                 else
                 {
-                    mg_update_tile(map, one->x * one->w - one->w / 2, two->y * two->h, mg_get_tile(FLOOR));
-                    mg_update_tile(map, one->x * one->w - one->w / 2, two->y * two->h + 1, mg_get_tile(FLOOR));
-                    mg_update_tile(map, one->x * one->w - one->w / 2 - 1, two->y * two->h, mg_get_tile(FLOOR));
-                    mg_update_tile(map, one->x * one->w - one->w / 2 - 1, two->y * two->h + 1, mg_get_tile(FLOOR));
+                    mg_update_tile(map, one->x - one->w / 2, two->y, mg_get_tile(FLOOR));
+                    mg_update_tile(map, one->x - one->w / 2, two->y + 1, mg_get_tile(FLOOR));
+                    mg_update_tile(map, one->x - one->w / 2 - 1, two->y, mg_get_tile(FLOOR));
+                    mg_update_tile(map, one->x - one->w / 2 - 1, two->y + 1, mg_get_tile(FLOOR));
                 }
             }
 
@@ -193,21 +201,34 @@ int mg_connect_rooms(struct map *map, struct room *rooms, struct graph *graph)
             {
                 if(up > 0)
                 {
-                    mg_update_tile(map, one->x * one->w, one->y * one->h + one->h / 2, mg_get_tile(FLOOR));
-                    mg_update_tile(map, one->x * one->w - 1, one->y * one->h + one->h / 2, mg_get_tile(FLOOR));
-                    mg_update_tile(map, one->x * one->w, one->y * one->h + one->h / 2 + 1, mg_get_tile(FLOOR));
-                    mg_update_tile(map, one->x * one->w - 1, one->y * one->h + one->h / 2 + 1, mg_get_tile(FLOOR));
+                    mg_update_tile(map, one->x, one->y + one->h / 2, mg_get_tile(FLOOR));
+                    mg_update_tile(map, one->x - 1, one->y + one->h / 2, mg_get_tile(FLOOR));
+                    mg_update_tile(map, one->x, one->y + one->h / 2 + 1, mg_get_tile(FLOOR));
+                    mg_update_tile(map, one->x - 1, one->y + one->h / 2 + 1, mg_get_tile(FLOOR));
                 }
                 else
                 {
-                    mg_update_tile(map, two->x * two->w, two->y * two->h + two->h / 2, mg_get_tile(FLOOR));
-                    mg_update_tile(map, two->x * two->w - 1, two->y * two->h + two->h / 2, mg_get_tile(FLOOR));
-                    mg_update_tile(map, two->x * two->w, two->y * two->h + two->h / 2 + 1, mg_get_tile(FLOOR));
-                    mg_update_tile(map, two->x * two->w - 1, two->y * two->h + two->h / 2 + 1, mg_get_tile(FLOOR));
+                    mg_update_tile(map, two->x, two->y + two->h / 2, mg_get_tile(FLOOR));
+                    mg_update_tile(map, two->x - 1, two->y + two->h / 2, mg_get_tile(FLOOR));
+                    mg_update_tile(map, two->x, two->y + two->h / 2 + 1, mg_get_tile(FLOOR));
+                    mg_update_tile(map, two->x - 1, two->y + two->h / 2 + 1, mg_get_tile(FLOOR));
                 }
             }
         }
     }
 
     return 1;
+}
+
+void mg_fill_area(struct map *map, int x1, int y1, int x2, int y2, struct tile *tile)
+{
+    int r = y1 - y2, c;
+
+    for(; r >= 0; r--)
+    {
+        for(c = x2 - x1; c >=0; c--)
+        {
+            mg_update_tile(map, x1 + c, y1 - r, tile);
+        }
+    } 
 }

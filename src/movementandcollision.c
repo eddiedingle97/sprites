@@ -63,7 +63,6 @@ int mc_do_entity_movement(struct sprite *sprite, float dx, float dy)
 int mc_do_main_movement(struct sprite *sprite, float up, float down, float left, float right)
 {
     float xcoord = sm_get_coord(X), ycoord = sm_get_coord(Y), dx = right - left, dy = up - down;
-    struct tile *currenttile = mm_get_tile(xcoord, ycoord);
     if(collision)
     {
         struct tile *nexttile = mm_get_tile(xcoord + dx, ycoord);

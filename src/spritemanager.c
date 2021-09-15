@@ -438,7 +438,7 @@ int sm_get_sprite_count()
 
 void sm_destroy()
 {
-	int i, j;
+	int i;
 	struct node *layer = layers->head;
 	for(i = 0; i < layers->size; i++)
 	{

@@ -35,7 +35,7 @@ int main(int argc, char **argv)
 
 	rootdir = al_get_current_directory();
 
-	while((opt = getopt(argc, argv, "dmn:")) != -1)
+	while((opt = getopt(argc, argv, "dmgn:")) != -1)
         switch(opt)
         {
             case 'd':
@@ -44,6 +44,10 @@ int main(int argc, char **argv)
 
 			case 'm':
 				mode = 2;
+				break;
+
+			case 'g':
+				newmap = 1;
 				break;
 
 			case 'n':

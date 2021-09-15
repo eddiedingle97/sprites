@@ -46,7 +46,10 @@ void mm_init(char *mapdir, ...)
         int tilesize = va_arg(vl, int);
         int width = va_arg(vl, int);
         int height = va_arg(vl, int);
-        map = mg_create_map(30, 30);//map_create(chunksize, tilesize, width, height);
+        if(width)
+            map = map_create(chunksize, tilesize, width, height);
+        else
+            map = mg_create_map(30, 30);
         va_end(vl);
     }
     else
@@ -459,6 +462,8 @@ struct tilemap *mm_get_tile_map_for_tile(struct tile *tile)
 
 struct tilemap *mm_get_tile_map_from_z(int z)
 {
+    if(z < 0 || z >= tilemapssize)
+        return NULL;
     return tilemaps[z];
 }
 

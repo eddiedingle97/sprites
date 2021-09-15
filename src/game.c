@@ -106,7 +106,6 @@ void game_tick(ALLEGRO_DISPLAY *display)
 void game_get_actions()
 {
     float shift = 1, ctrl = 0, up = kb_get_up(), down = kb_get_down(), left = kb_get_left(), right = kb_get_right();
-    float coef = .5;
 
     char scroll = mouse_get_scroll();
 
