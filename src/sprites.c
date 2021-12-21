@@ -213,8 +213,7 @@ void *s_malloc(int b, const char *msg)
 	void *out = malloc(b);
 	if(!out)
 	{
-		debug_perror("Error allocating %d bytes of memory, shutting down\n", b);
-		exit(1);
+		debug_perror("Error allocating %d bytes of memory, returning null pointer\n", b);
 	}
 	if(debug)
 	{
@@ -232,8 +231,7 @@ void *s_realloc(void *ptr, int b, const char *msg)
 	void *out = realloc(ptr, b);
 	if(!out)
 	{
-		debug_perror("Error reallocating %d bytes memory, shutting down\n", b);
-		exit(1);
+		debug_perror("Error reallocating %d bytes of memory, returning null pointer\n", b);
 	}
 	if(debug)
 	{

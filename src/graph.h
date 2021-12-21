@@ -37,7 +37,7 @@ struct vertex *graph_add_vertex(struct graph *graph, void *p, char *name);
 struct edge *graph_add_edge(struct graph *graph, int source, int dest, int weight);
 struct edge *graph_get_edge(struct graph *graph, struct vertex *vertex, int i);
 struct vertex *graph_get_vertex(struct graph *graph, int i);
-struct vertex *graph_get_next_vertex(struct graph *graph, struct vertex *vertex, int i);
+struct vertex *graph_get_next_vertex(struct graph *graph, struct vertex *vertex, int i);//takes the i'th edge and returns the vertex it points to
 void graph_dfs(struct graph *graph);
 void graph_unmark(struct graph *graph);
 int graph_is_connected(struct graph *graph);

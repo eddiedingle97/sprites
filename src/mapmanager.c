@@ -509,6 +509,9 @@ float mm_global_to_rel_y(float y)
 	return (y - sm_get_coord(Y)) * sm_get_zoom();
 }
 
+#define GETTILEX(chunk_x, tilesize, column, zoom, x) (matrix[column] + chunk_x - x) * zoom + HWIDTH
+#define GETTILEY(chunk_y, tilesize, row, zoom, y) (matrix[row] - chunk_y + y) * zoom + HHEIGHT
+
 void mm_draw_chunks(ALLEGRO_DISPLAY *display)
 {
     al_set_target_bitmap(al_get_backbuffer(display));
@@ -520,6 +523,7 @@ void mm_draw_chunks(ALLEGRO_DISPLAY *display)
     struct chunk *chunk;
     struct tilemap *tilemap;
     struct tile *tile;
+    int coordx = sm_get_coord(X), coordy = sm_get_coord(Y);
     int r, c;
     al_hold_bitmap_drawing(1);
     for(node = chunks->head; node != NULL; node = node->next)
@@ -540,7 +544,7 @@ void mm_draw_chunks(ALLEGRO_DISPLAY *display)
                 }*/
                 tilemap = tilemaps[tile->tilemap_z];
                 
-                al_draw_scaled_bitmap(tilemap->bitmap, tile->tilemap_x, tile->tilemap_y, tilemap->tilesize, tilemap->tilesize, mm_get_x(mm_global_to_rel_x(mm_get_tile_x(chunk->x, tilemap->tilesize, c)), 0), mm_get_y(mm_global_to_rel_y(mm_get_tile_y(chunk->y, tilemap->tilesize, r)), 0), newsize, newsize, 0);
+                al_draw_scaled_bitmap(tilemap->bitmap, tile->tilemap_x, tile->tilemap_y, tilemap->tilesize, tilemap->tilesize, GETTILEX(chunk->x, tilemap->tilesize, c, zoom, coordx), GETTILEY(chunk->y, tilemap->tilesize, r, zoom, coordy), newsize, newsize, 0);
             }
         }
     }
