@@ -1,5 +1,6 @@
 #ifndef __KEYBOARD_H__
 #define __KEYBOARD_H__
+#include <allegro5/allegro.h>
 
 void kb_init();
 void kb_update(ALLEGRO_EVENT *event);

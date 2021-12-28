@@ -52,8 +52,8 @@ void maker_undo_remove();
 void maker_remove_edit_menu();
 void maker_show_solid_tiles();
 
-#include "tilemenu.c"
-#include "makermenu.c"
+#include "misc/tilemenu.c"
+#include "misc/makermenu.c"
 
 void maker_init()
 {

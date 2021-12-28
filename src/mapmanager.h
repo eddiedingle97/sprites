@@ -1,5 +1,6 @@
 #ifndef __MAPMANAGER_H__
 #define __MAPMANAGER_H__
+#include "map.h"
 
 void mm_init(char *mapdir, ...);
 void mm_destroy();

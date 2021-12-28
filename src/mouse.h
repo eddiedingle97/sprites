@@ -1,5 +1,6 @@
 #ifndef __MOUSE_H__
 #define __MOUSE_H__
+#include <allegro5/allegro.h>
 
 void mouse_init(ALLEGRO_MOUSE_STATE *mousestate);
 void mouse_draw(ALLEGRO_DISPLAY *display);

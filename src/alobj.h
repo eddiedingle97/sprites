@@ -1,7 +1,6 @@
-#include <allegro5/allegro.h>
-
 #ifndef __ALOBJ_H__
 #define __ALOBJ_H__
+#include <allegro5/allegro.h>
 
 struct alobj
 {

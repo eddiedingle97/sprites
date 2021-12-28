@@ -3,7 +3,6 @@
 #include "spritemanager.h"
 #include "entity.h"
 
-
 struct lavafountaindata
 {
     unsigned short width;

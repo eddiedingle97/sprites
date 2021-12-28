@@ -1,5 +1,7 @@
 #ifndef __ENTITY_H__
 #define __ENTITY_H__
+#include <allegro5/allegro.h>
+#include "spritemanager.h"
 
 /*struct spritesheetdata
 {

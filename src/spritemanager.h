@@ -1,5 +1,6 @@
 #ifndef __MOVE_H__
 #define __MOVE_H__
+#include <allegro5/allegro.h>
 
 struct animation
 {

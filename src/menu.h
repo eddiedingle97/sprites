@@ -1,5 +1,6 @@
 #ifndef __MENU_H__
 #define __MENU_H__
+#include <allegro5/allegro.h>
 
 struct menu 
 {

@@ -9,5 +9,5 @@ void c_command()
 {
     memset(buf, 0, 512);
     kb_get_text(buf, 512);
-    printf("%s\n" buf);
+    printf("%s\n", buf);
 }

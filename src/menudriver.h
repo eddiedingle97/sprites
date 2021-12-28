@@ -1,5 +1,6 @@
 #ifndef __MENUDRIVER_H__
 #define __MENUDRIVER_H__
+#include "menu.h"
 
 void md_init();
 void md_destroy();

@@ -72,7 +72,7 @@ void mg_create_simple_dungeon(struct map *map, int maxrooms)
     {
         rooms[i].w = 10;
         rooms[i].h = 10;
-        rooms[i].exit = s_malloc(2 * sizeof(struct coord), "rooms[i].exit: mg_create_simple_dungeon");
+        rooms[i].exit = NULL; 
         rooms[i].noexits = 2;
 
         switch(math_get_random(3))
@@ -113,10 +113,11 @@ void mg_create_simple_dungeon(struct map *map, int maxrooms)
         
         if(mg_collides(rooms, i - 1, &rooms[i]))
         {
-            s_free(rooms[i--].exit, NULL);
+            i--;
             continue;
         }
-
+        
+        rooms[i].exit = s_malloc(2 * sizeof(struct coord), "rooms[i].exit: mg_create_simple_dungeon");
         rooms[i - 1].exit[FROM] = from;
         rooms[i].exit[TO] = to;
 
@@ -250,11 +251,7 @@ int mg_connect_rooms(struct map *map, struct room *rooms, struct graph *graph)
 int compare_coords(struct coord *one, struct coord *two)
 {
     if(one->x == two->x)
-    {
-        if(one->y == two->y)
-            return 0;
         return one->y - two->y;
-    }
     return one->x - two->x;
 }
 
@@ -363,7 +360,7 @@ struct tile **a_star(struct map *map, struct coord *start, struct coord *end, in
     {
         if(costsofar->keys[i] != start && costsofar->keys[i] != end)
             s_free(costsofar->keys[i], NULL);
-            
+
         s_free(costsofar->p[i], NULL);
     }
 

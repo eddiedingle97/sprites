@@ -1,5 +1,6 @@
 #ifndef __TILELIST_H__
 #define __TILELIST_H__
+#include "map.h"
 
 enum TILES {FLOOR, LEFTWALL, RIGHTWALL, TOPWALL, BOTTOMWALL, WALL, ERROR};
 struct tile dungeontiles[] = 

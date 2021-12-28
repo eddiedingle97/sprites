@@ -1,8 +1,8 @@
-#include "entity.h"
-#include "keyboard.h"
-#include "sprites.h"
-#include "movementandcollision.h"
-#include "spritemanager.h"
+#include "../entity.h"
+#include "../keyboard.h"
+#include "../sprites.h"
+#include "../movementandcollision.h"
+#include "../spritemanager.h"
 
 struct knightdata
 {

@@ -5,8 +5,8 @@
 
 #include "debug.h"
 
-#include "knight.c"
-#include "orc.c"
+#include "entities/knight.c"
+#include "entities/orc.c"
 
 struct entity *knight;
 struct entity *orc;
