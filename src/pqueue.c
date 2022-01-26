@@ -6,10 +6,10 @@ static void pq_increase_size(struct pq *pq);
 
 struct pq *pq_create(int startsize)
 {
-    struct pq *out = s_malloc(sizeof(struct pq), "out: pq_create");
+    struct pq *out = s_malloc(sizeof(struct pq), NULL);
     out->size = startsize;
-    out->keys = s_malloc(out->size * sizeof(float), "out->keys: pq_create");;
-    out->p = s_malloc(out->size * sizeof(void *), "out->p: pq_create");
+    out->keys = s_malloc(out->size * sizeof(float), NULL);
+    out->p = s_malloc(out->size * sizeof(void *), NULL);
     out->noitems = 0;
 
     return out;

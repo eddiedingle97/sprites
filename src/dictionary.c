@@ -6,7 +6,7 @@ static void dict_shuffle_up(struct dict *dict, int i);
 
 struct dict *dict_create(int (*comp)(void *, void *))
 {
-    struct dict *out = s_malloc(sizeof(struct dict), "dict_create");
+    struct dict *out = s_malloc(sizeof(struct dict), NULL);
     out->keys = NULL;
     out->p = NULL;
     out->size = 0;
@@ -29,10 +29,8 @@ void dict_add_entry(struct dict *dict, void *key, void *p)
     if(dict->comp)
     {
         int i;
-        dict->keys = s_realloc(dict->keys, ++dict->size * sizeof(void *), "dict->keys: dict_add_entry");
-        dict->p = s_realloc(dict->p, dict->size * sizeof(void *), "dict->p: dict_add_entry");
-
-        for(i = 0; i < dict->size - 1; i++)
+        
+        for(i = 0; i < dict->size; i++)
         {
             if(dict->comp(dict->keys[i], key) == 0)
             {
@@ -42,14 +40,18 @@ void dict_add_entry(struct dict *dict, void *key, void *p)
 
             else if(dict->comp(dict->keys[i], key) > 0)
             {
+                dict->keys = s_realloc(dict->keys, ++dict->size * sizeof(void *), NULL);
+                dict->p = s_realloc(dict->p, dict->size * sizeof(void *), NULL);
                 dict_shuffle_up(dict, i);
                 dict->keys[i] = key;
                 dict->p[i] = p;
                 return;
             }
         }
-        if(i == dict->size - 1)
+        if(i == dict->size)
         {
+            dict->keys = s_realloc(dict->keys, ++dict->size * sizeof(void *), NULL);
+            dict->p = s_realloc(dict->p, dict->size * sizeof(void *), NULL);
             dict->keys[i] = key;
             dict->p[i] = p;
         }
@@ -57,10 +59,8 @@ void dict_add_entry(struct dict *dict, void *key, void *p)
     else
     {
         int i;
-        dict->keys = s_realloc(dict->keys, ++dict->size * sizeof(void *), "dict->keys: dict_add_entry");
-        dict->p = s_realloc(dict->p, dict->size * sizeof(void *), "dict->p: dict_add_entry");
 
-        for(i = 0; i < dict->size - 1; i++)
+        for(i = 0; i < dict->size; i++)
         {
             if(dict->keys[i] == key)
             {
@@ -70,14 +70,18 @@ void dict_add_entry(struct dict *dict, void *key, void *p)
 
             else if(dict->keys[i] > key)
             {
+                dict->keys = s_realloc(dict->keys, ++dict->size * sizeof(void *), "dict->keys: dict_add_entry");
+                dict->p = s_realloc(dict->p, dict->size * sizeof(void *), "dict->p: dict_add_entry");
                 dict_shuffle_up(dict, i);
                 dict->keys[i] = key;
                 dict->p[i] = p;
                 return;
             }
         }
-        if(i == dict->size - 1)
+        if(i == dict->size)
         {
+            dict->keys = s_realloc(dict->keys, ++dict->size * sizeof(void *), "dict->keys: dict_add_entry");
+            dict->p = s_realloc(dict->p, dict->size * sizeof(void *), "dict->p: dict_add_entry");
             dict->keys[i] = key;
             dict->p[i] = p;
         }

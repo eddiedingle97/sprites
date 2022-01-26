@@ -161,13 +161,13 @@ int main(int argc, char **argv)
 		{
 			start = clock();
 
+			
 			game_tick(al->display);
 			mouse_draw(al->display);
 			kb_tick();
-
 			al_flip_display();
 			redraw = 0;
-
+			
 			stop = clock();
 			debug_tick(stop - start);
 		}
@@ -237,7 +237,7 @@ void *s_realloc(void *ptr, int b, const char *msg)
 	{
 		if(msg)
 			printf("%s: %d\n", msg, b);
-		bytes += b;
+		//bytes += b;
 		if(!ptr)
 			mcount += 1;
 	}
@@ -251,7 +251,10 @@ void s_free(void *ptr, const char *msg)
 	{
 		if(msg)
 			printf("%s\n", msg);
-		fcount += 1;
+		if(ptr)
+			fcount += 1;
+		else
+			debug_printf("s_free called on null pointer\n");
 	}
 	free(ptr);
 }

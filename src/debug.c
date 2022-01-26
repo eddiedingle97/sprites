@@ -145,6 +145,12 @@ void debug_tick(long time)
         memset(buf, 0, 32);
         sprintf(buf, "Mouse GY: %.2f", sm_rel_to_global_y(mouse_get_rel_y()));
         al_draw_text(font, BLACK, 5, 5 + 5 * al_get_font_line_height(font), 0, buf);
+        memset(buf, 0, 32);
+        sprintf(buf, "Mouse Tile X: %.2f", sm_rel_to_global_x(mouse_get_rel_x()) / 16.0);
+        al_draw_text(font, BLACK, 5, 5 + 6 * al_get_font_line_height(font), 0, buf);
+        memset(buf, 0, 32);
+        sprintf(buf, "Mouse Tile Y: %.2f", sm_rel_to_global_y(mouse_get_rel_y()) / 16.0);
+        al_draw_text(font, BLACK, 5, 5 + 7 * al_get_font_line_height(font), 0, buf);
     }
 }
 

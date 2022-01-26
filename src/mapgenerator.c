@@ -9,6 +9,7 @@
 #include "graph.h"
 #include "pqueue.h"
 #include "dictionary.h"
+#include "list.h"
 
 struct coord
 {
@@ -32,19 +33,292 @@ enum EXITENUM {TO, FROM};
 void mg_destroy_rooms(struct room *rooms, int norooms);
 int mg_collides(struct room *rooms, int i, struct room *room);
 int mg_put_room_on_map(struct map *map, struct room *rooms);
-int mg_connect_rooms(struct map *map, struct room *rooms, struct graph *graph);
+int mg_connect_room_exits(struct map *map, struct room *rooms, struct graph *graph);
+int mg_connect_rooms(struct map *map, struct graph *graph);
 struct tile *mg_update_tile(struct map *map, float x, float y, struct tile *tile);
 void mg_fill_area(struct map *map, int x1, int y1, int x2, int y2, struct tile *tile);
 void mg_create_simple_dungeon(struct map *map, int norooms);
+void mg_create_classic_dungeon(struct map *map, int maxrooms);
 struct tile **a_star(struct map *map, struct coord *start, struct coord *end, int *no);
+void delaunay_triangulation(struct graph *graph);
+int inside_circumcircle(struct room *one, struct room *two, struct room *three, struct room *four);
+int room_comp(struct room *one, struct room *two);
+int intersect(struct graph *graph, struct vertex *one, struct vertex *two, struct edge **inter);
+struct vertex *get_candidate(struct graph *graph, struct vertex *target, struct vertex *neighbor);
+int mg_room_center_x(struct room *room);
+int mg_room_center_y(struct room *room);
 
 struct map *mg_create_map(int w, int h)
 {
     struct map *out = map_create(5, 16, w, h);
 
-    mg_create_simple_dungeon(out, 10);
+    mg_create_classic_dungeon(out, 50);
     
     return out;
+}
+
+void mg_create_classic_dungeon(struct map *map, int maxrooms)
+{
+    math_seed(0);
+
+    int norooms = 1 + math_get_random(maxrooms);
+
+    struct room *rooms = s_malloc(norooms * sizeof(struct room), "mg_create_classic_dungeon");
+    memset(rooms, 0, norooms * sizeof(struct room));
+    
+    rooms[0].w = 7 + math_get_random(13);
+    rooms[0].h = 7 + math_get_random(13);
+    rooms[0].x = -3;
+    rooms[0].y = 3;
+    int leftx = -map->width * map->chunksize / 2, topy = map->height * map->chunksize / 2;
+    int rightx = -leftx - 20, bottomy = -topy + 20;
+    int maxradius = rightx < bottomy ? rightx - 10 : bottomy - 10;
+
+    int i, tries = 0;
+    int angle, distance;
+    for(i = 1; i < norooms; i++)
+    {
+        if(tries == 10)
+            break;
+        angle = math_get_random(360);
+        distance = 10 + math_get_random(maxradius);
+        rooms[i].x = math_floor(distance * math_cos_d(angle));
+        rooms[i].y = math_ceil(distance * math_sin_d(angle));
+        rooms[i].w = 7 + math_get_random(13);
+        rooms[i].h = 7 + math_get_random(13);
+
+        if(mg_collides(rooms, i - 1, &rooms[i]))
+        {
+            //puts("here");
+            i--;
+            tries++;
+            continue;
+        }
+        if(!math_in_range(leftx, rooms[i].x, rightx) || !math_in_range(bottomy, rooms[i].y, topy))
+        {
+            i--;
+            tries++;
+            continue;
+        }
+
+        tries = 0;
+    }
+
+    struct graph *graph = graph_create(0);
+    math_mergesort(rooms, i, room_comp, sizeof(struct room));
+    int j;
+    for(j = 0; j < i; j++)
+    {
+        graph_add_vertex(graph, &rooms[j], NULL);
+        mg_put_room_on_map(map, &rooms[j]);
+    }
+
+    delaunay_triangulation(graph);
+    //puts(graph_is_connected(graph) ? "connected" : "unconnected");
+
+    /*struct edge *e = graph->edges + 52;
+    struct vertex *v = graph_get_vertex(graph, e->from), *n = graph_get_vertex(graph, e->to);
+    printf("base edge %d %d, %d %d\n", mg_room_center_x(v->p), mg_room_center_y(v->p), mg_room_center_x(n->p), mg_room_center_y(n->p));*/
+    
+    mg_connect_rooms(map, graph);
+
+    mg_destroy_rooms(rooms, norooms);
+    graph_destroy(graph);
+}
+
+int room_comp(struct room *one, struct room *two)
+{
+    if(mg_room_center_x(one) == mg_room_center_x(two))
+        return mg_room_center_y(one) - mg_room_center_y(two);
+    return mg_room_center_x(one) - mg_room_center_x(two);
+}
+
+static void delaunay_triangulation_f(struct vertex *vertices, int size, struct graph *graph)
+{
+    if(size == 2)
+    {
+        graph_add_edge_v(graph, &vertices[0], &vertices[1], 0);
+        return;
+    }
+
+    if(size == 3)
+    {
+        graph_add_edge_v(graph, &vertices[0], &vertices[1], 0);
+        graph_add_edge_v(graph, &vertices[1], &vertices[2], 0);
+        graph_add_edge_v(graph, &vertices[2], &vertices[0], 0);
+        return;
+    }
+
+    int newsize = size / 2;
+    int isodd = size & 1;
+
+    delaunay_triangulation_f(vertices, newsize, graph);
+    delaunay_triangulation_f(vertices + newsize, isodd ? newsize + 1 : newsize, graph);
+
+    //get base edge
+
+    //puts("getting base edge");
+
+    int i;
+    struct vertex *lowl = NULL, *lowr = NULL;
+    struct edge *inter = NULL;
+    do
+    {
+        if(lowl && lowr)
+        {
+            if(graph_get_vertex(graph, inter->to) < vertices + newsize && graph_get_vertex(graph, inter->from) < vertices + newsize)
+                lowl = NULL;
+            else
+                lowr = NULL;
+        }
+
+        if(!lowl)
+            for(i = 0; i < newsize; i++)
+                if(!vertices[i].mark && (!lowl || ((struct room *)lowl->p)->y > ((struct room *)vertices[i].p)->y))
+                    lowl = &vertices[i];
+
+        if(!lowr)
+            for(i = newsize; i < size; i++)
+                if(!vertices[i].mark && (!lowr || ((struct room *)lowr->p)->y > ((struct room *)vertices[i].p)->y))
+                    lowr = &vertices[i];
+                    
+        //printf("marking vertices %p %p\n", lowl, lowr);
+        //printf("vertices y %d %d\n", ((struct room *)lowl->p)->y, ((struct room *)lowr->p)->y);
+        /*printf("index of lowl %ld lowr %ld\n", lowl - graph->vertices, lowr - graph->vertices);
+        printf("coords of lowl %d %d lowr %d %d\n", mg_room_center_x(lowl->p), mg_room_center_y(lowl->p), mg_room_center_x(lowr->p), mg_room_center_y(lowr->p));*/
+        lowl->mark = 1;
+        lowr->mark = 1;
+    } while(intersect(graph, lowl, lowr, &inter));
+
+    graph_add_edge_v(graph, lowl, lowr, 0);
+    
+    /*struct edge *prevedge = graph->edges + (graph->noedges - 1);
+    printf("base edge %d %d %d\n", prevedge->from, prevedge->to, graph->noedges - 1);
+    prevedge = graph->edges + (graph->noedges - 2);
+    printf("base edge %d %d %d\n", prevedge->from, prevedge->to, graph->noedges - 2);
+    printf("base edge %d %d, %d %d\n", mg_room_center_x(lowl->p), mg_room_center_y(lowl->p), mg_room_center_x(lowr->p), mg_room_center_y(lowr->p));*/
+    for(i = 0; i < size; i++)
+        vertices[i].mark = 0;
+
+    //get candidates, loop
+
+    
+    struct vertex *rcandidate = get_candidate(graph, lowr, lowl), *lcandidate = get_candidate(graph, lowl, lowr);
+    struct vertex *rbase = lowr, *lbase = lowl;
+    while(rcandidate || lcandidate)
+    {
+        //printf("merging size: %d graph size: %d %p %p %p %p\n", size, graph->novertices, lcandidate, rcandidate, lbase, rbase);
+        if(!rcandidate)
+        {
+            graph_add_edge_v(graph, lcandidate, rbase, 0);
+            lbase = lcandidate;
+        }
+        else if(!lcandidate)
+        {
+            graph_add_edge_v(graph, rcandidate, lbase, 0);
+            rbase = rcandidate;
+        }
+        else
+        {
+            if(inside_circumcircle(lcandidate->p, lbase->p, rbase->p, rcandidate->p))
+            {
+                graph_add_edge_v(graph, lbase, rcandidate, 0);
+                rbase = rcandidate;
+            }
+            else
+            {
+                graph_add_edge_v(graph, rbase, lcandidate, 0);
+                lbase = lcandidate;
+            }
+        }
+
+        //printf("before get candidate %p %p\n", rbase, lbase);
+        rcandidate = get_candidate(graph, rbase, lbase);
+        lcandidate = get_candidate(graph, lbase, rbase);
+        //printf("after get candidate %p %p \n", rcandidate, lcandidate);
+    }
+
+    //both candidates null
+}
+
+struct vertex *get_candidate(struct graph *graph, struct vertex *target, struct vertex *neighbor)
+{
+    struct vertex *out = NULL, *temp = NULL;
+    int i, ccw, outedge;
+    ccw = mg_room_center_x(target->p) < mg_room_center_x(neighbor->p);
+    for(i = 0; i < target->noedges; i++)
+    {
+        temp = graph_get_next_vertex(graph, target, i);
+        if(!temp)
+            continue;
+        if(temp == neighbor)
+            continue;
+        if(mg_room_center_y(temp->p) <= mg_room_center_y(target->p))//doesn't necessarily remove 180 degree angles / may remove valid candidates
+            continue;
+        if(!out)
+        {
+            out = temp;
+            outedge = i;
+            continue;
+        }
+        if(ccw)
+        {   
+            if(inside_circumcircle(target->p, neighbor->p, out->p, temp->p))
+            {
+                graph_remove_edge(graph, graph_get_edge(graph, target, outedge));
+                out = temp;
+                outedge = i;
+            }
+        }
+        else
+        {
+            if(inside_circumcircle(target->p, out->p, neighbor->p, temp->p))
+            {
+                graph_remove_edge(graph, graph_get_edge(graph, target, outedge));
+                out = temp;
+                outedge = i;
+            }
+        }
+    }
+    return out;
+}
+
+int intersect(struct graph *graph, struct vertex *one, struct vertex *two, struct edge **inter)
+{
+    struct room *rone = one->p, *rtwo = two->p, *pone = NULL, *ptwo = NULL;
+    struct vertex *vpone = NULL, *vptwo = NULL;
+    *inter = NULL;
+    int i;
+    float m1 = (float)(mg_room_center_y(rone) - mg_room_center_y(rtwo)) / (float)(mg_room_center_x(rone) - mg_room_center_x(rtwo));
+    float b1 = (float)mg_room_center_y(rone) - (m1 * mg_room_center_x(rone));
+    for(i = 0; i < graph->noedges; i += 2)
+    {
+        vpone = graph_get_vertex(graph, graph->edges[i].to);
+        vptwo = graph_get_vertex(graph, graph->edges[i].from);
+        if(vpone && vptwo && one != vpone && one != vptwo && two != vpone && two != vptwo)
+        {
+            pone = vpone->p;
+            ptwo = vptwo->p;
+
+            float m2 = (float)(mg_room_center_y(pone) - mg_room_center_y(ptwo)) / (float)(mg_room_center_x(pone) - mg_room_center_x(ptwo));
+            if(m1 == m2)
+                continue;
+            float b2 = (float)mg_room_center_y(pone) - (m2 * mg_room_center_x(pone));
+            float x = (b2 - b1) / (m1 - m2);
+            if((math_in_range(mg_room_center_x(rone) + 1, x, mg_room_center_x(rtwo) - 1) || math_in_range(mg_room_center_x(rtwo) + 1, x, mg_room_center_x(rone) - 1)) && (math_in_range(mg_room_center_x(pone) + 1, x, mg_room_center_x(ptwo) - 1) || math_in_range(mg_room_center_x(ptwo) + 1, x, mg_room_center_x(pone) - 1)))
+            {
+                *inter = graph->edges + i;
+                return 1;
+            }
+        }
+    }
+    return 0;
+}
+
+void delaunay_triangulation(struct graph *graph)
+{
+    if(graph->novertices > 1)
+        delaunay_triangulation_f(graph->vertices, graph->novertices, graph);
 }
 
 void mg_create_simple_dungeon(struct map *map, int maxrooms)
@@ -66,10 +340,15 @@ void mg_create_simple_dungeon(struct map *map, int maxrooms)
     mg_put_room_on_map(map, rooms);
     graph_add_vertex(graph, rooms, NULL);
 
-    int i;
+    int i, tries = 0;
     struct coord to, from;
     for(i = 1; i < norooms; i++)
     {
+        if(tries == 6)
+        {
+            tries = 0;
+            i--;
+        }
         rooms[i].w = 10;
         rooms[i].h = 10;
         rooms[i].exit = NULL; 
@@ -113,6 +392,7 @@ void mg_create_simple_dungeon(struct map *map, int maxrooms)
         
         if(mg_collides(rooms, i - 1, &rooms[i]))
         {
+            tries++;
             i--;
             continue;
         }
@@ -127,7 +407,7 @@ void mg_create_simple_dungeon(struct map *map, int maxrooms)
 
     for(i = 0; i < norooms; i++)
         mg_put_room_on_map(map, &rooms[i]);
-    mg_connect_rooms(map, rooms, graph);
+    mg_connect_room_exits(map, rooms, graph);
 
     mg_destroy_rooms(rooms, norooms);
     graph_destroy(graph);
@@ -219,7 +499,7 @@ struct tile *mg_get_tile_from_coordinate(struct map *map, float x, float y)
     return map_get_tile_from_coordinate(map, x * 16, y * 16);
 }
 
-int mg_connect_rooms(struct map *map, struct room *rooms, struct graph *graph)
+int mg_connect_room_exits(struct map *map, struct room *rooms, struct graph *graph)
 {
     int i, j;
     struct vertex *v, *n;
@@ -233,7 +513,8 @@ int mg_connect_rooms(struct map *map, struct room *rooms, struct graph *graph)
             struct room *one = v->p, *two = n->p;
 
             int count;
-            struct tile **path = a_star(map, &one->exit[FROM], &two->exit[TO], &count);
+            struct tile **path = NULL;
+            path = a_star(map, &one->exit[FROM], &two->exit[TO], &count);
 
             if(path)
             {
@@ -245,6 +526,58 @@ int mg_connect_rooms(struct map *map, struct room *rooms, struct graph *graph)
         }
     }
 
+    return 1;
+}
+
+inline int mg_room_center_x(struct room *room)
+{
+    return room->x + room->w / 2;
+}
+
+inline int mg_room_center_y(struct room *room)
+{
+    return room->y - room->h / 2;
+}
+
+int mg_connect_rooms(struct map *map, struct graph *graph)
+{
+    int i, count;
+    struct edge *e = NULL;
+    struct vertex *v = NULL, *n = NULL;
+    struct room *here = NULL, *there = NULL;
+    struct coord to, from;
+    struct tile *floor = mg_get_tile(FLOOR);
+    for(i = 0; i < graph->noedges; i += 2)
+    {
+        e = graph->edges + i;
+        
+        v = graph_get_vertex(graph, e->from);
+        n = graph_get_vertex(graph, e->to);
+        if(v && n)
+        {
+            here = v->p;
+            there = n->p;
+
+            from.x = mg_room_center_x(here);
+            from.y = mg_room_center_y(here);
+            to.x = mg_room_center_x(there);
+            to.y = mg_room_center_y(there);
+            //mg_update_tile(map, from.x, from.y, mg_get_tile(ERROR));
+            //mg_update_tile(map, to.x, to.y, mg_get_tile(ERROR));
+
+            struct tile **path = a_star(map, &from, &to, &count);
+
+            if(path)
+            {
+                
+                for(count--; count >= 0; count--)
+                    *path[count] = *floor;
+
+                s_free(path, NULL);
+            }
+        }
+    }
+    graph_unmark(graph);
     return 1;
 }
 
@@ -273,7 +606,7 @@ struct tile **a_star(struct map *map, struct coord *start, struct coord *end, in
     pq_insert(frontier, 0, start);
 
     dict_add_entry(camefrom, start, start);
-    dist = s_malloc(sizeof(float), "dist: a_star");
+    dist = s_malloc(sizeof(float), NULL);
     *dist = 0;
     dict_add_entry(costsofar, start, dist);
     struct coord next;
@@ -285,21 +618,21 @@ struct tile **a_star(struct map *map, struct coord *start, struct coord *end, in
         struct tile *currenttile = mg_get_tile_from_coordinate(map, cur->x, cur->y);
         if(!currenttile)
             continue;
-        if(currenttile->solid)
-            continue;
+        /*if(currenttile->solid)
+            continue;*/
         if(currenttile == endtile)
         {
-            out = s_realloc(out, ++(*no) * sizeof(struct tile *), "out: a_star");
+            out = s_realloc(out, ++(*no) * sizeof(struct tile *), NULL);
             out[0] = mg_get_tile_from_coordinate(map, end->x, end->y);
             struct coord *c = dict_get_entry(camefrom, end);
             while(c != start)
             {
-                out = s_realloc(out, ++(*no) * sizeof(struct tile *), "out: a_star");
+                out = s_realloc(out, ++(*no) * sizeof(struct tile *), NULL);
                 out[*no - 1] = mg_get_tile_from_coordinate(map, c->x, c->y);
                 c = dict_get_entry(camefrom, c);
             }
 
-            out = s_realloc(out, ++(*no) * sizeof(struct tile *), "out: a_star");
+            out = s_realloc(out, ++(*no) * sizeof(struct tile *), NULL);
             out[*no - 1] = mg_get_tile_from_coordinate(map, start->x, start->y);
             break;
         }
@@ -330,15 +663,14 @@ struct tile **a_star(struct map *map, struct coord *start, struct coord *end, in
             }
 
             float *csf = dict_get_entry(costsofar, cur);
-            
             float newcost = *csf + 1;
             struct coord *c = dict_get_entry(camefrom, &next);
             float *curcost = dict_get_entry(costsofar, &next);
             if(!c)
             {
-                csf = s_malloc(sizeof(float), "csf: a_star");
+                csf = s_malloc(sizeof(float), NULL);
                 *csf = newcost;
-                c = s_malloc(sizeof(struct coord), "c: a_star");
+                c = s_malloc(sizeof(struct coord), NULL);
                 
                 *c = next;
                 dict_add_entry(costsofar, c, csf);
@@ -363,7 +695,6 @@ struct tile **a_star(struct map *map, struct coord *start, struct coord *end, in
 
         s_free(costsofar->p[i], NULL);
     }
-
     dict_destroy(camefrom);
     dict_destroy(costsofar);
     pq_destroy(frontier);
@@ -381,4 +712,23 @@ void mg_fill_area(struct map *map, int x1, int y1, int x2, int y2, struct tile *
             mg_update_tile(map, x1 + c, y1 - r, tile);
         }
     } 
+}
+
+int inside_circumcircle(struct room *one, struct room *two, struct room *three, struct room *four)//one two and three must be in ccw order
+{
+    int x2 = mg_room_center_x(four);
+    x2 *= x2;
+    int y2 = mg_room_center_y(four);
+    y2 *= y2;
+    int a = mg_room_center_x(one) - mg_room_center_x(four);
+    int b = mg_room_center_y(one) - mg_room_center_y(four);
+    int c = (mg_room_center_x(one) * mg_room_center_x(one) - x2) + (mg_room_center_y(one) * mg_room_center_y(one) - y2);
+    int d = mg_room_center_x(two) - mg_room_center_x(four);
+    int e = mg_room_center_y(two) - mg_room_center_y(four);
+    int f = (mg_room_center_x(two) * mg_room_center_x(two) - x2) + (mg_room_center_y(two) * mg_room_center_y(two) - y2);
+    int g = mg_room_center_x(three) - mg_room_center_x(four);
+    int h = mg_room_center_y(three) - mg_room_center_y(four);
+    int i = (mg_room_center_x(three) * mg_room_center_x(three) - x2) + (mg_room_center_y(three) * mg_room_center_y(three) - y2);
+    int orientation = a * e * i + b * f * g + c * d * h - c * e * g - f * h * a - i * b * d;
+    return orientation > 0;
 }
