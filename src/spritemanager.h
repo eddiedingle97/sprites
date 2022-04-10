@@ -4,10 +4,12 @@
 
 struct animation
 {
-	unsigned short width;
-    unsigned short height;
+	unsigned char width;
+    unsigned char height;
     unsigned short y;
     unsigned short x;
+	char offsetx;
+	char offsety;
     unsigned char spritecount;
     unsigned char cycle;
     unsigned char ticks;
@@ -25,7 +27,7 @@ struct sprite
 	ALLEGRO_BITMAP *bitmap;
 	void (*draw)(struct sprite *sprite, int tick);
 	struct animation *an;
-	char i;
+	unsigned char i;
 };
 
 void sm_init(const int height, const int width);
@@ -53,9 +55,9 @@ int sm_get_sprite_count();
 void sm_move_coord(float dx, float dy);
 
 enum SPRITETYPE {LOCAL = 1, GLOBAL = 2, CENTERED = 4, NOZOOM = 8, DYNAMIC = 16};
-enum LAYERENUM {TEST = 0, MENU = 1, FOREGROUND = 2, PLAYER = 3, SECOND = 4, BACKGROUND = 5};
+enum LAYERENUM {TEST = 0, MENU = 1, FOREGROUND = 2, PLAYER = 3, SECOND = 4, BACKGROUND = 5, LIMBO = 6};
 enum COORDENUM {X = 0, Y = 1};
 
-#define LAYERS 6
+#define LAYERS 7
 
 #endif

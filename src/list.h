@@ -1,13 +1,15 @@
 #ifndef __LIST_H__
 #define __LIST_H__
 
-struct node{
+struct node
+{
 	struct node *next;
 	struct node *prev;
 	void *p;
 };
 
-struct list{
+struct list
+{
 	struct node *head;
 	struct node *tail;
 	int size;

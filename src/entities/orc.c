@@ -1,58 +1,128 @@
 #include "../entity.h"
 #include "../keyboard.h"
 #include "../sprites.h"
-#include "../movementandcollision.h"
 #include "../spritemanager.h"
-
+#include "../map.h"
+#include "../mapmanager.h"
 #include "../emath.h"
+
+enum ORCSTATE {IDLE, AGGRO, SEEK};
 
 struct orcdata
 {
-    unsigned char idle;
+    unsigned char state;
+    float x;
+    float y;
     float speed;
     struct entity *target;
     ALLEGRO_BITMAP *bitmap;
 };
 
-void orc_behaviour(struct sprite *sprite, struct orcdata *data)
+float lerp_check(float x1, float y1, float x2, float y2, unsigned char tilemask)
 {
+    float x = x1 - x2, y = y1 - y2;
+    int n = math_sqrt(x * x + y * y), i = 0;
+    struct tile *t = NULL;
+
+    x /= n;
+    y /= n;
+
+    for(i = 0; i < n; i++)
+    {
+        x2 += x;
+        y2 += y;
+        t = mm_get_tile(x2, y2);
+        if(t && t->type & tilemask)
+            return 0;
+    }
+
+    return n;
+}
+
+void orc_behaviour(struct entity *entity, float *dx, float *dy)
+{
+    struct sprite *sprite = entity->sprite;
+    struct orcdata *data = entity->data;
     struct animation *an = sprite->an;
     struct sprite *target = data->target->sprite;
 
-    float dx = target->x - sprite->x, dy = target->y - sprite->y;
-    float invdist = math_fast_inverse_sqrt(dx * dx + dy * dy);
-    dx *= invdist * data->speed;
-    dy *= invdist * data->speed;
+    float dist = lerp_check(sprite->x, sprite->y, target->x, target->y, SOLID);
+    switch(data->state)
+    {
+        case IDLE:
+            if(dist != 0)
+                data->state = AGGRO;
+            else
+                break;
+        case AGGRO:
+            if(dist != 0)
+            {
+                *dx = target->x - sprite->x, *dy = target->y - sprite->y;
+                *dx = *dx / dist * data->speed;
+                *dy = *dy / dist * data->speed;
+                data->x = target->x;
+                data->y = target->y;
+                break;
+            }
+            else
+            {
+                data->state = SEEK;
+            }
+        case SEEK:
+            if(dist != 0)
+            {
+                *dx = target->x - sprite->x, *dy = target->y - sprite->y;
+                *dx = *dx / dist * data->speed;
+                *dy = *dy / dist * data->speed;
+                data->x = target->x;
+                data->y = target->y;
+                data->state = AGGRO;
+            }
 
-    if(mc_do_entity_movement(sprite, dx, dy))
-        data->idle = 0;
-    else
-        data->idle = 1;
+            else if(math_in_range(sprite->x - 1, data->x, sprite->x + 1) && math_in_range(sprite->y - 1, data->y, sprite->y + 1))
+            {
+                data->state = IDLE;
+            }
+                
+            else
+            {
+                *dx = data->x - sprite->x, *dy = data->y - sprite->y;
+                dist = math_sqrt(*dx * *dx + *dy * *dy);
+                *dx = *dx / dist * data->speed;
+                *dy = *dy / dist * data->speed;
+            }
 
-    if(dx < 0)
+            break;
+    }
+
+    if(*dx < 0)
         an->alflags |= ALLEGRO_FLIP_HORIZONTAL;
 
-    else if(dx > 0)
+    else if(*dx > 0)
         an->alflags = 0;
 
-    sprite->i = data->idle;
+    sprite->i = data->state == IDLE;
 }
 
 struct entity *orc_create(ALLEGRO_BITMAP *spritesheet)
 {
     struct orcdata *od = s_malloc(sizeof(struct orcdata), "kd: create_orc");
     struct animation *an = s_malloc(2 * sizeof(struct animation), "an: create_orc");
-    an->width = 16;
-    an->height = 32;
-    an->x = 64;
-    an->y = 432;
-    an->spritecount = 4;
-    an->cycle = 0;
-    an->ticks = 6;
-    an->alflags = 0;
+    an[0].width = 16;
+    an[0].height = 32;
+    an[0].x = 64;
+    an[0].y = 432;
+    an[0].spritecount = 4;
+    an[0].cycle = 0;
+    an[0].ticks = 6;
+    an[0].alflags = 0;
+    an[0].offsetx = 0;
+    an[0].offsety = 4;
 
-    od->idle = 1;
-    od->speed = .5;
+    od->speed = .875;
+    od->state = IDLE;
+    od->x = 0;
+    od->y = 0;
     
     an[1].width = 16;
     an[1].height = 32;
@@ -62,6 +132,8 @@ struct entity *orc_create(ALLEGRO_BITMAP *spritesheet)
     an[1].cycle = 0;
     an[1].ticks = 6;
     an[1].alflags = 0;
+    an[1].offsetx = 0;
+    an[1].offsety = 4;
 
     struct entity *out = e_create(spritesheet, NULL, orc_behaviour, 0, 0, an, od);
     return out;

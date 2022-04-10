@@ -13,8 +13,8 @@
 #include "menu.h"
 #include "menudriver.h"
 #include "maker.h"
-#include "movementandcollision.h"
 #include "entitymanager.h"
+#include "mapgenerator.h"
 #include "debug.h"
 
 void game_get_actions();
@@ -29,15 +29,15 @@ void game_init(char gamemode, char newmap, int width, int height)
     {
         case NONE:
             sm_init(0, 0);
-            newmap ? mm_init("new", 5, 16, width, height) : mm_init("map1");
-            mc_init();
+            mm_init();
             em_init();
+            mm_add_map(mg_create_map(30, 30));
+            mm_set_top_map(0);
             break;
         case REG:
             break;
         case MAKER:
             sm_init(0, 0);
-            newmap ? mm_init("new", 5, 16, width, height) : mm_init("map1");
             md_init();
             maker_init();
             break;
@@ -143,7 +143,7 @@ void game_get_actions()
             md_menu_tick();
             sm_set_zoom(scroll);
             maker_actions();
-            mc_do_main_movement(NULL, up, down, left, right);
+            sm_move_coord(up - down, right - left);
 
             if(kb_get_mapsave())
                 mm_save_map("map1");

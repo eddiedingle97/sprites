@@ -2,14 +2,13 @@ ALLEGRO := $(shell pkg-config --libs allegro-5 allegro_font-5 allegro_ttf-5 alle
 #GSL := $(shell pkg-config --libs --cflags gsl)
 #LOADER := $(shell export LD_LIBRARY_PATH=/usr/lib64)
 OTHERS = -lm
-FLAGS = -Wall -O0
-IGNORE = -Wno-unused-but-set-variable -Wno-unused-variable -Wno-char-subscripts -Wno-unused-function -Wno-incompatible-pointer-types
+FLAGS = -Wall -Og
+IGNORE = -Wno-unused-but-set-variable -Wno-unused-variable -Wno-unused-function -Wno-incompatible-pointer-types
 SOURCES = $(wildcard src/*.c) 
-#SOURCES = src/sprites.c src/alobj.c src/spritemanager.c src/mouse.c src/list.c src/game.c src/map.c src/mapmanager.c src/debug.c src/maker.c src/menu.c src/menudriver.c src/keyboard.c src/movementandcollision.c src/entity.c src/entitymanager.c src/emath.c src/mapgenerator.c src/graph.c src/pqueue.c src/dictionary.c
+CC = gcc
 
-
-sprites: 
-	gcc $(SOURCES) -o sprites $(FLAGS) $(IGNORE) $(ALLEGRO) $(OTHERS)
+sprites:
+	$(CC) $(SOURCES) -o sprites $(FLAGS) $(IGNORE) $(ALLEGRO) $(OTHERS)
 
 all:
-	gcc $(SOURCES) -o sprites $(FLAGS) $(ALLEGRO) $(OTHERS)
+	$(CC) $(SOURCES) -o sprites $(FLAGS) $(ALLEGRO) $(OTHERS)

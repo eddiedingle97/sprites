@@ -2,7 +2,7 @@
 #define __MAPMANAGER_H__
 #include "map.h"
 
-void mm_init(char *mapdir, ...);
+void mm_init();
 void mm_destroy();
 void mm_update_chunks();
 void mm_test_color_chunk(struct chunk *chunk);
@@ -10,10 +10,13 @@ void mm_test_color_tile(float x, float y);
 void mm_save_map(char *mapname);
 struct map *mm_get_top_map();
 struct chunk **mm_get_corners();
+struct chunk *mm_get_chunk(float x, float y);
 struct chunk *mm_get_chunk_from_rel_coordinate(float x, float y);
 struct tile *mm_update_tile(float x, float y, struct tile *tile);
 struct tile *mm_get_tile(float x, float y);
 struct tile *mm_get_tile_from_rel_coordinate(float x, float y);
+void mm_add_map(struct map *map);
+void mm_set_top_map(int m);
 
 int mm_add_tile_map_to_list(char *tilemapfile, int tilesize);
 int mm_get_tile_map_z(char *tilemapfile);

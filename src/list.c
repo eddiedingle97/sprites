@@ -283,7 +283,8 @@ void *list_delete(struct list *l, int index)
 	if(prev == NULL)
 	{
 		l->head = temp->next;
-		l->head->prev = NULL;
+		if(l->head)
+			l->head->prev = NULL;
 		p = temp->p;
 	}
 	else if(temp->next == NULL)

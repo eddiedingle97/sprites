@@ -14,12 +14,12 @@
 #include "emath.h"
 
 static struct chunk *corners[4];
+static struct map *topmap;
 static struct list *maps;
 static const int DISTANCE = HEIGHT / 2;
 
-static struct list *chunks;
 static struct tilemap **tilemaps;
-static int tilemapssize, chunksize;
+static int tilemapssize;//, chunksize;
 static const int HHEIGHT = HEIGHT / 2;
 static const int HWIDTH = WIDTH / 2;
 static const int TILESIZE = 16;
@@ -34,101 +34,52 @@ void mm_destroy_tile_map(struct tilemap *tm);
 
 enum DIR {UP = 0, DOWN = 1, LEFT = 2, RIGHT = 3};
 
-void mm_init(char *mapdir, ...)
+void mm_init()
 {
     maps = list_create();
-    struct map *map;// = mg_create_map(30, 30);
-    if(s_string_match(mapdir, "new"))
-    {
-        va_list vl;
-        va_start(vl, mapdir);
-        int chunksize = va_arg(vl, int);
-        int tilesize = va_arg(vl, int);
-        int width = va_arg(vl, int);
-        int height = va_arg(vl, int);
-        if(width)
-            map = map_create(chunksize, tilesize, width, height);
-        else
-            map = mg_create_map(30, 30);
-        va_end(vl);
-    }
-    else
-        map = map_load(mapdir);
-        
-    if(!map)
-    {
-        debug_perror("Failed to create/open map\n");
-        exit(1);
-    }
-
-    chunks = list_create();
+    topmap = NULL;
     tilemapssize = 0;
-    mm_add_tile_map_to_list("defaulttile.bmp", TILESIZE);
-    mm_add_tile_map_to_list("purplebitmap.bmp", TILESIZE);
-    mm_add_tile_map_to_list("blanktile.png", TILESIZE);
-    mm_add_tile_map_to_list("DungeonTilesetIItiles.png", 16);
-    chunksize = map->chunksize;
-
-    matrix = s_malloc(map->chunksize * sizeof(int), "mm_init: matrix");
+    tilemaps = NULL;
     int i;
-    for(i = 0; i < map->chunksize; i++)
-        matrix[i] = i * TILESIZE;
+    for(i = 0; i < 4; i++)
+        corners[i] = NULL;
+    mm_add_tile_map_to_list("defaulttile.bmp", 16);
+    mm_add_tile_map_to_list("purplebitmap.bmp", 16);
+    mm_add_tile_map_to_list("blanktile.png", 16);
+    mm_add_tile_map_to_list("DungeonTilesetIItiles.png", 16);
 
-    mm_load_tile_maps(mapdir);
-    list_append(maps, map);
-
-    int distance = DISTANCE / sm_get_zoom();
-
-    int range[4];
-
-    range[LEFT]  = sm_get_coord(X) - distance;
-    range[RIGHT] = sm_get_coord(X) + distance;
-    range[DOWN]  = sm_get_coord(Y) - distance;
-    range[UP]    = sm_get_coord(Y) + distance;
-
-    corners[TOPLEFT] = map_get_chunk_from_coordinate(map, range[LEFT], range[UP]);
-    corners[TOPRIGHT] = map_get_chunk_from_coordinate(map, range[RIGHT], range[UP]);
-    corners[BOTTOMLEFT] = map_get_chunk_from_coordinate(map, range[LEFT], range[DOWN]);
-    corners[BOTTOMRIGHT] = map_get_chunk_from_coordinate(map, range[RIGHT], range[DOWN]);
-    
-    if(!corners[TOPLEFT])
-        corners[TOPLEFT] = map->chunks[0][0];
-
-    if(!corners[TOPRIGHT])
-        corners[TOPRIGHT] = map->chunks[0][map->width - 1];
-
-    if(!corners[BOTTOMLEFT])
-        corners[BOTTOMLEFT] = map->chunks[map->height - 1][0];
-
-    if(!corners[BOTTOMRIGHT])
-        corners[BOTTOMRIGHT] = map->chunks[map->height - 1][map->width - 1];
-
-    int r, c;
-    for(r = corners[TOPLEFT]->index_y; r <= corners[BOTTOMLEFT]->index_y; r++)
-    {
-        for(c = corners[TOPLEFT]->index_x; c <= corners[TOPRIGHT]->index_x; c++)
-        {
-            mm_add_chunk_to_layer(map->chunks[r][c], map->chunksize);
-        }
-    }
 }
 
 void mm_destroy()
 {
     list_destroy_with_function(maps, map_destroy);
-    list_destroy(chunks);
     int i;
     for(i = 0; i < tilemapssize; i++)
     {
         mm_destroy_tile_map(tilemaps[i]);
     }
     s_free(tilemaps, NULL);
-    s_free(matrix, NULL);
+    //s_free(matrix, NULL);
+}
+
+void mm_add_map(struct map *map)
+{
+    list_append(maps, map);
+}
+
+void mm_set_top_map(int m)
+{
+    topmap = list_get(maps, m);
+
+    corners[TOPLEFT] = topmap->chunks[0][0];
+    corners[TOPRIGHT] = topmap->chunks[0][topmap->width - 1];
+    corners[BOTTOMLEFT] = topmap->chunks[topmap->height - 1][0];
+    corners[BOTTOMRIGHT] = topmap->chunks[topmap->height - 1][topmap->width - 1];
 }
 
 struct map *mm_get_top_map()
 {
-    return list_get(maps, 0);
+    return topmap;
 }
 
 void mm_test_color_chunk(struct chunk *chunk)
@@ -141,7 +92,7 @@ void mm_test_color_chunk(struct chunk *chunk)
 
 void mm_test_color_tile(float x, float y)
 {
-    struct map *map = list_get(maps, 0);
+    struct map *map = topmap;
     struct chunk *chunk = map_get_chunk_from_coordinate(map, x, y);
 
     if(!chunk)
@@ -155,114 +106,87 @@ void mm_test_color_tile(float x, float y)
     chunk->tiles[math_floor(y)][math_floor(x)].tilemap_z = 1;
 }
 
+struct chunk *mm_get_chunk(float x, float y)
+{
+    return map_get_chunk_from_coordinate(topmap, x, y);
+}
+
 struct chunk *mm_get_chunk_from_rel_coordinate(float x, float y)
 {
-    return map_get_chunk_from_coordinate(list_get(maps, 0), sm_rel_to_global_x(x), sm_rel_to_global_y(y));
-}
-
-void mm_add_chunk_to_layer(struct chunk *chunk, int chunksize)
-{
-    if(!chunk)
-    {
-        fprintf(stderr, "Received null pointer in mm_add_chunk\n");
-        return;
-    }
-    if(chunk->id)
-        return;
-    list_append(chunks, chunk);
-    chunk->id = chunks->tail;
-}
-
-void mm_remove_chunk_from_layer(struct chunk *chunk, int chunksize)
-{
-    if(!chunk)
-    {
-        fprintf(stderr, "Received null pointer in mm_remove_chunk\n");
-        return;
-    }
-    if(!chunk->id)
-        return;
-    list_delete_node(chunks, chunk->id);
-    chunk->id = NULL;
+    return map_get_chunk_from_coordinate(topmap, sm_rel_to_global_x(x), sm_rel_to_global_y(y));
 }
 
 void mm_update_chunks()
 {
-    struct map *map = list_get(maps, 0);
-    int chunkgrid = map->chunksize * map->tilesize;
-    int distance = DISTANCE / sm_get_zoom();
+    if(topmap)
+    {
+        struct map *map = topmap;
+        int chunkgrid = map->chunksize * map->tilesize;
+        int distance = DISTANCE / sm_get_zoom();
 
-    int range[4];
+        int range[4];
 
-    range[RIGHT] = (sm_get_coord(X) + distance - corners[TOPRIGHT]->x) / chunkgrid;
-    range[LEFT] = (sm_get_coord(X) - distance - corners[TOPLEFT]->x - chunkgrid) / chunkgrid;
-    range[UP] = (sm_get_coord(Y) + distance - corners[TOPLEFT]->y + chunkgrid) / chunkgrid;
-    range[DOWN] = (sm_get_coord(Y) - distance - corners[BOTTOMLEFT]->y) / chunkgrid;
+        range[RIGHT] = (sm_get_coord(X) + distance - corners[TOPRIGHT]->x) / chunkgrid;
+        range[LEFT] = (sm_get_coord(X) - distance - corners[TOPLEFT]->x - chunkgrid) / chunkgrid;
+        range[UP] = (sm_get_coord(Y) + distance - corners[TOPLEFT]->y + chunkgrid) / chunkgrid;
+        range[DOWN] = (sm_get_coord(Y) - distance - corners[BOTTOMLEFT]->y) / chunkgrid;
 
-    if(!(range[RIGHT] || range[LEFT] || range[UP] || range[DOWN]))
-        return;
+        if(!(range[RIGHT] || range[LEFT] || range[UP] || range[DOWN]))
+            return;
 
-    /*
-        This code checks to see if there are chunks to load or unload on the sides of what is currently loaded
-    */
+        /*
+            This code checks to see if there are chunks to load or unload on the sides of what is currently loaded
+        */
 
-    int r, c;
-    for(c = corners[TOPRIGHT]->index_x + 1; c <= corners[TOPRIGHT]->index_x + range[RIGHT] && c < map->width; c++)//adds chunks to the right
-        for(r = corners[BOTTOMRIGHT]->index_y; r >= corners[TOPRIGHT]->index_y; r--)
-            mm_add_chunk_to_layer(map_get_chunk_from_index(map, c, r), map->chunksize);
+        int r, c;
+        for(c = corners[TOPRIGHT]->index_x + 1; c <= corners[TOPRIGHT]->index_x + range[RIGHT] && c < map->width; c++)//adds chunks to the right
+            for(r = corners[BOTTOMRIGHT]->index_y; r >= corners[TOPRIGHT]->index_y; r--);
 
-    corners[TOPRIGHT] = map_get_chunk_from_index(map, c - 1, corners[TOPRIGHT]->index_y);
-    corners[BOTTOMRIGHT] = map_get_chunk_from_index(map, c - 1, corners[BOTTOMRIGHT]->index_y);
+        corners[TOPRIGHT] = map_get_chunk_from_index(map, c - 1, corners[TOPRIGHT]->index_y);
+        corners[BOTTOMRIGHT] = map_get_chunk_from_index(map, c - 1, corners[BOTTOMRIGHT]->index_y);
 
-    for(c = corners[TOPRIGHT]->index_x; c > corners[TOPRIGHT]->index_x + range[RIGHT] && c - 1 > -1; c--)//takes away chunks from the right
-        for(r = corners[BOTTOMRIGHT]->index_y; r >= corners[TOPRIGHT]->index_y; r--)
-            mm_remove_chunk_from_layer(map_get_chunk_from_index(map, c, r), map->chunksize);
+        for(c = corners[TOPRIGHT]->index_x; c > corners[TOPRIGHT]->index_x + range[RIGHT] && c - 1 > -1; c--)//takes away chunks from the right
+            for(r = corners[BOTTOMRIGHT]->index_y; r >= corners[TOPRIGHT]->index_y; r--);
 
-    corners[TOPRIGHT] = map_get_chunk_from_index(map, c, corners[TOPRIGHT]->index_y);
-    corners[BOTTOMRIGHT] = map_get_chunk_from_index(map, c, corners[BOTTOMRIGHT]->index_y);
+        corners[TOPRIGHT] = map_get_chunk_from_index(map, c, corners[TOPRIGHT]->index_y);
+        corners[BOTTOMRIGHT] = map_get_chunk_from_index(map, c, corners[BOTTOMRIGHT]->index_y);
 
+        for(c = corners[TOPLEFT]->index_x - 1; c >= corners[TOPLEFT]->index_x + range[LEFT] && c > -1; c--)//adds chunks to the left
+            for(r = corners[BOTTOMLEFT]->index_y; r >= corners[TOPLEFT]->index_y; r--);
 
-    for(c = corners[TOPLEFT]->index_x - 1; c >= corners[TOPLEFT]->index_x + range[LEFT] && c > -1; c--)//adds chunks to the left
-        for(r = corners[BOTTOMLEFT]->index_y; r >= corners[TOPLEFT]->index_y; r--)
-            mm_add_chunk_to_layer(map_get_chunk_from_index(map, c, r), map->chunksize);
+        corners[TOPLEFT] = map_get_chunk_from_index(map, c + 1, corners[TOPLEFT]->index_y);
+        corners[BOTTOMLEFT] = map_get_chunk_from_index(map, c + 1, corners[BOTTOMLEFT]->index_y);
 
-    corners[TOPLEFT] = map_get_chunk_from_index(map, c + 1, corners[TOPLEFT]->index_y);
-    corners[BOTTOMLEFT] = map_get_chunk_from_index(map, c + 1, corners[BOTTOMLEFT]->index_y);
+        for(c = corners[TOPLEFT]->index_x; c < corners[TOPLEFT]->index_x + range[LEFT] && c + 1 < map->width; c++)//takes away chunks from the left
+            for(r = corners[BOTTOMLEFT]->index_y; r >= corners[TOPLEFT]->index_y; r--);
 
-    for(c = corners[TOPLEFT]->index_x; c < corners[TOPLEFT]->index_x + range[LEFT] && c + 1 < map->width; c++)//takes away chunks from the left
-        for(r = corners[BOTTOMLEFT]->index_y; r >= corners[TOPLEFT]->index_y; r--)
-            mm_remove_chunk_from_layer(map_get_chunk_from_index(map, c, r), map->chunksize);
+        corners[TOPLEFT] = map_get_chunk_from_index(map, c, corners[TOPLEFT]->index_y);
+        corners[BOTTOMLEFT] = map_get_chunk_from_index(map, c, corners[BOTTOMLEFT]->index_y);
 
-    corners[TOPLEFT] = map_get_chunk_from_index(map, c, corners[TOPLEFT]->index_y);
-    corners[BOTTOMLEFT] = map_get_chunk_from_index(map, c, corners[BOTTOMLEFT]->index_y);
+        for(r = corners[TOPLEFT]->index_y - 1; r >= corners[TOPLEFT]->index_y - range[UP] && r > -1; r--)//adds chunks on top
+            for(c = corners[TOPLEFT]->index_x; c <= corners[TOPRIGHT]->index_x; c++);
 
-    for(r = corners[TOPLEFT]->index_y - 1; r >= corners[TOPLEFT]->index_y - range[UP] && r > -1; r--)//adds chunks on top
-        for(c = corners[TOPLEFT]->index_x; c <= corners[TOPRIGHT]->index_x; c++)
-            mm_add_chunk_to_layer(map_get_chunk_from_index(map, c, r), map->chunksize);
+        corners[TOPLEFT] = map_get_chunk_from_index(map, corners[TOPLEFT]->index_x, r + 1);
+        corners[TOPRIGHT] = map_get_chunk_from_index(map, corners[TOPRIGHT]->index_x, r + 1);
 
-    corners[TOPLEFT] = map_get_chunk_from_index(map, corners[TOPLEFT]->index_x, r + 1);
-    corners[TOPRIGHT] = map_get_chunk_from_index(map, corners[TOPRIGHT]->index_x, r + 1);
+        for(r = corners[TOPLEFT]->index_y; r < corners[TOPLEFT]->index_y - range[UP] && r + 1 < map->height; r++)//takes away top chunks
+            for(c = corners[TOPLEFT]->index_x; c <= corners[TOPRIGHT]->index_x; c++);
 
-    for(r = corners[TOPLEFT]->index_y; r < corners[TOPLEFT]->index_y - range[UP] && r + 1 < map->height; r++)//takes away top chunks
-        for(c = corners[TOPLEFT]->index_x; c <= corners[TOPRIGHT]->index_x; c++)
-            mm_remove_chunk_from_layer(map_get_chunk_from_index(map, c, r), map->chunksize);
+        corners[TOPLEFT] = map_get_chunk_from_index(map, corners[TOPLEFT]->index_x, r);
+        corners[TOPRIGHT] = map_get_chunk_from_index(map, corners[TOPRIGHT]->index_x, r);
 
-    corners[TOPLEFT] = map_get_chunk_from_index(map, corners[TOPLEFT]->index_x, r);
-    corners[TOPRIGHT] = map_get_chunk_from_index(map, corners[TOPRIGHT]->index_x, r);
+        for(r = corners[BOTTOMLEFT]->index_y + 1; r <= corners[BOTTOMLEFT]->index_y - range[DOWN] && r < map->height; r++)//adds chunks to bottom
+            for(c = corners[BOTTOMLEFT]->index_x; c <= corners[BOTTOMRIGHT]->index_x; c++);
 
-    for(r = corners[BOTTOMLEFT]->index_y + 1; r <= corners[BOTTOMLEFT]->index_y - range[DOWN] && r < map->height; r++)//adds chunks to bottom
-        for(c = corners[BOTTOMLEFT]->index_x; c <= corners[BOTTOMRIGHT]->index_x; c++)
-            mm_add_chunk_to_layer(map_get_chunk_from_index(map, c, r), map->chunksize);
+        corners[BOTTOMLEFT] = map_get_chunk_from_index(map, corners[BOTTOMLEFT]->index_x, r - 1);
+        corners[BOTTOMRIGHT] = map_get_chunk_from_index(map, corners[BOTTOMRIGHT]->index_x, r - 1);
 
-    corners[BOTTOMLEFT] = map_get_chunk_from_index(map, corners[BOTTOMLEFT]->index_x, r - 1);
-    corners[BOTTOMRIGHT] = map_get_chunk_from_index(map, corners[BOTTOMRIGHT]->index_x, r - 1);
+        for(r = corners[BOTTOMLEFT]->index_y; r > corners[BOTTOMLEFT]->index_y - range[DOWN] && r - 1 > -1; r--)//takes away bottom chunks
+            for(c = corners[BOTTOMLEFT]->index_x; c <= corners[BOTTOMRIGHT]->index_x; c++);
 
-    for(r = corners[BOTTOMLEFT]->index_y; r > corners[BOTTOMLEFT]->index_y - range[DOWN] && r - 1 > -1; r--)//takes away bottom chunks
-        for(c = corners[BOTTOMLEFT]->index_x; c <= corners[BOTTOMRIGHT]->index_x; c++)
-            mm_remove_chunk_from_layer(map_get_chunk_from_index(map, c, r), map->chunksize);
-
-    corners[BOTTOMLEFT] = map_get_chunk_from_index(map, corners[BOTTOMLEFT]->index_x, r);
-    corners[BOTTOMRIGHT] = map_get_chunk_from_index(map, corners[BOTTOMRIGHT]->index_x, r);
+        corners[BOTTOMLEFT] = map_get_chunk_from_index(map, corners[BOTTOMLEFT]->index_x, r);
+        corners[BOTTOMRIGHT] = map_get_chunk_from_index(map, corners[BOTTOMRIGHT]->index_x, r);
+    }
 }
 
 void mm_save_map(char *mapname)
@@ -298,13 +222,19 @@ struct chunk **mm_get_corners()
 
 struct tile *mm_get_tile(float x, float y)
 {
-    return map_get_tile_from_coordinate(mm_get_top_map(), x, y);
+    return map_get_tile_from_coordinate(topmap, x, y);
 }
 
 struct tile *mm_get_tile_from_rel_coordinate(float x, float y)
 {
-    return map_get_tile_from_coordinate(mm_get_top_map(), sm_rel_to_global_x(x), sm_rel_to_global_y(y));
+    return map_get_tile_from_coordinate(topmap, sm_rel_to_global_x(x), sm_rel_to_global_y(y));
 }
+
+/*void mm_add_entity_to_chunk(float x, float y, struct entity *e)
+{
+    struct chunk *chunk = map_get_chunk_from_coordinate(topmap, x, y);
+    list_append(chunk->entities, e);
+}*/
 
 struct tile *mm_update_tile(float x, float y, struct tile *tile)
 {
@@ -318,8 +248,7 @@ struct tile *mm_update_tile(float x, float y, struct tile *tile)
     oldtile->tilemap_x = tile->tilemap_x;
     oldtile->tilemap_y = tile->tilemap_y;
     oldtile->tilemap_z = tile->tilemap_z;
-    oldtile->solid = tile->solid;
-    oldtile->breakable = tile->breakable;
+    oldtile->type = tile->type;
     oldtile->damage = tile->damage;
 
     return oldtile;
@@ -474,12 +403,12 @@ ALLEGRO_BITMAP *mm_get_tile_bitmap(struct tile *tile)
 
 int mm_get_chunk_count()
 {
-    return chunks->size;
+    return (corners[TOPRIGHT]->index_x - corners[TOPLEFT]->index_x) * (corners[BOTTOMRIGHT]->index_y - corners[TOPLEFT]->index_y);
 }
 
 float mm_get_tile_x(int chunk_x, int tilesize, int column)
 {
-    //return column * tilesize + chunk_x;
+    //return  + chunk_x;
     return matrix[column] + chunk_x;
 }
 //(((column * tilesize + chunk_x) - coord[X]) * zoom) + HWIDTH - tilesize / 2;
@@ -509,42 +438,38 @@ float mm_global_to_rel_y(float y)
 	return (y - sm_get_coord(Y)) * sm_get_zoom();
 }
 
-#define GETTILEX(chunk_x, tilesize, column, zoom, x) (matrix[column] + chunk_x - x) * zoom + HWIDTH
-#define GETTILEY(chunk_y, tilesize, row, zoom, y) (matrix[row] - chunk_y + y) * zoom + HHEIGHT
+#define GETTILEX(chunk_x, tilesize, column, zoom, x) (column * tilesize + chunk_x - x) * zoom + HWIDTH
+#define GETTILEY(chunk_y, tilesize, row, zoom, y) (row * tilesize - chunk_y + y) * zoom + HHEIGHT
 
 void mm_draw_chunks(ALLEGRO_DISPLAY *display)
 {
     al_set_target_bitmap(al_get_backbuffer(display));
     al_clear_to_color(BLACK);
     float zoom = sm_get_zoom();
-    int newsize = TILESIZE * zoom;
+    int newsize = topmap->tilesize * zoom;
+    int chunksize = topmap->chunksize;
 
     struct node *node;
     struct chunk *chunk;
     struct tilemap *tilemap;
     struct tile *tile;
     int coordx = sm_get_coord(X), coordy = sm_get_coord(Y);
-    int r, c;
+    int r, c, tr, tc;
     al_hold_bitmap_drawing(1);
-    for(node = chunks->head; node != NULL; node = node->next)
+    for(r = corners[TOPLEFT]->index_y; r <= corners[BOTTOMLEFT]->index_y; r++)
     {
-        chunk = node->p;
-        for(r = 0; r < chunksize; r++)
+        for(c = corners[TOPLEFT]->index_x; c <= corners[TOPRIGHT]->index_x; c++)
         {
-            for(c = 0; c < chunksize; c++)
+            chunk = topmap->chunks[r][c];
+            for(tr = 0; tr < chunksize; tr++)
             {
-                tile = &chunk->tiles[r][c];
-                /*if(tile->damage < 0 && tile->breakable)
+                for(tc = 0; tc < chunksize; tc++)
                 {
-                    printf("damage: %d, breakable: %d\n", tile->damage, tile->breakable);
-                    tile->tilemap_x = 0;
-                    tile->tilemap_y = 0;
-                    tile->tilemap_z = BLANK;
-                    tile->damage = 10;
-                }*/
-                tilemap = tilemaps[tile->tilemap_z];
-                
-                al_draw_scaled_bitmap(tilemap->bitmap, tile->tilemap_x, tile->tilemap_y, tilemap->tilesize, tilemap->tilesize, GETTILEX(chunk->x, tilemap->tilesize, c, zoom, coordx), GETTILEY(chunk->y, tilemap->tilesize, r, zoom, coordy), newsize, newsize, 0);
+                    tile = &chunk->tiles[tr][tc];
+                    tilemap = tilemaps[tile->tilemap_z];
+
+                    al_draw_scaled_bitmap(tilemap->bitmap, tile->tilemap_x, tile->tilemap_y, tilemap->tilesize, tilemap->tilesize, GETTILEX(chunk->x, tilemap->tilesize, tc, zoom, coordx), GETTILEY(chunk->y, tilemap->tilesize, tr, zoom, coordy), newsize, newsize, 0);
+                }
             }
         }
     }

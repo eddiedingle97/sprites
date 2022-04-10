@@ -121,6 +121,7 @@ void graph_remove_edge(struct graph *graph, struct edge *edge)
 {
     if(!edge)
         return;
+    //printf("removing edge %d %d\n", edge->to, edge->from);
     struct vertex *from = graph_get_vertex(graph, edge->from);
     int i;
     if(from)

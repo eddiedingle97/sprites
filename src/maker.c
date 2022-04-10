@@ -249,7 +249,7 @@ void maker_actions()
             al_set_target_bitmap(redbitmap);
             al_clear_to_color(RED);*/
             struct tile *t = mm_get_tile(sm_rel_to_global_x(mouse_get_rel_x()), sm_rel_to_global_y(mouse_get_rel_y()));
-            t->solid = !t->solid;
+            t->type = t->type ^ SOLID;
             /*struct sprite *sprite = sm_create_global_sprite(redbitmap, sm_rel_to_global_x(mouse_get_rel_x()), sm_rel_to_global_y(mouse_get_rel_y()), FOREGROUND, 0);
             sm_add_sprite_to_layer(sprite);
             list_append(foregroundsprites, sprite);*/
@@ -280,7 +280,7 @@ void maker_show_solid_tiles()
             {
                 for(c = 0; c < map->chunksize; c++)
                 {
-                    if(chunkleft->tiles[r][c].solid)
+                    if(chunkleft->tiles[r][c].type & SOLID)
                     {
                         ALLEGRO_BITMAP *redbitmap = al_create_bitmap(map->tilesize, map->tilesize);
                         al_set_target_bitmap(redbitmap);
@@ -345,8 +345,7 @@ void maker_load_tile_menu_from_file(char *filepath)
         tile->tilemap_y = atoi(strtok(NULL, ","));
         tile->tilemap_z = z;
         strtok(NULL, ",");
-        tile->solid = atoi(strtok(NULL, ","));
-        tile->breakable = atoi(strtok(NULL, ","));
+        tile->type= atoi(strtok(NULL, ","));
         tile->damage = atoi(strtok(NULL, ","));
         list_append(tm->tiles, tile);
     }
@@ -382,7 +381,7 @@ int maker_save_tile_menus()
         {
             tile = (struct tile *)node->p;
             
-            if((count = sprintf(buf, "%d,%d,%d,%d,%d,%d\n", tile->tilemap_x, tile->tilemap_y, tile->tilemap_z, tile->solid, tile->breakable, tile->damage)) < 0)
+            if((count = sprintf(buf, "%d,%d,%d,%d,%d\n", tile->tilemap_x, tile->tilemap_y, tile->tilemap_z, tile->type, tile->damage)) < 0)
             {
                 perror("Error in maker_save_tilemaps");
                 return -2;
@@ -416,8 +415,7 @@ void maker_load_tile_menu_from_image(char *tilemapfile, int tilesize)
             tile->tilemap_x = c;
             tile->tilemap_y = r;
             tile->tilemap_z = z;
-            tile->solid = 0;
-            tile->breakable = 0;
+            tile->type = 0;
             tile->damage = 0;
             list_append(tm->tiles, tile);
         }
@@ -491,13 +489,13 @@ void maker_set_grab_mode(struct node *node)
 
 void *maker_toggle_current_tile_solid(void *a)
 {
-    currenttile->solid = !currenttile->solid;
+    currenttile->type = currenttile->type ^ SOLID;
     return NULL;
 }
 
 void *maker_toggle_current_tile_breakable(void *a)
 {
-    currenttile->breakable = !currenttile->breakable;
+    currenttile->type = currenttile->type ^ BREAKABLE;
     return NULL;
 }
 
@@ -534,7 +532,7 @@ void maker_edit_frame_handler(struct menu *m)
 
         struct menuitem *mi = (struct menuitem *)node->p;
         memcpy(buf, mi->entry, strlen(mi->entry)); 
-        sprintf(concat, ": %hhd", currenttile->solid);
+        sprintf(concat, ": %hhd", currenttile->type & SOLID);
         strcat(buf, concat);
         al_draw_text(m->font, BLACK, 10, texty, 0, buf);
         texty += al_get_font_line_height(m->font);
@@ -544,7 +542,7 @@ void maker_edit_frame_handler(struct menu *m)
 
         mi = (struct menuitem *)node->p;
         memcpy(buf, mi->entry, strlen(mi->entry));
-        sprintf(concat, ": %hhd", currenttile->breakable);
+        sprintf(concat, ": %hhd", currenttile->type & BREAKABLE);
         strcat(buf, concat);
         al_draw_text(m->font, BLACK, 10, texty, 0, buf);
         texty += al_get_font_line_height(m->font);

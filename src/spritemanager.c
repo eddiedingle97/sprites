@@ -40,19 +40,22 @@ void sm_init(int x, int y)
 
 void sm_add_sprite_to_layer(struct sprite *sprite)
 {
-	int layer = sprite->layer;
-	if(layer < 0 || layer >= LAYERS)
+	if(!sprite->id)
 	{
-		if(sprite->name)
-			fprintf(stderr, "sprite %s layer value is invalid", sprite->name);
-		else
-			fprintf(stderr, "sprite layer value is invalid");
-		return;
+		int layer = sprite->layer;
+		if(layer < 0 || layer >= LAYERS)
+		{
+			if(sprite->name)
+				fprintf(stderr, "sprite %s layer value is invalid", sprite->name);
+			else
+				fprintf(stderr, "sprite layer value is invalid");
+			return;
+		}
+		struct list *l = (struct list *)list_get(layers, layer);
+		list_append(l, (void *)sprite);
+		sprite->id = l->tail;
+		nosprites++;
 	}
-	struct list *l = (struct list *)list_get(layers, layer);
-	list_append(l, (void *)sprite);
-	sprite->id = l->tail;
-	nosprites++;
 }
 
 void sm_error_local_and_global(struct sprite *sprite)
@@ -61,6 +64,9 @@ void sm_error_local_and_global(struct sprite *sprite)
 		fprintf(stderr, "Error: sprite cannot be both local and global\n");
 	else
 		fprintf(stderr, "Error: sprite \"%s\" cannot be both local and global\n", sprite->name);
+	sm_remove_sprite_from_layer(sprite);
+	sprite->layer = LIMBO;
+	sm_add_sprite_to_layer(sprite);
 }
 
 void sm_error_local_nor_global(struct sprite *sprite)
@@ -69,6 +75,9 @@ void sm_error_local_nor_global(struct sprite *sprite)
 		fprintf(stderr, "Error: sprite must be either local or global\n");
 	else
 		fprintf(stderr, "Error: sprite \"%s\" must be either local or global\n", sprite->name);
+	sm_remove_sprite_from_layer(sprite);
+	sprite->layer = LIMBO;
+	sm_add_sprite_to_layer(sprite);
 }
 
 void sm_draw_sprites(ALLEGRO_DISPLAY *display)
@@ -93,7 +102,7 @@ void sm_draw_sprites(ALLEGRO_DISPLAY *display)
 		node = node->next;
 	}*/
 
-	for(i = layers->size - 1; i >= 0; i--)
+	for(i = layers->size - 2; i >= 0; i--)
 	{
 		layer = list_get(layers, i);
 		node = layer->head;
@@ -232,7 +241,7 @@ void sm_default_dynamic_draw(struct sprite *sprite, int tick)
 			break;
 
 		case 22://GLOBAL + CENTERED
-			al_draw_scaled_bitmap(sprite->bitmap, an->x + an->cycle * an->width, an->y, an->width, an->height, sm_get_x(sm_global_to_rel_x(sprite->x), neww), sm_get_y(sm_global_to_rel_y(sprite->y), newh), neww, newh, an->alflags);
+			al_draw_scaled_bitmap(sprite->bitmap, an->x + an->cycle * an->width, an->y, an->width, an->height, sm_get_x(sm_global_to_rel_x(sprite->x + an->offsetx), neww), sm_get_y(sm_global_to_rel_y(sprite->y + an->offsety), newh), neww, newh, an->alflags);
 			break;
 		
 		case 23://LOCAL + GLOBAL + CENTERED
