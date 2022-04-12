@@ -201,6 +201,12 @@ void em_do_movement(struct map *map, struct entity *e, float *dx, float *dy)
         }
         //add entities switching chunks here
     }
+
+    else
+    {
+        *dx = 0;
+        *dy = 0;
+    }
 }
 
 void em_destroy()

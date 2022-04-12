@@ -12,6 +12,7 @@ void math_seed(unsigned int seed);
 unsigned int math_get_random(int max);
 float math_cos_d(int angle);
 float math_sin_d(int angle);
+int math_arccos_d(float ratio);
 void math_mergesort(void *list, int size, int (*comp)(void *, void *), int datasize);
 
 #endif

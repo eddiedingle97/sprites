@@ -91,6 +91,13 @@ float math_sin_d(int angle)
     return sincoslutable[angle % 360];
 }
 
+int math_arccos_d(float ratio)//could be done with binary search
+{
+    int i;
+    for(i = 90; i < 270 && ratio < sincoslutable[i]; i++);
+    return i - 90;
+}
+
 void math_mergesort(void *list, int size, int (*comp)(void *, void *), int datasize)
 {
     if(size < 2)
@@ -127,8 +134,7 @@ static void combine(void *list, int mid, int size, int (*comp)(void *, void *), 
         while(i < mid)
             memcpy(new + ptr++ * datasize, list + i++ * datasize, datasize);
 
-    for(i = 0; i < size; i++)
-        memcpy(list + i * datasize, new + i * datasize, datasize);
+    memcpy(list, new, size * datasize);
 
     s_free(new, NULL);
 }

@@ -329,10 +329,13 @@ float sm_get_coord(int i)
 void sm_set_zoom(int z)
 {
 	zoom += zoominc * z;
-	if(zoom > MAXZOOM)
-		zoom = MAXZOOM;
-	else if(zoom < MINZOOM)
-		zoom = MINZOOM;
+	if(!debug_get())
+	{
+		if(zoom > MAXZOOM)
+			zoom = MAXZOOM;
+		else if(zoom < MINZOOM)
+			zoom = MINZOOM;
+	}
 }
 
 float sm_get_zoom()

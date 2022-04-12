@@ -106,7 +106,7 @@ void orc_behaviour(struct entity *entity, float *dx, float *dy)
 
 struct entity *orc_create(ALLEGRO_BITMAP *spritesheet)
 {
-    struct orcdata *od = s_malloc(sizeof(struct orcdata), "kd: create_orc");
+    struct orcdata *od = s_malloc(sizeof(struct orcdata), "od: create_orc");
     struct animation *an = s_malloc(2 * sizeof(struct animation), "an: create_orc");
     an[0].width = 16;
     an[0].height = 32;
