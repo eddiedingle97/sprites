@@ -13,23 +13,6 @@
 #include "list.h"
 #include "debug.h"
 
-struct coord
-{
-    int x;
-    int y;
-};
-
-struct room
-{
-    int w;
-    int h;
-    int x;
-    int y;
-    struct coord *exit;
-    int noexits;
-    int enemies;
-};
-
 enum DIR {UP, DOWN, LEFT, RIGHT};
 enum EXITENUM {TO, FROM};
 
@@ -48,21 +31,19 @@ int inside_circumcircle(struct room *one, struct room *two, struct room *three, 
 int room_comp(struct room *one, struct room *two);
 int intersect(struct graph *graph, struct vertex *one, struct vertex *two, struct edge **inter);
 struct vertex *get_candidate(struct graph *graph, struct vertex *target, struct vertex *neighbor, int ccw);
-int mg_room_center_x(struct room *room);
-int mg_room_center_y(struct room *room);
 
 struct map *mg_create_map(int w, int h)
 {
     struct map *out = map_create(5, 16, w, h);
 
     mg_create_classic_dungeon(out, 50);
-    
+
     return out;
 }
 
 void mg_create_classic_dungeon(struct map *map, int maxrooms)
 {
-    math_seed(0);//1643581891//1649730122//1649739262//1649800390
+    math_seed(0);//1643581891//1649730122//1649739262//1649800390//1650157911
 
     int norooms = 1 + math_get_random(maxrooms);
 
@@ -108,6 +89,9 @@ void mg_create_classic_dungeon(struct map *map, int maxrooms)
     }
 
     struct graph *graph = graph_create(0);
+    /*struct tile *t = map_get_tile_from_coordinate(map, (rooms[0].x + rooms[0].w - 3.0f) * 16.0f, (rooms[0].y - rooms[0].h + 3.0f) * 16.0f);
+    printf("%.2f %.2f\n", ((float)rooms[0].x + rooms[0].w - 3.0f) * 16.0f, ((float)rooms[0].y - rooms[0].h + 3.0f) * 16.0f);
+    printf("%d %d\n", rooms[0].x + rooms[0].w - 3, rooms[0].y - rooms[0].h + 3);*/
     math_mergesort(rooms, i, room_comp, sizeof(struct room));
     int j;
     for(j = 0; j < i; j++)
@@ -117,21 +101,29 @@ void mg_create_classic_dungeon(struct map *map, int maxrooms)
         
     }
 
-    for(j = 0; j < i; j++)
-        debug_printf("%d %d\n", mg_room_center_x(&rooms[j]), mg_room_center_y(&rooms[j]));
+    /*for(j = 0; j < i; j++)
+        debug_printf("%d %d\n", mg_room_center_x(&rooms[j]), mg_room_center_y(&rooms[j]));*/
 
     delaunay_triangulation(graph);
     
     mg_connect_rooms(map, graph);
 
-    mg_destroy_rooms(rooms, norooms);
-    graph_destroy(graph);
+    /*t->func = 1;
+    t->type = 0;
+    t->tilemap_z = 1;
+    t->tilemap_x = 0;
+    t->tilemap_y = 0;*/
+
+    //mg_destroy_rooms(rooms, norooms);
+
+    //graph_destroy(graph);
+    map->graph = graph;
 }
 
 int room_comp(struct room *one, struct room *two)
 {
     if(mg_room_center_x(one) == mg_room_center_x(two))
-        return mg_room_center_y(one) - mg_room_center_y(two);
+        return mg_room_center_y(two) - mg_room_center_y(one);
     return mg_room_center_x(one) - mg_room_center_x(two);
 }
 
@@ -139,12 +131,14 @@ static void delaunay_triangulation_f(struct vertex *vertices, int size, struct g
 {
     if(size == 2)
     {
+        //printf("base case (%d, %d), (%d, %d)\n", mg_room_center_x(vertices[0].p), mg_room_center_y(vertices[0].p), mg_room_center_x(vertices[1].p), mg_room_center_y(vertices[1].p));
         graph_add_edge_v(graph, &vertices[0], &vertices[1], 0);
         return;
     }
 
     if(size == 3)
     {
+        //printf("base case (%d, %d), (%d, %d), (%d, %d)\n", mg_room_center_x(vertices[0].p), mg_room_center_y(vertices[0].p), mg_room_center_x(vertices[1].p), mg_room_center_y(vertices[1].p), mg_room_center_x(vertices[2].p), mg_room_center_y(vertices[2].p));
         graph_add_edge_v(graph, &vertices[0], &vertices[1], 0);
         graph_add_edge_v(graph, &vertices[1], &vertices[2], 0);
         graph_add_edge_v(graph, &vertices[2], &vertices[0], 0);
@@ -388,6 +382,16 @@ void delaunay_triangulation(struct graph *graph)
         delaunay_triangulation_f(graph->vertices, graph->novertices, graph);
 }
 
+int mg_room_center_x(struct room *room)
+{
+    return room->x + room->w / 2;
+}
+
+int mg_room_center_y(struct room *room)
+{
+    return room->y - room->h / 2;
+}
+
 void mg_create_simple_dungeon(struct map *map, int maxrooms)
 {
     math_seed(0);
@@ -550,7 +554,7 @@ struct tile *mg_update_tile(struct map *map, float x, float y, struct tile *tile
     if(!tile)
         return NULL;
 
-    struct tile *oldtile = map_get_tile_from_coordinate(map, x * 16, y * 16);
+    struct tile *oldtile = map_get_tile_from_coordinate(map, x * 16.0f, y * 16.0f);
     if(!oldtile)
         return NULL;
 
@@ -597,16 +601,6 @@ int mg_connect_room_exits(struct map *map, struct room *rooms, struct graph *gra
     }
 
     return 1;
-}
-
-inline int mg_room_center_x(struct room *room)
-{
-    return room->x + room->w / 2;
-}
-
-inline int mg_room_center_y(struct room *room)
-{
-    return room->y - room->h / 2;
 }
 
 int mg_connect_rooms(struct map *map, struct graph *graph)

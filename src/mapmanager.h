@@ -5,10 +5,13 @@
 void mm_init();
 void mm_destroy();
 void mm_update_chunks();
+int mm_register_tile_function(void (*func)(struct map *, struct entity *));
+void mm_call_tile_functions(struct map *map, struct entity *e);
 void mm_test_color_chunk(struct chunk *chunk);
 void mm_test_color_tile(float x, float y);
 void mm_save_map(char *mapname);
 struct map *mm_get_top_map();
+struct list *mm_get_map_list();
 struct chunk **mm_get_corners();
 struct chunk *mm_get_chunk(float x, float y);
 struct chunk *mm_get_chunk_from_rel_coordinate(float x, float y);
@@ -30,6 +33,16 @@ void mm_print_tile_maps();
 struct tilemap *mm_get_tile_map_from_z(int z);
 void mm_save_tile_maps(char *dir);
 int mm_load_tile_maps(char *dir);
+
+struct warptableentry
+{
+	struct map *map;
+	int x;
+	int y;
+};
+
+void mm_add_warp(struct warptableentry *one, struct warptableentry *two);
+struct dict *mm_get_warp_table();
 
 enum DIR2 {TOPLEFT = 0, TOPRIGHT = 1, BOTTOMLEFT = 2, BOTTOMRIGHT = 3};
 

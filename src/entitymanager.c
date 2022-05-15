@@ -16,7 +16,8 @@ void em_do_movement(struct map *map, struct entity *e, float *dx, float *dy);
 
 static struct entity *knight;
 static ALLEGRO_BITMAP *spritesheet;
-static struct list *entities;
+//static struct list *entities;
+static void (*destroy[2])(struct entity *);
 
 static char collision;
 static const int collisionboxsize = 16;
@@ -29,8 +30,8 @@ void em_init()
         debug_perror("Spritesheet failed to load in em_init\n");
     knight = knight_create(spritesheet);
     sm_add_sprite_to_layer(knight->sprite);
-    entities = list_create();
-    list_append(entities, knight);
+    /*entities = list_create();
+    list_append(entities, knight);*/
 
     ALLEGRO_BITMAP *boxbitmap = al_create_bitmap(collisionboxsize, collisionboxsize);
     al_set_target_bitmap(boxbitmap);
@@ -49,25 +50,27 @@ void em_init()
 
     debug_add_sprite(collisionbox);
     collision = 1;
+    //destroy = s_malloc(2 * sizeof(void (*)(struct entity *)), NULL);
+    destroy[0] = knight_destroy;
+    destroy[1] = orc_destroy;
 }
 
 struct entity *em_create_enemy(float x, float y)
 {
     struct entity *new = orc_create(spritesheet);
     struct orcdata *od = new->data;
-    list_append(entities, new);
+    //list_append(entities, new);
     od->target = knight;
-    sm_add_sprite_to_layer(new->sprite);
+    //sm_add_sprite_to_layer(new->sprite);
     new->sprite->x = x;
     new->sprite->y = y;
     return new;
 }
 
-int em_add_entity_to_chunk(struct entity *e)
+int em_add_entity_to_chunk(struct map *map, struct entity *e)
 {
     if(!e)
         return 1;
-    struct map *map = mm_get_top_map();
     if(!e->chunk && map)
         map_add_entity_to_chunk(map, e);
     else
@@ -75,13 +78,12 @@ int em_add_entity_to_chunk(struct entity *e)
     return 1;
 }
 
-int em_remove_entity_from_chunk(struct entity *e)
+int em_remove_entity_from_chunk(struct map *map, struct entity *e)
 {
     if(!e)
         return 1;
     if(!e->chunk)
         return 0;
-    struct map *map = mm_get_top_map();
     if(map)
         map_remove_entity_from_chunk(map, e);
     else
@@ -100,40 +102,40 @@ struct chunk *em_get_chunk(struct map *map, int r, int c)
 
 void em_tick()
 {
-    struct map *map = mm_get_top_map();
-    if(map)
+    struct list *maps = mm_get_map_list();
+    struct map *map = NULL;
+    struct node *mlnode = NULL;
+    em_add_entity_to_chunk(mm_get_top_map(), knight);
+    for(mlnode = maps->head; mlnode; mlnode = mlnode->next)
     {
-        struct node *node, *next;
-        struct entity *e;
-        int i, times = entities->size;
-        for(i = 0; i < times; i++)
+        map = mlnode->p;
+        if(map)
         {
-            e = list_get(entities, 0);
-            if(em_add_entity_to_chunk(e))
-            {
-                list_delete(entities, 0);
-            }
-        }
-        
-        int r, c;
-        float dx, dy;
-        for(r = 0; r < map->height; r++)
-            for(c = 0; c < map->width; c++)
-            {
-                node = map->chunks[r][c][0].ehead;
-                for(; node; node = next)
+            struct node *node, *next;
+            struct entity *e;
+            
+            int r, c;
+            float dx, dy;
+            for(r = 0; r < map->height; r++)
+                for(c = 0; c < map->width; c++)
                 {
-                    next = node->next;
-                    dx = 0;
-                    dy = 0;
-                    e = node->p;
-                    e->behaviour(e, &dx, &dy);
-                    
-                    em_do_movement(map, e, &dx, &dy);
-                    if(e == knight)
-                        sm_move_coord(dx, dy);
+                    node = map->chunks[r][c][0].ehead;
+                    for(; node; node = next)//FOR EACH ENTITY
+                    {
+                        next = node->next;
+                        dx = 0;
+                        dy = 0;
+                        e = node->p;
+                        e->behaviour(e, &dx, &dy);
+                        
+                        em_do_movement(map, e, &dx, &dy);
+                        if(e == knight)
+                            sm_move_coord(dx, dy);
+                        
+                        mm_call_tile_functions(map, e);
+                    }
                 }
-            }
+        }
     }
 }
 
@@ -196,10 +198,9 @@ void em_do_movement(struct map *map, struct entity *e, float *dx, float *dy)
         e->sprite->y += *dy;
         if(e->chunk != map_get_chunk_from_coordinate(map, e->sprite->x, e->sprite->y))
         {
-            em_remove_entity_from_chunk(e);
-            em_add_entity_to_chunk(e);
+            em_remove_entity_from_chunk(map, e);
+            em_add_entity_to_chunk(map, e);
         }
-        //add entities switching chunks here
     }
 
     else
@@ -211,14 +212,24 @@ void em_do_movement(struct map *map, struct entity *e, float *dx, float *dy)
 
 void em_destroy()
 {
-    struct map *map = mm_get_top_map();
+    struct list *maps = mm_get_map_list();
+    struct entity *e;
     int r, c;
-    struct node *node;
-    for(r = 0; r < map->height; r++)
-        for(c = 0; c < map->width; c++)
-            for(node = map->chunks[r][c][0].ehead; node; node = node->next)
-                e_destroy(node->p);
+    struct node *node, *mlnode;
+    struct map *map;
+    for(mlnode = maps->head; mlnode; mlnode = mlnode->next)
+    {
+        map = mlnode->p;
+        for(r = 0; r < map->height; r++)
+            for(c = 0; c < map->width; c++)
+                for(node = map->chunks[r][c][0].ehead; node; node = node->next)
+                    {
+                        e = node->p;
+                        destroy[e->destroy](e);
+                    }
+    }
 
-    list_destroy_with_function(entities, e_destroy);
+    //list_destroy_with_function(entities, e_destroy);
+    //s_free(destroy, NULL);
     al_destroy_bitmap(spritesheet);
 }

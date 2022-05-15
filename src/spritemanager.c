@@ -206,13 +206,11 @@ void sm_default_dynamic_draw(struct sprite *sprite, int tick)
 {
 	struct animation *an = &sprite->an[sprite->i];
     tick = tick % an->ticks;
-    if(!tick)
-        an->cycle++;
+    if(tick == 0)
+        sprite->cycle++;
     
     float neww = an->width * zoom, newh = an->height * zoom;
-    an->cycle = an->cycle % an->spritecount;
-
-	
+    sprite->cycle = sprite->cycle % an->spritecount;
 
 	switch(sprite->type)
 	{
@@ -221,11 +219,11 @@ void sm_default_dynamic_draw(struct sprite *sprite, int tick)
 			break;
 
 		case 17://LOCAL
-			al_draw_scaled_bitmap(sprite->bitmap, an->x + an->cycle * an->width, an->y, an->width, an->height, sm_get_x(sprite->x, 0), sm_get_y(sprite->y, 0), neww, newh, an->alflags);
+			al_draw_scaled_bitmap(sprite->bitmap, an->x + sprite->cycle * an->width, an->y, an->width, an->height, sm_get_x(sprite->x, 0), sm_get_y(sprite->y, 0), neww, newh, sprite->alflags);
 			break;
 		
 		case 18://GLOBAL
-			al_draw_scaled_bitmap(sprite->bitmap, an->x + an->cycle * an->width, an->y, an->width, an->height, sm_get_x(sm_global_to_rel_x(sprite->x), 0), sm_get_y(sm_global_to_rel_y(sprite->y), 0), neww, newh, an->alflags);
+			al_draw_scaled_bitmap(sprite->bitmap, an->x + sprite->cycle * an->width, an->y, an->width, an->height, sm_get_x(sm_global_to_rel_x(sprite->x), 0), sm_get_y(sm_global_to_rel_y(sprite->y), 0), neww, newh, sprite->alflags);
 			break;
 
 		case 19://LOCAL + GLOBAL
@@ -237,11 +235,11 @@ void sm_default_dynamic_draw(struct sprite *sprite, int tick)
 			break;
 
 		case 21://LOCAL + CENTERED
-			al_draw_scaled_bitmap(sprite->bitmap, an->x + an->cycle * an->width, an->y, an->width, an->height, sm_get_x(sprite->x, neww), sm_get_y(sprite->y, newh), neww, newh, an->alflags);
+			al_draw_scaled_bitmap(sprite->bitmap, an->x + sprite->cycle * an->width, an->y, an->width, an->height, sm_get_x(sprite->x, neww), sm_get_y(sprite->y, newh), neww, newh, sprite->alflags);
 			break;
 
 		case 22://GLOBAL + CENTERED
-			al_draw_scaled_bitmap(sprite->bitmap, an->x + an->cycle * an->width, an->y, an->width, an->height, sm_get_x(sm_global_to_rel_x(sprite->x + an->offsetx), neww), sm_get_y(sm_global_to_rel_y(sprite->y + an->offsety), newh), neww, newh, an->alflags);
+			al_draw_scaled_bitmap(sprite->bitmap, an->x + sprite->cycle * an->width, an->y, an->width, an->height, sm_get_x(sm_global_to_rel_x(sprite->x + an->offsetx), neww), sm_get_y(sm_global_to_rel_y(sprite->y + an->offsety), newh), neww, newh, sprite->alflags);
 			break;
 		
 		case 23://LOCAL + GLOBAL + CENTERED
@@ -253,11 +251,11 @@ void sm_default_dynamic_draw(struct sprite *sprite, int tick)
 			break;
 
 		case 25://LOCAL + NOZOOM
-			al_draw_scaled_bitmap(sprite->bitmap, an->x + an->cycle * an->width, an->y, an->width, an->height, sm_get_x(sprite->x, 0), sm_get_y(sprite->y, 0), an->width, an->height, an->alflags);
+			al_draw_scaled_bitmap(sprite->bitmap, an->x + sprite->cycle * an->width, an->y, an->width, an->height, sm_get_x(sprite->x, 0), sm_get_y(sprite->y, 0), an->width, an->height, sprite->alflags);
 			break;
 
 		case 26://GLOBAL + NOZOOM
-			al_draw_scaled_bitmap(sprite->bitmap, an->x + an->cycle * an->width, an->y, an->width, an->height, sm_get_x(sm_global_to_rel_x(sprite->x), 0), sm_get_y(sm_global_to_rel_y(sprite->y), 0), an->width, an->height, an->alflags);
+			al_draw_scaled_bitmap(sprite->bitmap, an->x + sprite->cycle * an->width, an->y, an->width, an->height, sm_get_x(sm_global_to_rel_x(sprite->x), 0), sm_get_y(sm_global_to_rel_y(sprite->y), 0), an->width, an->height, sprite->alflags);
 			break;
 
 		case 27://LOCAL + GLOBAL + NOZOOM
@@ -269,11 +267,11 @@ void sm_default_dynamic_draw(struct sprite *sprite, int tick)
 			break;
 
 		case 29://LOCAL + CENTERED + NOZOOM
-			al_draw_scaled_bitmap(sprite->bitmap, an->x + an->cycle * an->width, an->y, an->width, an->height, sm_get_x(sprite->x, an->width), sm_get_y(sprite->y, an->height), an->width, an->height, an->alflags);
+			al_draw_scaled_bitmap(sprite->bitmap, an->x + sprite->cycle * an->width, an->y, an->width, an->height, sm_get_x(sprite->x, an->width), sm_get_y(sprite->y, an->height), an->width, an->height, sprite->alflags);
 			break;
 
 		case 30://GLOBAL + CENTERED + NOZOOM
-			al_draw_scaled_bitmap(sprite->bitmap, an->x + an->cycle * an->width, an->y, an->width, an->height, sm_get_x(sm_global_to_rel_x(sprite->x), an->width), sm_get_y(sm_global_to_rel_y(sprite->y), an->height), an->width, an->height, an->alflags);
+			al_draw_scaled_bitmap(sprite->bitmap, an->x + sprite->cycle * an->width, an->y, an->width, an->height, sm_get_x(sm_global_to_rel_x(sprite->x), an->width), sm_get_y(sm_global_to_rel_y(sprite->y), an->height), an->width, an->height, sprite->alflags);
 			break;
 
 		case 31://LOCAL + GLOBAL + CENTERED + NOZOOM
@@ -281,7 +279,7 @@ void sm_default_dynamic_draw(struct sprite *sprite, int tick)
 			break;
 	}
 
-    //al_draw_scaled_bitmap(sprite->bitmap, an->x + an->cycle * an->width, an->y, an->width, an->height, sm_get_x(sprite->x, neww), sm_get_y(sprite->y, newh * 3 / 2), neww, newh, an->alflags);
+    //al_draw_scaled_bitmap(sprite->bitmap, an->x + sprite->cycle * an->width, an->y, an->width, an->height, sm_get_x(sprite->x, neww), sm_get_y(sprite->y, newh * 3 / 2), neww, newh, sprite->alflags);
 }
 
 
@@ -321,6 +319,12 @@ void sm_move_coord(float dx, float dy)
 	coord[Y] += dy;
 }
 
+void sm_set_coord(float x, float y)
+{
+	coord[X] = x;
+	coord[Y] = y;
+}
+
 float sm_get_coord(int i)
 {
 	return coord[i];
@@ -357,6 +361,8 @@ struct sprite *sm_create_global_dynamic_sprite(ALLEGRO_BITMAP *bitmap, void (*dr
 	out->draw = sm_default_dynamic_draw;
 	out->an = an;
 	out->i = 0;
+	out->cycle = 0;
+	out->alflags = 0;
 
 	if(draw)
 		out->draw = draw;
@@ -415,7 +421,7 @@ void sm_remove_sprite_from_layer(struct sprite *sprite)
 {
 	if(!sprite->id || !layers)
 		return;
-	list_delete_node((struct list *)list_get(layers, sprite->layer), sprite->id);
+	list_delete_node(list_get(layers, sprite->layer), sprite->id);
 	sprite->id = NULL;
 	nosprites--;
 }
@@ -431,8 +437,8 @@ void sm_destroy_sprite(struct sprite *sprite)
 	if(!(sprite->type & DYNAMIC))
 		al_destroy_bitmap(sprite->bitmap);
 
-	else
-		s_free(sprite->an, NULL);
+	/*else
+		s_free(sprite->an, NULL);*/
 	
 	if(sprite->name)
 	{

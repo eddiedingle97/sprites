@@ -4,11 +4,13 @@
 #include <string.h>
 #include <allegro5/allegro.h>
 #include "list.h"
+#include "dictionary.h"
 #include "sprites.h"
 #include "map.h"
 #include "spritemanager.h"
 #include "mapmanager.h"
 #include "mapgenerator.h"
+#include "tilefunctions.h"
 #include "debug.h"
 #include "colors.h"
 #include "emath.h"
@@ -17,6 +19,9 @@ static struct chunk *corners[4];
 static struct map *topmap;
 static struct list *maps;
 static const int DISTANCE = HEIGHT / 2;
+static struct dict *warptable;
+static void (**tjumptable)(struct map *, struct entity *);
+static unsigned int tjtsize;
 
 static struct tilemap **tilemaps;
 static int tilemapssize;//, chunksize;
@@ -34,12 +39,31 @@ void mm_destroy_tile_map(struct tilemap *tm);
 
 enum DIR {UP = 0, DOWN = 1, LEFT = 2, RIGHT = 3};
 
+int wte_comp(struct warptableentry *one, struct warptableentry *two)
+{
+    if(one->x == two->x)
+    {
+        if(one->y == two->y)
+        {
+            if(one->map == two->map)
+                return 0;
+            return one->map < two->map ? -1 : 1;
+        }
+        return one->y - two->y;
+    }
+    return one->x - two->x;
+}
+
 void mm_init()
 {
     maps = list_create();
     topmap = NULL;
     tilemapssize = 0;
     tilemaps = NULL;
+    warptable = dict_create(wte_comp);
+    tjumptable = NULL;
+    tjtsize = 0;
+    mm_register_tile_function(tf_warp);
     int i;
     for(i = 0; i < 4; i++)
         corners[i] = NULL;
@@ -59,6 +83,13 @@ void mm_destroy()
         mm_destroy_tile_map(tilemaps[i]);
     }
     s_free(tilemaps, NULL);
+    s_free(tjumptable, NULL);
+    for(i = 0; i < warptable->size; i++)
+    {
+        s_free(warptable->keys[i], NULL);
+        s_free(warptable->p[i], NULL);
+    }
+    dict_destroy(warptable);
     //s_free(matrix, NULL);
 }
 
@@ -67,9 +98,33 @@ void mm_add_map(struct map *map)
     list_append(maps, map);
 }
 
+void mm_add_warp(struct warptableentry *wteone, struct warptableentry *wtetwo)
+{
+    dict_add_entry(warptable, wteone, wtetwo);
+}
+
+struct dict *mm_get_warp_table()
+{
+    return warptable;
+}
+
 void mm_set_top_map(int m)
 {
+    int r, c;
+    struct node *node;
+    if(topmap)
+        for(r = 0; r < topmap->height; r++)
+            for(c = 0; c < topmap->width; c++)
+                for(node = topmap->chunks[r][c][0].ehead; node; node = node->next)
+                    sm_remove_sprite_from_layer(((struct entity *)node->p)->sprite);
+
     topmap = list_get(maps, m);
+
+    if(topmap)
+        for(r = 0; r < topmap->height; r++)
+            for(c = 0; c < topmap->width; c++)
+                for(node = topmap->chunks[r][c][0].ehead; node; node = node->next)
+                    sm_add_sprite_to_layer(((struct entity *)node->p)->sprite);
 
     corners[TOPLEFT] = topmap->chunks[0][0];
     corners[TOPRIGHT] = topmap->chunks[0][topmap->width - 1];
@@ -80,6 +135,34 @@ void mm_set_top_map(int m)
 struct map *mm_get_top_map()
 {
     return topmap;
+}
+
+struct list *mm_get_map_list()
+{
+    return maps;
+}
+
+int mm_register_tile_function(void (*func)(struct map *, struct entity *))
+{
+    if(tjtsize < 8)
+    {
+        tjumptable = s_realloc(tjumptable, ++tjtsize * sizeof(void *(*)(struct map *, struct entity *)), "mm_register_tile_function: tjtable");
+        tjumptable[tjtsize - 1] = func;
+        return 1;
+    }
+    return 0;
+}
+
+void mm_call_tile_functions(struct map *map, struct entity *e)
+{
+    struct tile *tile = map_get_tile_from_coordinate(map, e->sprite->x, e->sprite->y);
+    if(tile)
+    {
+        int i;
+        for(i = 0; i < tjtsize && i < 8; i++)
+            if(tile->func & (1 << i))
+                tjumptable[i](map, e);
+    }
 }
 
 void mm_test_color_chunk(struct chunk *chunk)
@@ -103,7 +186,7 @@ void mm_test_color_tile(float x, float y)
     x /= map->tilesize;
     y /= map->tilesize;
 
-    chunk->tiles[math_floor(y)][math_floor(x)].tilemap_z = 1;
+    chunk->tiles[(int)y][(int)x].tilemap_z = 1;
 }
 
 struct chunk *mm_get_chunk(float x, float y)

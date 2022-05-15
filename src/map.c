@@ -23,6 +23,7 @@ struct map *map_create(int chunksize, int tilesize, int width, int height)
     map->height = height;
     map->width = width;
     map->name = NULL;
+    map->graph = NULL;
     map_create_test_chunk_list(map);
 
     return map;
@@ -72,6 +73,7 @@ struct chunk *map_create_test_chunk(int x, int y, int chunksize)
             chunk->tiles[r][c].tilemap_y = 0;
             chunk->tiles[r][c].tilemap_z = 0;
             chunk->tiles[r][c].type = 0;
+            chunk->tiles[r][c].func = 0;
             chunk->tiles[r][c].damage = 0;
         }
     }
@@ -141,7 +143,7 @@ struct chunk *map_get_chunk_from_coordinate(struct map *map, float x, float y)
     if(x < 0 || y < 0 || x >= pixelwidth || y >= pixelheight)
         return NULL;
 
-    return map->chunks[math_floor(y) / chunkgrid][math_floor(x) / chunkgrid];
+    return map->chunks[(int)y / chunkgrid][(int)x / chunkgrid];
 }
 
 struct chunk *map_get_chunk_from_index(struct map *map, int x, int y)
@@ -220,6 +222,7 @@ struct chunk *map_init_chunk(struct map *map, ALLEGRO_FILE *file, int x, int y)
                 chunk->tiles[r][c].tilemap_y = 0;
                 chunk->tiles[r][c].tilemap_z = 1;
                 chunk->tiles[r][c].type = 0;
+                chunk->tiles[r][c].func = 0;
                 chunk->tiles[r][c].damage = 0;
             }
             else
@@ -228,6 +231,7 @@ struct chunk *map_init_chunk(struct map *map, ALLEGRO_FILE *file, int x, int y)
                 chunk->tiles[r][c].tilemap_y = atoi(strtok(NULL, ","));
                 chunk->tiles[r][c].tilemap_z = atoi(strtok(NULL, ","));
                 chunk->tiles[r][c].type = 0;
+                chunk->tiles[r][c].func = 0;
                 chunk->tiles[r][c].damage = atoi(strtok(NULL, ","));
             }
         }
@@ -248,7 +252,7 @@ struct tile *map_get_tile_from_coordinate(struct map *map, float x, float y)
     x /= map->tilesize;
     y /= map->tilesize;
 
-    return &chunk->tiles[math_floor(y)][math_floor(x)];
+    return &chunk->tiles[(int)y][(int)x];
 }
 
 void map_create_chunks(struct map *map, ALLEGRO_FILE *file)
@@ -313,6 +317,7 @@ struct map *map_load(char *dir)
     map->height = atoi(strtok(NULL, ","));
     map->chunksize = atoi(strtok(NULL, ","));
     map->tilesize = atoi(strtok(NULL, ","));
+    map->graph = NULL;
 
     map_create_chunks(map, mapfile);
 
@@ -359,6 +364,12 @@ void map_destroy(struct map *map)
 
     if(map->name)
         s_free(map->name, NULL);
+
+    if(map->graph)
+    {
+        s_free(map->graph->vertices[0].p, NULL);
+        graph_destroy(map->graph);
+    }
 
     s_free(map, "Freeing map");
 }

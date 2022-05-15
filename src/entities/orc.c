@@ -8,6 +8,9 @@
 
 enum ORCSTATE {IDLE, AGGRO, SEEK};
 
+static struct animation *orcanimations = NULL;
+static int noorcs = 0;
+
 struct orcdata
 {
     unsigned char state;
@@ -45,8 +48,12 @@ void orc_behaviour(struct entity *entity, float *dx, float *dy)
     struct orcdata *data = entity->data;
     struct animation *an = sprite->an;
     struct sprite *target = data->target->sprite;
+    float dist;
 
-    float dist = lerp_check(sprite->x, sprite->y, target->x, target->y, SOLID);
+    if(!entity->sprite->id)
+        dist = 0;
+    else
+        dist = lerp_check(sprite->x, sprite->y, target->x, target->y, SOLID);
     switch(data->state)
     {
         case IDLE:
@@ -96,10 +103,10 @@ void orc_behaviour(struct entity *entity, float *dx, float *dy)
     }
 
     if(*dx < 0)
-        an->alflags |= ALLEGRO_FLIP_HORIZONTAL;
+        sprite->alflags |= ALLEGRO_FLIP_HORIZONTAL;
 
     else if(*dx > 0)
-        an->alflags = 0;
+        sprite->alflags = 0;
 
     sprite->i = data->state == IDLE;
 }
@@ -107,39 +114,48 @@ void orc_behaviour(struct entity *entity, float *dx, float *dy)
 struct entity *orc_create(ALLEGRO_BITMAP *spritesheet)
 {
     struct orcdata *od = s_malloc(sizeof(struct orcdata), "od: create_orc");
-    struct animation *an = s_malloc(2 * sizeof(struct animation), "an: create_orc");
-    an[0].width = 16;
-    an[0].height = 32;
-    an[0].x = 64;
-    an[0].y = 432;
-    an[0].spritecount = 4;
-    an[0].cycle = 0;
-    an[0].ticks = 6;
-    an[0].alflags = 0;
-    an[0].offsetx = 0;
-    an[0].offsety = 4;
+    struct animation *an;
+    if(!orcanimations)
+    {
+        an = s_malloc(2 * sizeof(struct animation), "an: create_orc");
+        an[0].width = 16;
+        an[0].height = 32;
+        an[0].x = 64;
+        an[0].y = 432;
+        an[0].spritecount = 4;
+        an[0].ticks = 6;
+        an[0].offsetx = 0;
+        an[0].offsety = 4;
+
+        an[1].width = 16;
+        an[1].height = 32;
+        an[1].x = 0;
+        an[1].y = 432;
+        an[1].spritecount = 4;
+        an[1].ticks = 6;
+        an[1].offsetx = 0;
+        an[1].offsety = 4;
+
+        orcanimations = an;
+    }
+    else
+        an = orcanimations;
 
     od->speed = .875;
     od->state = IDLE;
     od->x = 0;
     od->y = 0;
-    
-    an[1].width = 16;
-    an[1].height = 32;
-    an[1].x = 0;
-    an[1].y = 432;
-    an[1].spritecount = 4;
-    an[1].cycle = 0;
-    an[1].ticks = 6;
-    an[1].alflags = 0;
-    an[1].offsetx = 0;
-    an[1].offsety = 4;
 
     struct entity *out = e_create(spritesheet, NULL, orc_behaviour, 0, 0, an, od);
+    out->destroy = 1;
+    noorcs++;
     return out;
 }
 
 void orc_destroy(struct entity *orc)
 {
+    if(--noorcs == 0)
+        s_free(orc->sprite->an, NULL);
+    
     e_destroy(orc);
 }

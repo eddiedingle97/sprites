@@ -11,9 +11,7 @@ struct animation
 	char offsetx;
 	char offsety;
     unsigned char spritecount;
-    unsigned char cycle;
     unsigned char ticks;
-    int alflags;
 };
 
 struct sprite
@@ -28,6 +26,8 @@ struct sprite
 	void (*draw)(struct sprite *sprite, int tick);
 	struct animation *an;
 	unsigned char i;
+	unsigned char cycle;
+	int alflags;
 };
 
 void sm_init(const int height, const int width);
@@ -53,6 +53,7 @@ float sm_get_zoom();
 float sm_get_coord(int i);
 int sm_get_sprite_count();
 void sm_move_coord(float dx, float dy);
+void sm_set_coord(float x, float y);
 
 enum SPRITETYPE {LOCAL = 1, GLOBAL = 2, CENTERED = 4, NOZOOM = 8, DYNAMIC = 16};
 enum LAYERENUM {TEST = 0, MENU = 1, FOREGROUND = 2, PLAYER = 3, SECOND = 4, BACKGROUND = 5, LIMBO = 6};

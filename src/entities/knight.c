@@ -29,10 +29,10 @@ void knight_behaviour(struct entity *e, float *dx, float *dy)
     struct animation *an = sprite->an;
     float up = kb_get_up() * data->speed, down = kb_get_down() * data->speed, left = kb_get_left() * data->speed, right = kb_get_right() * data->speed;
     if(left && !right)
-        an->alflags |= ALLEGRO_FLIP_HORIZONTAL;
+        sprite->alflags |= ALLEGRO_FLIP_HORIZONTAL;
 
     else if(right && !left)
-        an->alflags = 0;
+        sprite->alflags = 0;
 
     *dx = right - left;
     *dy = up - down;
@@ -54,9 +54,7 @@ struct entity *knight_create(ALLEGRO_BITMAP *spritesheet)
     an[0].x = 64;
     an[0].y = 64;
     an[0].spritecount = 4;
-    an[0].cycle = 0;
     an[0].ticks = 6;
-    an[0].alflags = 0;
     an[0].offsetx = 0;
     an[0].offsety = 8;
     
@@ -69,17 +67,17 @@ struct entity *knight_create(ALLEGRO_BITMAP *spritesheet)
     an[1].x = 0;
     an[1].y = 64;
     an[1].spritecount = 4;
-    an[1].cycle = 0;
     an[1].ticks = 6;
-    an[1].alflags = 0;
     an[1].offsetx = 0;
     an[1].offsety = 8;
 
     struct entity *out = e_create(spritesheet, NULL, knight_behaviour, 0, 0, an, kd);
+    out->destroy = 0;
     return out;
 }
 
 void knight_destroy(struct entity *knight)
 {
+    s_free(knight->sprite->an, NULL);
     e_destroy(knight);
 }

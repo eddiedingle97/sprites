@@ -43,12 +43,22 @@ int math_round(float f)
 
 int math_floor(float f)
 {
-	return (int)f;
+    int out = (int)f;
+    float cmp = f - out;
+    if(f >= 0)
+	    return out;
+    else
+        return cmp == 0 ? out : out - 1;
 }
 
 int math_ceil(float f)
 {
-    return (int)f + 1;
+    int out = (int)f;
+    float cmp = f - out;
+    if(f > 0)
+        return cmp == 0 ? out : out + 1;
+    else
+        return out;
 }
 
 int math_in_range(float small, float x, float large)

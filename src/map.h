@@ -3,6 +3,7 @@
 
 #include "list.h"
 #include "entity.h"
+#include "graph.h"
 
 struct tilemap
 {
@@ -17,6 +18,7 @@ struct tile
     unsigned short tilemap_y:9;
     unsigned short tilemap_z:6;
     unsigned char type;
+    unsigned char func;
     char damage;
 };
 
@@ -38,6 +40,7 @@ struct map
     int tilesize;
     int width;
     int height;
+    struct graph *graph;
 };
 
 struct map *map_create(int chunksize, int tilesize, int width, int height);
