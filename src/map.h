@@ -24,7 +24,7 @@ struct tile
 
 struct chunk
 {
-    struct tile **tiles;
+    struct tile *tiles;
     struct node *ehead;
     float x;
     float y;
@@ -35,7 +35,7 @@ struct chunk
 struct map
 {
     char *name;
-    struct chunk ***chunks;
+    struct chunk **chunks;
     int chunksize;
     int tilesize;
     int width;

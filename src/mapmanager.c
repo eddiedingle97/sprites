@@ -115,7 +115,7 @@ void mm_set_top_map(int m)
     if(topmap)
         for(r = 0; r < topmap->height; r++)
             for(c = 0; c < topmap->width; c++)
-                for(node = topmap->chunks[r][c][0].ehead; node; node = node->next)
+                for(node = topmap->chunks[r][c].ehead; node; node = node->next)
                     sm_remove_sprite_from_layer(((struct entity *)node->p)->sprite);
 
     topmap = list_get(maps, m);
@@ -123,13 +123,13 @@ void mm_set_top_map(int m)
     if(topmap)
         for(r = 0; r < topmap->height; r++)
             for(c = 0; c < topmap->width; c++)
-                for(node = topmap->chunks[r][c][0].ehead; node; node = node->next)
+                for(node = topmap->chunks[r][c].ehead; node; node = node->next)
                     sm_add_sprite_to_layer(((struct entity *)node->p)->sprite);
 
-    corners[TOPLEFT] = topmap->chunks[0][0];
-    corners[TOPRIGHT] = topmap->chunks[0][topmap->width - 1];
-    corners[BOTTOMLEFT] = topmap->chunks[topmap->height - 1][0];
-    corners[BOTTOMRIGHT] = topmap->chunks[topmap->height - 1][topmap->width - 1];
+    corners[TOPLEFT] = &topmap->chunks[0][0];
+    corners[TOPRIGHT] = &topmap->chunks[0][topmap->width - 1];
+    corners[BOTTOMLEFT] = &topmap->chunks[topmap->height - 1][0];
+    corners[BOTTOMRIGHT] = &topmap->chunks[topmap->height - 1][topmap->width - 1];
 }
 
 struct map *mm_get_top_map()
@@ -170,7 +170,7 @@ void mm_test_color_chunk(struct chunk *chunk)
     int r, c;
     for(r = 0; r < 5; r++)
         for(c = 0; c < 5; c++)
-            chunk->tiles[r][c].tilemap_z = 1;
+            chunk->tiles[c + r * 5].tilemap_z = 1;
 }
 
 void mm_test_color_tile(float x, float y)
@@ -186,7 +186,7 @@ void mm_test_color_tile(float x, float y)
     x /= map->tilesize;
     y /= map->tilesize;
 
-    chunk->tiles[(int)y][(int)x].tilemap_z = 1;
+    chunk->tiles[(int)x + (int)y * map->chunksize].tilemap_z = 1;
 }
 
 struct chunk *mm_get_chunk(float x, float y)
@@ -543,12 +543,12 @@ void mm_draw_chunks(ALLEGRO_DISPLAY *display)
     {
         for(c = corners[TOPLEFT]->index_x; c <= corners[TOPRIGHT]->index_x; c++)
         {
-            chunk = topmap->chunks[r][c];
+            chunk = &topmap->chunks[r][c];
             for(tr = 0; tr < chunksize; tr++)
             {
                 for(tc = 0; tc < chunksize; tc++)
                 {
-                    tile = &chunk->tiles[tr][tc];
+                    tile = &chunk->tiles[tc + tr * chunksize];
                     tilemap = tilemaps[tile->tilemap_z];
 
                     al_draw_scaled_bitmap(tilemap->bitmap, tile->tilemap_x, tile->tilemap_y, tilemap->tilesize, tilemap->tilesize, GETTILEX(chunk->x, tilemap->tilesize, tc, zoom, coordx), GETTILEY(chunk->y, tilemap->tilesize, tr, zoom, coordy), newsize, newsize, 0);

@@ -97,7 +97,7 @@ struct chunk *em_get_chunk(struct map *map, int r, int c)
         return NULL;
     if(c < 0 || c >= map->width)
         return NULL;
-    return &map->chunks[r][c][0];
+    return &map->chunks[r][c];
 }
 
 void em_tick()
@@ -119,7 +119,7 @@ void em_tick()
             for(r = 0; r < map->height; r++)
                 for(c = 0; c < map->width; c++)
                 {
-                    node = map->chunks[r][c][0].ehead;
+                    node = map->chunks[r][c].ehead;
                     for(; node; node = next)//FOR EACH ENTITY
                     {
                         next = node->next;
@@ -222,7 +222,7 @@ void em_destroy()
         map = mlnode->p;
         for(r = 0; r < map->height; r++)
             for(c = 0; c < map->width; c++)
-                for(node = map->chunks[r][c][0].ehead; node; node = node->next)
+                for(node = map->chunks[r][c].ehead; node; node = node->next)
                     {
                         e = node->p;
                         destroy[e->destroy](e);

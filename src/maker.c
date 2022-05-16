@@ -280,7 +280,7 @@ void maker_show_solid_tiles()
             {
                 for(c = 0; c < map->chunksize; c++)
                 {
-                    if(chunkleft->tiles[r][c].type & SOLID)
+                    if(chunkleft->tiles[c + r * map->chunksize].type & SOLID)
                     {
                         ALLEGRO_BITMAP *redbitmap = al_create_bitmap(map->tilesize, map->tilesize);
                         al_set_target_bitmap(redbitmap);
