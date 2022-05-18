@@ -70,7 +70,7 @@ void debug_add_sprite(struct sprite *sprite)
     if(debug)
     {
         list_append(spritelist, sprite);
-        if(dbinfo->id)
+        if(dbinfo->node)
             sm_add_sprite_to_layer(sprite);
     }
 }
@@ -79,7 +79,7 @@ void debug_toggle_sprites()
 {
     if(debug)
     {
-        if(dbinfo->id)
+        if(dbinfo->node)
             list_for_each(spritelist, sm_remove_sprite_from_layer);
         else
             list_for_each(spritelist, sm_add_sprite_to_layer);

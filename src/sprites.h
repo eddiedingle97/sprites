@@ -5,6 +5,7 @@
 #define WIDTH 1600
 
 void *s_malloc(int bytes, const char *msg);
+void *s_aligned_malloc(int b, int alignment, const char *msg);
 void *s_realloc(void *ptr, int b, const char *msg);
 void s_free(void *ptr, const char *msg);
 char *s_get_heap_string(const char *str);

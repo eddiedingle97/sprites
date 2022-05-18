@@ -26,11 +26,13 @@ void tf_warp(struct map *map, struct entity *e)
 		e->sprite->y = wtout->y * 16.0f;
 		map_add_entity_to_chunk(wtout->map, e);
 
-		if(e->destroy == 0)
+		if(e->id == 0)
 		{
 			mm_set_top_map(1);
 			sm_set_coord(e->sprite->x, e->sprite->y);
 		}
+		else
+			sm_remove_sprite_from_layer(e->sprite);
 	}
 	else
 		printf("wte not found %d %d\n", wte.x, wte.y);

@@ -40,7 +40,7 @@ void sm_init(int x, int y)
 
 void sm_add_sprite_to_layer(struct sprite *sprite)
 {
-	if(!sprite->id)
+	if(!sprite->node)
 	{
 		int layer = sprite->layer;
 		if(layer < 0 || layer >= LAYERS)
@@ -53,7 +53,7 @@ void sm_add_sprite_to_layer(struct sprite *sprite)
 		}
 		struct list *l = (struct list *)list_get(layers, layer);
 		list_append(l, (void *)sprite);
-		sprite->id = l->tail;
+		sprite->node = l->tail;
 		nosprites++;
 	}
 }
@@ -355,7 +355,7 @@ struct sprite *sm_create_global_dynamic_sprite(ALLEGRO_BITMAP *bitmap, void (*dr
 	out->type = GLOBAL | DYNAMIC | typeflags;
 	out->x = x;
 	out->y = y;
-	out->id = NULL;
+	out->node = NULL;
 	out->layer = layer;
 	out->bitmap = bitmap;
 	out->draw = sm_default_dynamic_draw;
@@ -379,7 +379,7 @@ struct sprite *sm_create_global_sprite(ALLEGRO_BITMAP *bitmap, float x, float y,
 	out->bitmap = bitmap;
 	out->x = x;
 	out->y = y;
-	out->id = NULL;
+	out->node = NULL;
 	out->layer = layer;
 	out->draw = sm_default_draw;
 	out->an = NULL;
@@ -396,7 +396,7 @@ struct sprite *sm_create_sprite(ALLEGRO_BITMAP *bitmap, float x, float y, int la
 	out->bitmap = bitmap;
 	out->x = x;
 	out->y = y;
-	out->id = NULL;
+	out->node = NULL;
 	out->layer = layer;
 	out->draw = sm_default_draw;
 	out->an = NULL;
@@ -419,10 +419,10 @@ void sm_destroy_sprite_from_layer(struct sprite *sprite)
 
 void sm_remove_sprite_from_layer(struct sprite *sprite)
 {
-	if(!sprite->id || !layers)
+	if(!sprite->node || !layers)
 		return;
-	list_delete_node(list_get(layers, sprite->layer), sprite->id);
-	sprite->id = NULL;
+	list_delete_node(list_get(layers, sprite->layer), sprite->node);
+	sprite->node = NULL;
 	nosprites--;
 }
 
@@ -431,7 +431,7 @@ void sm_destroy_sprite(struct sprite *sprite)
 	if(!sprite)
 		return;
 
-	if(sprite->id)
+	if(sprite->node)
 		sm_remove_sprite_from_layer(sprite);
 
 	if(!(sprite->type & DYNAMIC))

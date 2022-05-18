@@ -7,6 +7,7 @@
 #include <allegro5/allegro_native_dialog.h>
 #include <allegro5/allegro_font.h>
 #include <allegro5/allegro_ttf.h>
+#include <mimalloc.h>
 #include "sprites.h"
 #include "keyboard.h"
 #include "alobj.h"
@@ -210,7 +211,25 @@ int main(int argc, char **argv)
 
 void *s_malloc(int b, const char *msg)
 {
-	void *out = malloc(b);
+	void *out = mi_malloc(b);
+	if(!out)
+	{
+		debug_perror("Error allocating %d bytes of memory, returning null pointer\n", b);
+	}
+	if(debug)
+	{
+		if(msg)
+			printf("%s: %d\n", msg, b);
+		bytes += b;
+		mcount += 1;
+	}
+
+	return out;
+}
+
+void *s_aligned_malloc(int b, int alignment, const char *msg)
+{
+	void *out = mi_malloc_aligned(b, alignment);
 	if(!out)
 	{
 		debug_perror("Error allocating %d bytes of memory, returning null pointer\n", b);
@@ -228,7 +247,7 @@ void *s_malloc(int b, const char *msg)
 
 void *s_realloc(void *ptr, int b, const char *msg)
 {
-	void *out = realloc(ptr, b);
+	void *out = mi_realloc(ptr, b);
 	if(!out)
 	{
 		debug_perror("Error reallocating %d bytes of memory, returning null pointer\n", b);
@@ -256,7 +275,7 @@ void s_free(void *ptr, const char *msg)
 		else
 			debug_printf("s_free called on null pointer\n");
 	}
-	free(ptr);
+	mi_free(ptr);
 }
 
 char *s_get_heap_string(const char *str)

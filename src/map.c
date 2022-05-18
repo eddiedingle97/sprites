@@ -40,13 +40,13 @@ void map_create_test_chunk_list(struct map *map)
     int r, c;
     for(r = 0; r < map->height; r++)
     {
-        map->chunks[r] = s_malloc(sizeof(struct chunk) * map->width, NULL);
+        map->chunks[r] = s_aligned_malloc(sizeof(struct chunk) * map->width, 32, NULL);
         for(c = 0; c < map->width; c++)
         {
             //map->chunks[r][c] = map_create_test_chunk(x, y, map->chunksize);
             struct chunk *chunk = &map->chunks[r][c];
 
-            chunk->tiles = s_malloc(sizeof(struct tile) * map->chunksize * map->chunksize, NULL);
+            chunk->tiles = s_aligned_malloc(sizeof(struct tile) * map->chunksize * map->chunksize, 32, NULL);
             chunk->x = x;
             chunk->y = y;
 

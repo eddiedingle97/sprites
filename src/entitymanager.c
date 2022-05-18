@@ -17,7 +17,10 @@ void em_do_movement(struct map *map, struct entity *e, float *dx, float *dy);
 static struct entity *knight;
 static ALLEGRO_BITMAP *spritesheet;
 //static struct list *entities;
-static void (*destroy[2])(struct entity *);
+static struct entity *(**create)(ALLEGRO_BITMAP *);
+static void (**destroy)(struct entity *);
+static void (**behaviour)(struct entity *, int *, int *);
+static int registeredentities;
 
 static char collision;
 static const int collisionboxsize = 16;
@@ -50,9 +53,22 @@ void em_init()
 
     debug_add_sprite(collisionbox);
     collision = 1;
-    //destroy = s_malloc(2 * sizeof(void (*)(struct entity *)), NULL);
-    destroy[0] = knight_destroy;
-    destroy[1] = orc_destroy;
+    behaviour = NULL;
+    destroy = NULL;
+    registeredentities = 0;
+    em_register_entity(knight_create, knight_behaviour, knight_destroy);
+    em_register_entity(orc_create, orc_behaviour, orc_destroy);
+}
+
+int em_register_entity(struct entity *(*c)(ALLEGRO_BITMAP *), void (*b)(struct entity *, int *, int *), void(*d)(struct entity *))
+{
+    create = s_realloc(create, ++registeredentities * sizeof(void (*)()), NULL);
+    create[registeredentities - 1] = c;
+    behaviour = s_realloc(behaviour, registeredentities * sizeof(void (*)()), NULL);
+    behaviour[registeredentities - 1] = b;
+    destroy = s_realloc(destroy, registeredentities * sizeof(void (*)()), NULL);
+    destroy[registeredentities - 1] = d;
+    return registeredentities - 1;
 }
 
 struct entity *em_create_enemy(float x, float y)
@@ -65,6 +81,17 @@ struct entity *em_create_enemy(float x, float y)
     new->sprite->x = x;
     new->sprite->y = y;
     return new;
+}
+
+struct entity *em_create_entity(unsigned char id, float x, float y)
+{
+    if(id >= registeredentities)
+        return NULL;
+    struct entity *out = create[id](spritesheet);
+    out->id = id;
+    out->sprite->x = x;
+    out->sprite->y = y;
+    return out;
 }
 
 int em_add_entity_to_chunk(struct map *map, struct entity *e)
@@ -126,10 +153,10 @@ void em_tick()
                         dx = 0;
                         dy = 0;
                         e = node->p;
-                        e->behaviour(e, &dx, &dy);
+                        behaviour[e->id](e, &dx, &dy);
                         
                         em_do_movement(map, e, &dx, &dy);
-                        if(e == knight)
+                        if(e->id == 0)
                             sm_move_coord(dx, dy);
                         
                         mm_call_tile_functions(map, e);
@@ -225,11 +252,13 @@ void em_destroy()
                 for(node = map->chunks[r][c].ehead; node; node = node->next)
                     {
                         e = node->p;
-                        destroy[e->destroy](e);
+                        destroy[e->id](e);
                     }
     }
 
     //list_destroy_with_function(entities, e_destroy);
-    //s_free(destroy, NULL);
+    s_free(create, NULL);
+    s_free(behaviour, NULL);
+    s_free(destroy, NULL);
     al_destroy_bitmap(spritesheet);
 }

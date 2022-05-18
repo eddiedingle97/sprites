@@ -50,7 +50,7 @@ void orc_behaviour(struct entity *entity, float *dx, float *dy)
     struct sprite *target = data->target->sprite;
     float dist;
 
-    if(!entity->sprite->id)
+    if(!entity->sprite->node)
         dist = 0;
     else
         dist = lerp_check(sprite->x, sprite->y, target->x, target->y, SOLID);
@@ -146,8 +146,8 @@ struct entity *orc_create(ALLEGRO_BITMAP *spritesheet)
     od->x = 0;
     od->y = 0;
 
-    struct entity *out = e_create(spritesheet, NULL, orc_behaviour, 0, 0, an, od);
-    out->destroy = 1;
+    struct entity *out = e_create(spritesheet, NULL, 0, 0, an, od);
+    out->id = 1;
     noorcs++;
     return out;
 }

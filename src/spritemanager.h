@@ -21,7 +21,7 @@ struct sprite
 	char *name;
 	float x;
 	float y;
-	struct node *id;
+	struct node *node;
 	ALLEGRO_BITMAP *bitmap;
 	void (*draw)(struct sprite *sprite, int tick);
 	struct animation *an;

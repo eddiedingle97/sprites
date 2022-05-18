@@ -71,8 +71,8 @@ struct entity *knight_create(ALLEGRO_BITMAP *spritesheet)
     an[1].offsetx = 0;
     an[1].offsety = 8;
 
-    struct entity *out = e_create(spritesheet, NULL, knight_behaviour, 0, 0, an, kd);
-    out->destroy = 0;
+    struct entity *out = e_create(spritesheet, NULL, 0, 0, an, kd);
+    out->id = 0;
     return out;
 }
 
