@@ -4,6 +4,9 @@
 #include "sprites.h"
 #include "list.h"
 #include "spritemanager.h"
+#include "map.h"
+#include "mapmanager.h"
+#include "entity.h"
 #include "colors.h"
 #include "debug.h"
 
@@ -20,7 +23,7 @@ static int tick = 0;
 static float coord[2];
 static char move[LAYERS][2];
 static float zoom = MAXZOOM;
-static float zoominc = .125;
+static const float zoominc = .125;
 
 void sm_init(int x, int y)
 {
@@ -102,19 +105,44 @@ void sm_draw_sprites(ALLEGRO_DISPLAY *display)
 		node = node->next;
 	}*/
 
-	for(i = layers->size - 2; i >= 0; i--)
+	al_hold_bitmap_drawing(1);
+
+	i = SECOND;
+	layer = list_get(layers, i);
+	node = layer->head;
+	for(j = 0; j < layer->size; j++)
+	{
+		sprite = node->p;
+
+		sm_default_draw(sprite, tick);
+
+		node = node->next;
+	}
+
+	struct chunk **corners = mm_get_corners();
+	struct map *map = mm_get_top_map();
+	int r, c;
+	for(r = corners[TOPLEFT]->index_y; r <= corners[BOTTOMLEFT]->index_y; r++)
+        for(c = corners[TOPLEFT]->index_x; c <= corners[TOPRIGHT]->index_x; c++)
+            for(node = map->chunks[r][c].ehead; node; node = node->next)
+				sm_default_draw(((struct entity *)node->p)->sprite, tick);
+
+	for(i = FOREGROUND; i >= 0; i--)
 	{
 		layer = list_get(layers, i);
 		node = layer->head;
 		for(j = 0; j < layer->size; j++)
 		{
-			sprite = (struct sprite *)node->p;
+			sprite = node->p;
 
-			sprite->draw(sprite, tick);
+			sm_default_draw(sprite, tick);
 
 			node = node->next;
 		}
 	}
+
+
+	al_hold_bitmap_drawing(0);
 
 	/*layer = list_get(layers, 0);
 	node = layer->head;
@@ -129,10 +157,28 @@ void sm_draw_sprites(ALLEGRO_DISPLAY *display)
 
 void sm_default_draw(struct sprite *sprite, int tick)
 {
-	int w = al_get_bitmap_width(sprite->bitmap);
-	int h = al_get_bitmap_height(sprite->bitmap);
-	float neww = w * zoom;
-	float newh = h * zoom;
+	float w = al_get_bitmap_width(sprite->bitmap);
+	float h = al_get_bitmap_height(sprite->bitmap);
+	float neww;// = w * zoom;
+	float newh;// = h * zoom;
+	struct animation *an = NULL;
+
+	if(sprite->type & DYNAMIC)
+	{
+		an = &sprite->an[sprite->i];
+    	tick = tick % an->ticks;
+    	if(tick == 0)
+        	sprite->cycle++;
+    
+    	neww = an->width * zoom;
+		newh = an->height * zoom;
+    	sprite->cycle = sprite->cycle % an->spritecount;
+	}
+	else
+	{
+		neww = w * zoom;
+		newh = h * zoom;
+	}
 
 	switch(sprite->type)
 	{
@@ -199,21 +245,6 @@ void sm_default_draw(struct sprite *sprite, int tick)
 		case 15://LOCAL + GLOBAL + CENTERED + NOZOOM
 			sm_error_local_and_global(sprite);
 			break;
-	}
-}
-
-void sm_default_dynamic_draw(struct sprite *sprite, int tick)
-{
-	struct animation *an = &sprite->an[sprite->i];
-    tick = tick % an->ticks;
-    if(tick == 0)
-        sprite->cycle++;
-    
-    float neww = an->width * zoom, newh = an->height * zoom;
-    sprite->cycle = sprite->cycle % an->spritecount;
-
-	switch(sprite->type)
-	{
 		case 16:
 			sm_error_local_nor_global(sprite);
 			break;
@@ -278,10 +309,7 @@ void sm_default_dynamic_draw(struct sprite *sprite, int tick)
 			sm_error_local_and_global(sprite);
 			break;
 	}
-
-    //al_draw_scaled_bitmap(sprite->bitmap, an->x + sprite->cycle * an->width, an->y, an->width, an->height, sm_get_x(sprite->x, neww), sm_get_y(sprite->y, newh * 3 / 2), neww, newh, sprite->alflags);
 }
-
 
 float sm_get_x(float x, int bitmapwidth)
 {
@@ -347,7 +375,7 @@ float sm_get_zoom()
 	return zoom;
 }
 
-struct sprite *sm_create_global_dynamic_sprite(ALLEGRO_BITMAP *bitmap, void (*draw)(struct sprite *sprite, int tick), struct animation *an, float x, float y, int layer, int typeflags)
+struct sprite *sm_create_global_dynamic_sprite(ALLEGRO_BITMAP *bitmap, struct animation *an, float x, float y, int layer, int typeflags)
 {
 	struct sprite *out = s_malloc(sizeof(struct sprite), "sm_create_global_dynamic_sprite");
 
@@ -358,14 +386,14 @@ struct sprite *sm_create_global_dynamic_sprite(ALLEGRO_BITMAP *bitmap, void (*dr
 	out->node = NULL;
 	out->layer = layer;
 	out->bitmap = bitmap;
-	out->draw = sm_default_dynamic_draw;
+	//out->draw = sm_default_dynamic_draw;
 	out->an = an;
 	out->i = 0;
 	out->cycle = 0;
 	out->alflags = 0;
 
-	if(draw)
-		out->draw = draw;
+	/*if(draw)
+		out->draw = draw;*/
 
 	return out;
 }
@@ -381,7 +409,7 @@ struct sprite *sm_create_global_sprite(ALLEGRO_BITMAP *bitmap, float x, float y,
 	out->y = y;
 	out->node = NULL;
 	out->layer = layer;
-	out->draw = sm_default_draw;
+	//out->draw = sm_default_draw;
 	out->an = NULL;
 
 	return out;
@@ -398,7 +426,7 @@ struct sprite *sm_create_sprite(ALLEGRO_BITMAP *bitmap, float x, float y, int la
 	out->y = y;
 	out->node = NULL;
 	out->layer = layer;
-	out->draw = sm_default_draw;
+	//out->draw = sm_default_draw;
 	out->an = NULL;
 
 	return out;

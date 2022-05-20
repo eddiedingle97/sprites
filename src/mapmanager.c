@@ -27,7 +27,6 @@ static struct tilemap **tilemaps;
 static int tilemapssize;//, chunksize;
 static const int HHEIGHT = HEIGHT / 2;
 static const int HWIDTH = WIDTH / 2;
-static const int TILESIZE = 16;
 static int *matrix;
 enum TILEMAPZ {EMPTY, ERROR, BLANK};
 
@@ -112,19 +111,19 @@ void mm_set_top_map(int m)
 {
     int r, c;
     struct node *node;
-    if(topmap)
+    /*if(topmap)
         for(r = 0; r < topmap->height; r++)
             for(c = 0; c < topmap->width; c++)
                 for(node = topmap->chunks[r][c].ehead; node; node = node->next)
-                    sm_remove_sprite_from_layer(((struct entity *)node->p)->sprite);
+                    sm_remove_sprite_from_layer(((struct entity *)node->p)->sprite);*/
 
     topmap = list_get(maps, m);
 
-    if(topmap)
+    /*if(topmap)
         for(r = 0; r < topmap->height; r++)
             for(c = 0; c < topmap->width; c++)
                 for(node = topmap->chunks[r][c].ehead; node; node = node->next)
-                    sm_add_sprite_to_layer(((struct entity *)node->p)->sprite);
+                    sm_add_sprite_to_layer(((struct entity *)node->p)->sprite);*/
 
     corners[TOPLEFT] = &topmap->chunks[0][0];
     corners[TOPRIGHT] = &topmap->chunks[0][topmap->width - 1];
@@ -532,7 +531,6 @@ void mm_draw_chunks(ALLEGRO_DISPLAY *display)
     int newsize = topmap->tilesize * zoom;
     int chunksize = topmap->chunksize;
 
-    struct node *node;
     struct chunk *chunk;
     struct tilemap *tilemap;
     struct tile *tile;

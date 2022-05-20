@@ -40,7 +40,7 @@ void map_create_test_chunk_list(struct map *map)
     int r, c;
     for(r = 0; r < map->height; r++)
     {
-        map->chunks[r] = s_aligned_malloc(sizeof(struct chunk) * map->width, 32, NULL);
+        map->chunks[r] = s_malloc(sizeof(struct chunk) * map->width, NULL);
         for(c = 0; c < map->width; c++)
         {
             //map->chunks[r][c] = map_create_test_chunk(x, y, map->chunksize);
@@ -53,8 +53,6 @@ void map_create_test_chunk_list(struct map *map)
             int r2, c2;
             for(r2 = 0; r2 < map->chunksize; r2++)
             {
-                //chunk->tiles[r] = s_malloc(sizeof(struct tile) * chunksize, NULL);
-
                 for(c2 = 0; c2 < map->chunksize; c2++)
                 {
                     chunk->tiles[c2 + r2 * map->chunksize].tilemap_x = 0;
@@ -75,33 +73,6 @@ void map_create_test_chunk_list(struct map *map)
         x = smx;
     }
 }
-
-/*struct chunk *map_create_test_chunk(int x, int y, int chunksize)
-{
-    struct chunk *chunk;
-    chunk = s_malloc(sizeof(struct chunk), NULL);
-    chunk->tiles = s_malloc(sizeof(struct tile) * chunksize * chunksize, NULL);
-    chunk->x = x;
-    chunk->y = y;
-
-    int r, c;
-    for(r = 0; r < chunksize; r++)
-    {
-        //chunk->tiles[r] = s_malloc(sizeof(struct tile) * chunksize, NULL);
-
-        for(c = 0; c < chunksize; c++)
-        {
-            chunk->tiles[c + r * chunksize].tilemap_x = 0;
-            chunk->tiles[c + r * chunksize].tilemap_y = 0;
-            chunk->tiles[c + r * chunksize].tilemap_z = 0;
-            chunk->tiles[c + r * chunksize].type = 0;
-            chunk->tiles[c + r * chunksize].func = 0;
-            chunk->tiles[c + r * chunksize].damage = 0;
-        }
-    }
-
-    return chunk;
-}*/
 
 void map_add_entity_to_chunk(struct map *map, struct entity *e)
 {
@@ -220,47 +191,6 @@ int map_save(struct map *map, char *mapname)
     al_fclose(file);
     return 0;
 }
-
-/*struct chunk *map_init_chunk(struct map *map, ALLEGRO_FILE *file, int x, int y)
-{
-    struct chunk *chunk;
-    chunk = s_malloc(sizeof(struct chunk), NULL);
-    chunk->tiles = s_malloc(sizeof(struct tile) * map->chunksize * map->chunksize, NULL);
-    chunk->x = x;
-    chunk->y = y;
-    chunk->ehead = NULL;
-
-    char buf[32];
-    int r, c;
-    for(r = 0; r < map->chunksize; r++)
-    {
-        //chunk->tiles[r] = s_malloc(sizeof(struct tile) * map->chunksize, NULL);
-        for(c = 0; c < map->chunksize; c++)
-        {
-            if(!al_fgets(file, buf, 32))
-            {
-                debug_perror("Corrupted map file: not enough tiles\n");
-                chunk->tiles[c + r * map->chunksize].tilemap_x = 0;
-                chunk->tiles[c + r * map->chunksize].tilemap_y = 0;
-                chunk->tiles[c + r * map->chunksize].tilemap_z = 1;
-                chunk->tiles[c + r * map->chunksize].type = 0;
-                chunk->tiles[c + r * map->chunksize].func = 0;
-                chunk->tiles[c + r * map->chunksize].damage = 0;
-            }
-            else
-            {
-                chunk->tiles[c + r * map->chunksize].tilemap_x = atoi(strtok(buf, ","));
-                chunk->tiles[c + r * map->chunksize].tilemap_y = atoi(strtok(NULL, ","));
-                chunk->tiles[c + r * map->chunksize].tilemap_z = atoi(strtok(NULL, ","));
-                chunk->tiles[c + r * map->chunksize].type = 0;
-                chunk->tiles[c + r * map->chunksize].func = 0;
-                chunk->tiles[c + r * map->chunksize].damage = atoi(strtok(NULL, ","));
-            }
-        }
-    }
-
-    return chunk;
-}*/
 
 struct tile *map_get_tile_from_coordinate(struct map *map, float x, float y)
 {
@@ -382,7 +312,7 @@ struct map *map_load(char *dir)
     return map;
 }
 
-void map_destroy_chunk(struct chunk *chunk, int chunksize)
+void map_destroy_chunk(struct chunk *chunk)
 {
     s_free(chunk->tiles, NULL);
     if(chunk->ehead)
@@ -407,7 +337,7 @@ void map_destroy(struct map *map)
     {
         for(c = 0; c < map->width; c++)
         {
-            map_destroy_chunk(&map->chunks[r][c], map->chunksize);
+            map_destroy_chunk(&map->chunks[r][c]);
         }
         s_free(map->chunks[r], NULL);
     }

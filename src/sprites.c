@@ -280,7 +280,9 @@ void s_free(void *ptr, const char *msg)
 
 char *s_get_heap_string(const char *str)
 {
-	return memcpy(s_malloc(sizeof(char) * (strlen(str) + 1), "s_get_heap_string"), str, strlen(str) + 1);
+	char *out = memcpy(s_malloc(sizeof(char) * (strlen(str) + 1), "s_get_heap_string"), str, strlen(str) + 1);
+	out[strlen(str)] = 0;
+	return out;
 }
 
 char s_string_match(char *one, char *two)

@@ -26,7 +26,6 @@ void knight_behaviour(struct entity *e, float *dx, float *dy)
 {
     struct sprite *sprite = e->sprite;
     struct knightdata *data = e->data;
-    struct animation *an = sprite->an;
     float up = kb_get_up() * data->speed, down = kb_get_down() * data->speed, left = kb_get_left() * data->speed, right = kb_get_right() * data->speed;
     if(left && !right)
         sprite->alflags |= ALLEGRO_FLIP_HORIZONTAL;
@@ -71,7 +70,7 @@ struct entity *knight_create(ALLEGRO_BITMAP *spritesheet)
     an[1].offsetx = 0;
     an[1].offsety = 8;
 
-    struct entity *out = e_create(spritesheet, NULL, 0, 0, an, kd);
+    struct entity *out = e_create(spritesheet, 0, 0, an, kd);
     out->id = 0;
     return out;
 }

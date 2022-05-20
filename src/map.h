@@ -52,7 +52,7 @@ struct tile *map_get_tile_from_coordinate(struct map *map, float x, float y);
 void map_add_entity_to_chunk(struct map *map, struct entity *e);
 void map_remove_entity_from_chunk(struct map *map, struct entity *e);
 int map_save(struct map *map, char *dir);
-void map_destroy_chunk(struct chunk *chunk, int chunksize);
+void map_destroy_chunk(struct chunk *chunk);
 
 enum TILETYPE {SOLID = 1, BREAKABLE = 2};
 

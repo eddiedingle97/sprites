@@ -23,7 +23,7 @@ struct sprite
 	float y;
 	struct node *node;
 	ALLEGRO_BITMAP *bitmap;
-	void (*draw)(struct sprite *sprite, int tick);
+	//void (*draw)(struct sprite *sprite, int tick);
 	struct animation *an;
 	unsigned char i;
 	unsigned char cycle;
@@ -33,7 +33,7 @@ struct sprite
 void sm_init(const int height, const int width);
 struct sprite *sm_create_sprite(ALLEGRO_BITMAP *bit, float x, float y, int layer, int typeflags);
 struct sprite *sm_create_global_sprite(ALLEGRO_BITMAP *bitmap, float x, float y, int layer, int typeflags);
-struct sprite *sm_create_global_dynamic_sprite(ALLEGRO_BITMAP *bitmap, void (*draw)(struct sprite *sprite, int tick), struct animation *an, float x, float y, int layer, int typeflags);
+struct sprite *sm_create_global_dynamic_sprite(ALLEGRO_BITMAP *bitmap, struct animation *an, float x, float y, int layer, int typeflags);
 void sm_update_sprite(struct sprite *sprite, ALLEGRO_BITMAP *bitmap, int x, int y);
 void sm_add_sprite_to_layer(struct sprite *sprite);
 void sm_draw_sprites(ALLEGRO_DISPLAY *display);
@@ -54,6 +54,7 @@ float sm_get_coord(int i);
 int sm_get_sprite_count();
 void sm_move_coord(float dx, float dy);
 void sm_set_coord(float x, float y);
+void sm_default_draw(struct sprite *sprite, int tick);
 
 enum SPRITETYPE {LOCAL = 1, GLOBAL = 2, CENTERED = 4, NOZOOM = 8, DYNAMIC = 16};
 enum LAYERENUM {TEST = 0, MENU = 1, FOREGROUND = 2, PLAYER = 3, SECOND = 4, BACKGROUND = 5, LIMBO = 6};

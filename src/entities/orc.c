@@ -18,7 +18,6 @@ struct orcdata
     float y;
     float speed;
     struct entity *target;
-    ALLEGRO_BITMAP *bitmap;
 };
 
 float lerp_check(float x1, float y1, float x2, float y2, unsigned char tilemask)
@@ -46,14 +45,10 @@ void orc_behaviour(struct entity *entity, float *dx, float *dy)
 {
     struct sprite *sprite = entity->sprite;
     struct orcdata *data = entity->data;
-    struct animation *an = sprite->an;
     struct sprite *target = data->target->sprite;
     float dist;
 
-    if(!entity->sprite->node)
-        dist = 0;
-    else
-        dist = lerp_check(sprite->x, sprite->y, target->x, target->y, SOLID);
+    dist = lerp_check(sprite->x, sprite->y, target->x, target->y, SOLID);
     switch(data->state)
     {
         case IDLE:
@@ -117,7 +112,7 @@ struct entity *orc_create(ALLEGRO_BITMAP *spritesheet)
     struct animation *an;
     if(!orcanimations)
     {
-        an = s_malloc(2 * sizeof(struct animation), "an: create_orc");
+        an = s_aligned_malloc(2 * sizeof(struct animation), 32, "an: create_orc");
         an[0].width = 16;
         an[0].height = 32;
         an[0].x = 64;
@@ -146,7 +141,7 @@ struct entity *orc_create(ALLEGRO_BITMAP *spritesheet)
     od->x = 0;
     od->y = 0;
 
-    struct entity *out = e_create(spritesheet, NULL, 0, 0, an, od);
+    struct entity *out = e_create(spritesheet, 0, 0, an, od);
     out->id = 1;
     noorcs++;
     return out;

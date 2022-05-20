@@ -32,7 +32,7 @@ void em_init()
     if(!spritesheet)
         debug_perror("Spritesheet failed to load in em_init\n");
     knight = knight_create(spritesheet);
-    sm_add_sprite_to_layer(knight->sprite);
+    //sm_add_sprite_to_layer(knight->sprite);
     /*entities = list_create();
     list_append(entities, knight);*/
 
@@ -53,6 +53,7 @@ void em_init()
 
     debug_add_sprite(collisionbox);
     collision = 1;
+    create = NULL;
     behaviour = NULL;
     destroy = NULL;
     registeredentities = 0;
@@ -60,7 +61,7 @@ void em_init()
     em_register_entity(orc_create, orc_behaviour, orc_destroy);
 }
 
-int em_register_entity(struct entity *(*c)(ALLEGRO_BITMAP *), void (*b)(struct entity *, int *, int *), void(*d)(struct entity *))
+int em_register_entity(struct entity *(*c)(ALLEGRO_BITMAP *), void (*b)(struct entity *, float *, float *), void (*d)(struct entity *))
 {
     create = s_realloc(create, ++registeredentities * sizeof(void (*)()), NULL);
     create[registeredentities - 1] = c;

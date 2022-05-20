@@ -6,7 +6,7 @@
 
 void em_init();
 void em_tick();
-int em_register_entity(struct entity *(*create)(ALLEGRO_BITMAP *), void (*b)(struct entity *, int *, int *), void(*d)(struct entity *));
+int em_register_entity(struct entity *(*create)(ALLEGRO_BITMAP *), void (*b)(struct entity *, float *, float *), void(*d)(struct entity *));
 struct entity *em_create_entity(unsigned char id, float x, float y);
 struct entity *em_create_enemy(float x, float y);
 int em_add_entity_to_chunk(struct map *map, struct entity *e);

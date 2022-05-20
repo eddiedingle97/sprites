@@ -11,7 +11,7 @@ struct entity
     unsigned char id;
 };
 
-struct entity *e_create(ALLEGRO_BITMAP *bitmap, void (*draw)(struct sprite *sprite, int tick), float x, float y, struct animation *an, void *data);
+struct entity *e_create(ALLEGRO_BITMAP *bitmap, float x, float y, struct animation *an, void *data);
 void e_destroy(struct entity *e);
 
 #endif
