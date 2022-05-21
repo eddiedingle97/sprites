@@ -105,15 +105,6 @@ void mg_create_classic_dungeon(struct map *map, int maxrooms)
     
     mg_connect_rooms(map, graph);
 
-    /*t->func = 1;
-    t->type = 0;
-    t->tilemap_z = 1;
-    t->tilemap_x = 0;
-    t->tilemap_y = 0;*/
-
-    //mg_destroy_rooms(rooms, norooms);
-
-    //graph_destroy(graph);
     map->graph = graph;
 }
 
@@ -262,14 +253,6 @@ int mg_put_room_on_map(struct map *map, struct room *room)
 
     for(r = 0; r < room->noexits; r++)
         mg_update_tile(map, room->exit[r].x, room->exit[r].y, mg_get_tile(ERROR));
-
-    for(r = 0; r < room->enemies; r++)
-    {
-        int x = (room->x + 1 + math_get_random(room->w - 3)) * 16;
-        int y = (room->y - 1 - math_get_random(room->h - 3)) * 16;
-        //printf("adding enemy %d %d %d %d %d %d %.2f %.2f\n", room->x, room->w, room->y, room->h, x, y, (float)x, (float)y);
-        map_add_entity_to_chunk(map, em_create_enemy(x, y));
-    }
 
     return 1;
 }

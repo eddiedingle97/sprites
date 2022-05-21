@@ -5,20 +5,12 @@
 #include "../map.h"
 #include "../mapmanager.h"
 #include "../emath.h"
+#include "entities.h"
 
 enum ORCSTATE {IDLE, AGGRO, SEEK};
 
 static struct animation *orcanimations = NULL;
 static int noorcs = 0;
-
-struct orcdata
-{
-    unsigned char state;
-    float x;
-    float y;
-    float speed;
-    struct entity *target;
-};
 
 float lerp_check(float x1, float y1, float x2, float y2, unsigned char tilemask)
 {
@@ -142,7 +134,6 @@ struct entity *orc_create(ALLEGRO_BITMAP *spritesheet)
     od->y = 0;
 
     struct entity *out = e_create(spritesheet, 0, 0, an, od);
-    out->id = 1;
     noorcs++;
     return out;
 }

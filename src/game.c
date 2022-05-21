@@ -15,6 +15,7 @@
 #include "maker.h"
 #include "entitymanager.h"
 #include "mapgenerator.h"
+#include "levelgenerator.h"
 #include "debug.h"
 
 #include "graph.h"
@@ -33,30 +34,7 @@ void game_init(char gamemode, char newmap, int width, int height)
             sm_init(0, 0);
             mm_init();
             em_init();
-            struct map *one = mg_create_map(30, 30);//, *two = mg_create_map(30, 30);
-            mm_add_map(one);
-            mm_set_top_map(0);
-            //mm_add_map(two);
-
-            struct room *r = graph_get_vertex(one->graph, 0)->p;
-            struct tile *t = map_get_tile_from_coordinate(one, mg_room_center_x(r) * 16.0f, mg_room_center_y(r) * 16.0f);
-            t->tilemap_z = 1;
-            t->tilemap_x = 0;
-            t->tilemap_y = 0;
-            t->func = 1;
-
-            /*struct warptableentry *wtone, *wttwo;
-            wtone = s_malloc(sizeof(struct warptableentry), "wtone");
-            wttwo = s_malloc(sizeof(struct warptableentry), "wttwo");
-            wtone->map = one;
-            wtone->x = mg_room_center_x(r);
-            wtone->y = mg_room_center_y(r);
-            wttwo->map = two;
-            wttwo->x = 0;
-            wttwo->y = 0;
-            mm_add_warp(wtone, wttwo);
-            printf("%d %d\n", wtone->x, wtone->y);*/
-
+            lg_generate_level(newmap);
 
             break;
         case REG:
@@ -74,6 +52,9 @@ void game_destroy()
     switch(mode)
     {
         case NONE:
+            lg_destroy_level();
+            debug_printf("after lg_destroy_level\n");
+
             em_destroy();
             debug_printf("after em_destroy\n");
 

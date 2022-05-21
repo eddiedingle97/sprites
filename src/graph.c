@@ -160,14 +160,14 @@ void graph_remove_edge(struct graph *graph, struct edge *edge)
 struct edge *graph_get_edge(struct graph *graph, struct vertex *vertex, int i)
 {
     if(i >= 0 && i < vertex->noedges && vertex->edges[i] >= 0 && vertex->edges[i] < graph->noedges)
-        return graph->edges + vertex->edges[i];
+        return &graph->edges[vertex->edges[i]];
     return NULL;
 }
 
 struct vertex *graph_get_vertex(struct graph *graph, int i)
 {
     if(i >= 0 && i < graph->novertices)
-        return graph->vertices + i;
+        return &graph->vertices[i];
     return NULL;
 }
 

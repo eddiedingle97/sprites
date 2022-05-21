@@ -1,5 +1,7 @@
 #include <stdio.h>
 #include <allegro5/allegro.h>
+#include "sprites.h"
+#include "emath.h"
 #include "spritemanager.h"
 #include "entity.h"
 #include "list.h"
@@ -9,14 +11,12 @@
 #include "debug.h"
 #include "colors.h"
 
-#include "entities/knight.c"
-#include "entities/orc.c"
+#include "entities/entities.h"
 
 void em_do_movement(struct map *map, struct entity *e, float *dx, float *dy);
 
 static struct entity *knight;
 static ALLEGRO_BITMAP *spritesheet;
-//static struct list *entities;
 static struct entity *(**create)(ALLEGRO_BITMAP *);
 static void (**destroy)(struct entity *);
 static void (**behaviour)(struct entity *, int *, int *);
@@ -31,10 +31,6 @@ void em_init()
     spritesheet = al_load_bitmap(s_get_full_path_with_dir("images", "DungeonAllEntities.png"));
     if(!spritesheet)
         debug_perror("Spritesheet failed to load in em_init\n");
-    knight = knight_create(spritesheet);
-    //sm_add_sprite_to_layer(knight->sprite);
-    /*entities = list_create();
-    list_append(entities, knight);*/
 
     ALLEGRO_BITMAP *boxbitmap = al_create_bitmap(collisionboxsize, collisionboxsize);
     al_set_target_bitmap(boxbitmap);
@@ -57,8 +53,6 @@ void em_init()
     behaviour = NULL;
     destroy = NULL;
     registeredentities = 0;
-    em_register_entity(knight_create, knight_behaviour, knight_destroy);
-    em_register_entity(orc_create, orc_behaviour, orc_destroy);
 }
 
 int em_register_entity(struct entity *(*c)(ALLEGRO_BITMAP *), void (*b)(struct entity *, float *, float *), void (*d)(struct entity *))
@@ -70,18 +64,6 @@ int em_register_entity(struct entity *(*c)(ALLEGRO_BITMAP *), void (*b)(struct e
     destroy = s_realloc(destroy, registeredentities * sizeof(void (*)()), NULL);
     destroy[registeredentities - 1] = d;
     return registeredentities - 1;
-}
-
-struct entity *em_create_enemy(float x, float y)
-{
-    struct entity *new = orc_create(spritesheet);
-    struct orcdata *od = new->data;
-    //list_append(entities, new);
-    od->target = knight;
-    //sm_add_sprite_to_layer(new->sprite);
-    new->sprite->x = x;
-    new->sprite->y = y;
-    return new;
 }
 
 struct entity *em_create_entity(unsigned char id, float x, float y)
@@ -133,7 +115,6 @@ void em_tick()
     struct list *maps = mm_get_map_list();
     struct map *map = NULL;
     struct node *mlnode = NULL;
-    em_add_entity_to_chunk(mm_get_top_map(), knight);
     for(mlnode = maps->head; mlnode; mlnode = mlnode->next)
     {
         map = mlnode->p;
@@ -257,7 +238,6 @@ void em_destroy()
                     }
     }
 
-    //list_destroy_with_function(entities, e_destroy);
     s_free(create, NULL);
     s_free(behaviour, NULL);
     s_free(destroy, NULL);

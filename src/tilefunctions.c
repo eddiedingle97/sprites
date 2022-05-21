@@ -6,12 +6,13 @@
 #include "map.h"
 #include "dictionary.h"
 #include "emath.h"
+#include "levelgenerator.h"
 
 void tf_warp(struct map *map, struct entity *e)
 {
 	printf("warping %.2f %.2f\n", e->sprite->x, e->sprite->y);
 
-	struct dict *warptable = mm_get_warp_table();
+	struct dict *warptable = lg_get_warp_table();
 	struct warptableentry wte;
 	wte.map = map;
 	wte.x = math_floor(e->sprite->x / map->tilesize);

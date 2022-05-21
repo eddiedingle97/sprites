@@ -2,25 +2,7 @@
 #include "../keyboard.h"
 #include "../sprites.h"
 #include "../spritemanager.h"
-
-struct knightdata
-{
-    unsigned char idle;
-    float speed;
-    ALLEGRO_BITMAP *bitmap;
-};
-
-/*void knight_draw(float x, float y, float zoom, struct knightdata *data, int tick)
-{
-    tick = tick % data->ticks;
-    if(!tick)
-        data->cycle++;
-    
-    float neww = data->width * zoom, newh = data->height * zoom;
-    data->cycle = data->cycle % data->spritecount;
-
-    al_draw_scaled_bitmap(data->bitmap, data->x + data->cycle * data->width + (!data->idle * data->spritecount * data->width), data->y, data->width, data->height, sm_get_x(x, neww), sm_get_y(y, newh * 3 / 2), neww, newh, data->alflags);
-}*/
+#include "entities.h"
 
 void knight_behaviour(struct entity *e, float *dx, float *dy)
 {
@@ -71,7 +53,6 @@ struct entity *knight_create(ALLEGRO_BITMAP *spritesheet)
     an[1].offsety = 8;
 
     struct entity *out = e_create(spritesheet, 0, 0, an, kd);
-    out->id = 0;
     return out;
 }
 

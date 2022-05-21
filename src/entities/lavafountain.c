@@ -1,7 +1,7 @@
-#include <allegro5/allegro.h>
-#include "sprites.h"
-#include "spritemanager.h"
-#include "entity.h"
+/*#include <allegro5/allegro.h>
+#include "../sprites.h"
+#include "../spritemanager.h"
+#include "../entity.h"
 
 struct lavafountaindata
 {
@@ -29,7 +29,7 @@ void lf_draw(float x, float y, float zoom, struct lavafountaindata *data, int ti
 
 struct entity *lf_create(ALLEGRO_BITMAP *bitmap)
 {
-    struct lavafountaindata *lfd = s_malloc(sizeof(struct lavafountaindata));
+    struct lavafountaindata *lfd = s_malloc(sizeof(struct lavafountaindata), NULL);
     lfd->width = 16;
     lfd->height = 32;
     lfd->y = 800;
@@ -38,7 +38,7 @@ struct entity *lf_create(ALLEGRO_BITMAP *bitmap)
     lfd->cycle = 0;
     lfd->ticks = 8;
     lfd->bitmap = bitmap;
-    struct entity *out = e_create(lf_draw, NULL, 0, 0, lfd);
+    struct entity *out = e_create(lf_draw, 0, 0, lfd);
 
     return out;
 }
@@ -46,4 +46,4 @@ struct entity *lf_create(ALLEGRO_BITMAP *bitmap)
 void lf_destroy(struct entity *e)
 {
     e_destroy(e);
-}
+}*/

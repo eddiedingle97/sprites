@@ -4,7 +4,7 @@ ALLEGRO := $(shell pkg-config --libs allegro-5 allegro_font-5 allegro_ttf-5 alle
 OTHERS = -lm -lmimalloc
 FLAGS = -Wall -Og
 IGNORE = -Wno-unused-but-set-variable -Wno-unused-variable -Wno-unused-function -Wno-incompatible-pointer-types
-SOURCES = $(wildcard src/*.c) 
+SOURCES = $(wildcard src/*.c) $(wildcard src/entities/*.c)
 CC = gcc
 
 sprites:

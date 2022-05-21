@@ -19,7 +19,6 @@ static struct chunk *corners[4];
 static struct map *topmap;
 static struct list *maps;
 static const int DISTANCE = HEIGHT / 2;
-static struct dict *warptable;
 static void (**tjumptable)(struct map *, struct entity *);
 static unsigned int tjtsize;
 
@@ -38,39 +37,20 @@ void mm_destroy_tile_map(struct tilemap *tm);
 
 enum DIR {UP = 0, DOWN = 1, LEFT = 2, RIGHT = 3};
 
-int wte_comp(struct warptableentry *one, struct warptableentry *two)
-{
-    if(one->x == two->x)
-    {
-        if(one->y == two->y)
-        {
-            if(one->map == two->map)
-                return 0;
-            return one->map < two->map ? -1 : 1;
-        }
-        return one->y - two->y;
-    }
-    return one->x - two->x;
-}
-
 void mm_init()
 {
     maps = list_create();
     topmap = NULL;
     tilemapssize = 0;
     tilemaps = NULL;
-    warptable = dict_create(wte_comp);
     tjumptable = NULL;
     tjtsize = 0;
-    mm_register_tile_function(tf_warp);
     int i;
     for(i = 0; i < 4; i++)
         corners[i] = NULL;
     mm_add_tile_map_to_list("defaulttile.bmp", 16);
     mm_add_tile_map_to_list("purplebitmap.bmp", 16);
     mm_add_tile_map_to_list("blanktile.png", 16);
-    mm_add_tile_map_to_list("DungeonTilesetIItiles.png", 16);
-
 }
 
 void mm_destroy()
@@ -83,28 +63,12 @@ void mm_destroy()
     }
     s_free(tilemaps, NULL);
     s_free(tjumptable, NULL);
-    for(i = 0; i < warptable->size; i++)
-    {
-        s_free(warptable->keys[i], NULL);
-        s_free(warptable->p[i], NULL);
-    }
-    dict_destroy(warptable);
     //s_free(matrix, NULL);
 }
 
 void mm_add_map(struct map *map)
 {
     list_append(maps, map);
-}
-
-void mm_add_warp(struct warptableentry *wteone, struct warptableentry *wtetwo)
-{
-    dict_add_entry(warptable, wteone, wtetwo);
-}
-
-struct dict *mm_get_warp_table()
-{
-    return warptable;
 }
 
 void mm_set_top_map(int m)
