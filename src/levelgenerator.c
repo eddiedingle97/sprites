@@ -10,9 +10,11 @@
 #include "tilefunctions.h"
 #include "graph.h"
 #include "entities/entities.h"
+#include "items/items.h"
 
 static struct dict *warptable;
 static struct entity *knight;
+static struct entity *sword;
 void lg_add_enemies(struct map *map);
 int wte_comp(struct warptableentry *one, struct warptableentry *two);
 
@@ -24,12 +26,23 @@ void lg_generate_level(char newmap)
 	struct map *map = mg_create_map(30, 30);
 	mm_add_map(map);
 	mm_set_top_map(0);
-    em_register_entity(knight_create, knight_behaviour, knight_destroy);
-    em_register_entity(orc_create, orc_behaviour, orc_destroy);
+    em_register_entity(knight_create, knight_behaviour, knight_destroy, 0);
+    em_register_entity(orc_create, orc_behaviour, orc_destroy, 0);
 	knight = em_create_entity(0, 0, 0);
 	em_add_entity_to_chunk(map, knight);
 
 	lg_add_enemies(map);
+
+	em_register_entity(sword_create, sword_behaviour, sword_destroy, 1);
+	sword = em_create_entity(2, 8.0f, 5.0f);
+	em_add_entity_to_chunk(map, sword);
+	knight->hand = sword;
+	sword->holder = knight;
+}
+
+void lg_tick()
+{
+	//sword->sprite->rot += .05;
 }
 
 struct dict *lg_get_warp_table()

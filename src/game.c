@@ -31,7 +31,7 @@ void game_init(char gamemode, char newmap, int width, int height)
     switch(mode)
     {
         case NONE:
-            sm_init(0, 0);
+            sm_init(al_load_bitmap(s_get_full_path_with_dir("images", "0x72_DungeonTilesetII_v1.3.png")), 0, 0);
             mm_init();
             em_init();
             lg_generate_level(newmap);
@@ -40,7 +40,7 @@ void game_init(char gamemode, char newmap, int width, int height)
         case REG:
             break;
         case MAKER:
-            sm_init(0, 0);
+            sm_init(al_load_bitmap(s_get_full_path_with_dir("images", "0x72_DungeonTilesetII_v1.3.png")), 0, 0);
             md_init();
             maker_init();
             break;
@@ -90,6 +90,7 @@ void game_tick(ALLEGRO_DISPLAY *display)
     {
         case NONE:
             game_get_actions();
+            lg_tick();
             em_tick();
             mm_update_chunks();
             mm_draw_chunks(display);

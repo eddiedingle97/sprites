@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include "../entity.h"
 #include "../keyboard.h"
 #include "../sprites.h"
@@ -8,7 +9,7 @@ void knight_behaviour(struct entity *e, float *dx, float *dy)
 {
     struct sprite *sprite = e->sprite;
     struct knightdata *data = e->data;
-    float up = kb_get_up() * data->speed, down = kb_get_down() * data->speed, left = kb_get_left() * data->speed, right = kb_get_right() * data->speed;
+    float up = kb_get_up(), down = kb_get_down(), left = kb_get_left(), right = kb_get_right();
     if(left && !right)
         sprite->alflags |= ALLEGRO_FLIP_HORIZONTAL;
 
@@ -26,33 +27,19 @@ void knight_behaviour(struct entity *e, float *dx, float *dy)
     sprite->i = data->idle;
 }
 
-struct entity *knight_create(ALLEGRO_BITMAP *spritesheet)
+struct entity *knight_create()
 {
-    struct knightdata *kd = s_malloc(sizeof(struct knightdata), "kd: create_knight");
-    struct animation *an = s_malloc(2 * sizeof(struct animation), "an: create_knight");
-    an[0].width = 16;
-    an[0].height = 32;
-    an[0].x = 64;
-    an[0].y = 64;
-    an[0].spritecount = 4;
-    an[0].ticks = 6;
-    an[0].offsetx = 0;
-    an[0].offsety = 8;
-    
+    struct knightdata *kd = s_malloc(sizeof(struct knightdata), NULL);
     kd->idle = 1;
-    kd->speed = 1;
-    //kd->bitmap = spritesheet;//al_load_bitmap(s_get_full_path_with_dir("images", "DungeonPlayersprites.png"));
-    
-    an[1].width = 16;
-    an[1].height = 32;
-    an[1].x = 0;
-    an[1].y = 64;
-    an[1].spritecount = 4;
-    an[1].ticks = 6;
-    an[1].offsetx = 0;
-    an[1].offsety = 8;
 
-    struct entity *out = e_create(spritesheet, 0, 0, an, kd);
+    ALLEGRO_CONFIG *cfg = al_load_config_file(s_get_full_path_with_dir("config/entities", "knight.cfg"));
+    struct animation *an = e_load_animations_from_config(cfg);
+
+    struct entity *out = e_create(0, 0, an, kd);
+    
+    e_load_stats_from_config(cfg, out);
+
+    al_destroy_config(cfg);
     return out;
 }
 

@@ -33,16 +33,7 @@ void mm_print_tile_maps();
 struct tilemap *mm_get_tile_map_from_z(int z);
 void mm_save_tile_maps(char *dir);
 int mm_load_tile_maps(char *dir);
-
-struct warptableentry
-{
-	struct map *map;
-	int x;
-	int y;
-};
-
-void mm_add_warp(struct warptableentry *one, struct warptableentry *two);
-struct dict *mm_get_warp_table();
+int mm_is_chunk_loaded(int x, int y);
 
 enum DIR2 {TOPLEFT = 0, TOPRIGHT = 1, BOTTOMLEFT = 2, BOTTOMRIGHT = 3};
 

@@ -211,7 +211,17 @@ int main(int argc, char **argv)
 
 void *s_malloc(int b, const char *msg)
 {
+	#ifdef ALMALLOC
+	void *out = al_malloc(b);
+	#endif
+	#ifdef MIMALLOC
 	void *out = mi_malloc(b);
+	#endif
+	#ifndef ALMALLOC
+	#ifndef MIMALLOC
+	void *out = malloc(b);
+	#endif
+	#endif
 	if(!out)
 	{
 		debug_perror("Error allocating %d bytes of memory, returning null pointer\n", b);
@@ -229,7 +239,17 @@ void *s_malloc(int b, const char *msg)
 
 void *s_aligned_malloc(int b, int alignment, const char *msg)
 {
+	#ifdef ALMALLOC
+	void *out = al_malloc(b);
+	#endif
+	#ifdef MIMALLOC
 	void *out = mi_malloc_aligned(b, alignment);
+	#endif
+	#ifndef ALMALLOC
+	#ifndef MIMALLOC
+	void *out = malloc(b);
+	#endif
+	#endif
 	if(!out)
 	{
 		debug_perror("Error allocating %d bytes of memory, returning null pointer\n", b);
@@ -247,7 +267,17 @@ void *s_aligned_malloc(int b, int alignment, const char *msg)
 
 void *s_realloc(void *ptr, int b, const char *msg)
 {
+	#ifdef ALMALLOC
+	void *out = al_realloc(ptr, b);
+	#endif
+	#ifdef MIMALLOC
 	void *out = mi_realloc(ptr, b);
+	#endif
+	#ifndef ALMALLOC
+	#ifndef MIMALLOC
+	void *out = realloc(ptr, b);
+	#endif
+	#endif
 	if(!out)
 	{
 		debug_perror("Error reallocating %d bytes of memory, returning null pointer\n", b);
@@ -275,7 +305,19 @@ void s_free(void *ptr, const char *msg)
 		else
 			debug_printf("s_free called on null pointer\n");
 	}
+
+	#ifdef ALMALLOC
+	al_free(ptr);
+	#endif
+	#ifdef MIMALLOC
 	mi_free(ptr);
+	#endif
+	#ifndef ALMALLOC
+	#ifndef MIMALLOC
+	free(ptr);
+	#endif
+	#endif
+	
 }
 
 char *s_get_heap_string(const char *str)

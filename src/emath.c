@@ -27,8 +27,19 @@ float math_fast_inverse_sqrt(float no)
     i = 0x5f3759df - (i >> 1);
     y = *(float *) &i;
     y = y * (threehalfs - (x2 * y * y));
-
+    y = y * (threehalfs - (x2 * y * y));
+    
     return y;
+}
+
+float math_get_distance(float xcomp, float ycomp)
+{
+    return math_sqrt((xcomp * xcomp) + (ycomp * ycomp));
+}
+
+float math_get_inverse_distance(float xcomp, float ycomp)
+{
+    return math_fast_inverse_sqrt((xcomp * xcomp) + (ycomp * ycomp));
 }
 
 int math_round(float f)

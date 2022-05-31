@@ -3,6 +3,8 @@
 
 float math_sqrt(float no);
 float math_fast_inverse_sqrt(float no);
+float math_get_distance(float xcomp, float ycomp);
+float math_get_inverse_distance(float xcomp, float ycomp);
 int math_round(float f);
 int math_floor(float f);
 int math_ceil(float f);

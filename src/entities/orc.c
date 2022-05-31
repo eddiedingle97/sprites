@@ -1,3 +1,5 @@
+#include <stdlib.h>
+#include <allegro5/allegro.h>
 #include "../entity.h"
 #include "../keyboard.h"
 #include "../sprites.h"
@@ -5,11 +7,13 @@
 #include "../map.h"
 #include "../mapmanager.h"
 #include "../emath.h"
+#include "../util.h"
 #include "entities.h"
 
 enum ORCSTATE {IDLE, AGGRO, SEEK};
 
 static struct animation *orcanimations = NULL;
+static ALLEGRO_CONFIG *orccfg = NULL;
 static int noorcs = 0;
 
 float lerp_check(float x1, float y1, float x2, float y2, unsigned char tilemask)
@@ -25,7 +29,7 @@ float lerp_check(float x1, float y1, float x2, float y2, unsigned char tilemask)
     {
         x2 += x;
         y2 += y;
-        t = mm_get_tile(x2, y2);
+        t = mm_get_tile(x2, y2);//does not work with multiple maps, change this
         if(t && t->type & tilemask)
             return 0;
     }
@@ -52,8 +56,6 @@ void orc_behaviour(struct entity *entity, float *dx, float *dy)
             if(dist != 0)
             {
                 *dx = target->x - sprite->x, *dy = target->y - sprite->y;
-                *dx = *dx / dist * data->speed;
-                *dy = *dy / dist * data->speed;
                 data->x = target->x;
                 data->y = target->y;
                 break;
@@ -66,8 +68,6 @@ void orc_behaviour(struct entity *entity, float *dx, float *dy)
             if(dist != 0)
             {
                 *dx = target->x - sprite->x, *dy = target->y - sprite->y;
-                *dx = *dx / dist * data->speed;
-                *dy = *dy / dist * data->speed;
                 data->x = target->x;
                 data->y = target->y;
                 data->state = AGGRO;
@@ -81,9 +81,6 @@ void orc_behaviour(struct entity *entity, float *dx, float *dy)
             else
             {
                 *dx = data->x - sprite->x, *dy = data->y - sprite->y;
-                dist = math_sqrt(*dx * *dx + *dy * *dy);
-                *dx = *dx / dist * data->speed;
-                *dy = *dy / dist * data->speed;
             }
 
             break;
@@ -98,42 +95,25 @@ void orc_behaviour(struct entity *entity, float *dx, float *dy)
     sprite->i = data->state == IDLE;
 }
 
-struct entity *orc_create(ALLEGRO_BITMAP *spritesheet)
+struct entity *orc_create()
 {
-    struct orcdata *od = s_malloc(sizeof(struct orcdata), "od: create_orc");
+    struct orcdata *od = s_malloc(sizeof(struct orcdata), NULL);//orc_get_stats();
+    od->x = 0;
+    od->y = 0;
+    od->state = IDLE;
     struct animation *an;
-    if(!orcanimations)
+    if(!orccfg)
     {
-        an = s_aligned_malloc(2 * sizeof(struct animation), 32, "an: create_orc");
-        an[0].width = 16;
-        an[0].height = 32;
-        an[0].x = 64;
-        an[0].y = 432;
-        an[0].spritecount = 4;
-        an[0].ticks = 6;
-        an[0].offsetx = 0;
-        an[0].offsety = 4;
-
-        an[1].width = 16;
-        an[1].height = 32;
-        an[1].x = 0;
-        an[1].y = 432;
-        an[1].spritecount = 4;
-        an[1].ticks = 6;
-        an[1].offsetx = 0;
-        an[1].offsety = 4;
+        orccfg = al_load_config_file(s_get_full_path_with_dir("config/entities", "orc.cfg"));
+        an = e_load_animations_from_config(orccfg);
 
         orcanimations = an;
     }
     else
         an = orcanimations;
 
-    od->speed = .875;
-    od->state = IDLE;
-    od->x = 0;
-    od->y = 0;
-
-    struct entity *out = e_create(spritesheet, 0, 0, an, od);
+    struct entity *out = e_create(0, 0, an, od);
+    e_load_stats_from_config(orccfg, out);
     noorcs++;
     return out;
 }
@@ -141,7 +121,12 @@ struct entity *orc_create(ALLEGRO_BITMAP *spritesheet)
 void orc_destroy(struct entity *orc)
 {
     if(--noorcs == 0)
-        s_free(orc->sprite->an, NULL);
-    
+    {
+        s_free(orcanimations, NULL);
+        orcanimations = NULL;
+        al_destroy_config(orccfg);
+        orccfg = NULL;
+    }
+
     e_destroy(orc);
 }

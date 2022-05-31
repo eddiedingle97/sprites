@@ -23,7 +23,7 @@ static void (**tjumptable)(struct map *, struct entity *);
 static unsigned int tjtsize;
 
 static struct tilemap **tilemaps;
-static int tilemapssize;//, chunksize;
+static int tilemapssize;
 static const int HHEIGHT = HEIGHT / 2;
 static const int HWIDTH = WIDTH / 2;
 static int *matrix;
@@ -75,19 +75,8 @@ void mm_set_top_map(int m)
 {
     int r, c;
     struct node *node;
-    /*if(topmap)
-        for(r = 0; r < topmap->height; r++)
-            for(c = 0; c < topmap->width; c++)
-                for(node = topmap->chunks[r][c].ehead; node; node = node->next)
-                    sm_remove_sprite_from_layer(((struct entity *)node->p)->sprite);*/
 
     topmap = list_get(maps, m);
-
-    /*if(topmap)
-        for(r = 0; r < topmap->height; r++)
-            for(c = 0; c < topmap->width; c++)
-                for(node = topmap->chunks[r][c].ehead; node; node = node->next)
-                    sm_add_sprite_to_layer(((struct entity *)node->p)->sprite);*/
 
     corners[TOPLEFT] = &topmap->chunks[0][0];
     corners[TOPRIGHT] = &topmap->chunks[0][topmap->width - 1];
@@ -160,6 +149,11 @@ struct chunk *mm_get_chunk(float x, float y)
 struct chunk *mm_get_chunk_from_rel_coordinate(float x, float y)
 {
     return map_get_chunk_from_coordinate(topmap, sm_rel_to_global_x(x), sm_rel_to_global_y(y));
+}
+
+int mm_is_chunk_loaded(int x, int y)
+{
+    return math_in_range(corners[TOPLEFT]->index_x - 1, x, corners[TOPRIGHT]->index_x + 1) && math_in_range(corners[TOPLEFT]->index_y - 1, y, corners[BOTTOMLEFT]->index_y + 1);
 }
 
 void mm_update_chunks()
@@ -489,6 +483,8 @@ float mm_global_to_rel_y(float y)
 
 void mm_draw_chunks(ALLEGRO_DISPLAY *display)
 {
+    //redraws every frame
+    //optimize to redraw on zoom and on new chunks loaded
     al_set_target_bitmap(al_get_backbuffer(display));
     al_clear_to_color(BLACK);
     float zoom = sm_get_zoom();
