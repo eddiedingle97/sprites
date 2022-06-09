@@ -102,6 +102,21 @@ unsigned int math_get_random(int max)
     return rand() % (max + 1);
 }
 
+float math_atan2(float x, float y)
+{
+    return atan2f(x, y);
+}
+
+float math_cos(float angle)
+{
+    return cos(angle);
+}
+
+float math_sin(float angle)
+{
+    return sin(angle);
+}
+
 float math_cos_d(int angle)
 {
     return sincoslutable[(angle % 360) + 90];

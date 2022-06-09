@@ -7,6 +7,7 @@
 #include "list.h"
 #include "entitymanager.h"
 #include "map.h"
+#include "action.h"
 #include "mapmanager.h"
 #include "debug.h"
 #include "colors.h"
@@ -15,6 +16,7 @@
 
 void em_do_movement(struct map *map, struct entity *e, float *dx, float *dy);
 void em_do_speed(struct entity *e, float dx, float dy);
+void em_do_collide(struct entity *one, struct entity *two, float dist);
 
 static struct entity *knight;
 static ALLEGRO_BITMAP *spritesheet;
@@ -22,11 +24,16 @@ static struct entity *(**create)();
 static void (**destroy)(struct entity *);
 static void (**behaviour)(struct entity *, float *, float *);
 static char *isitem;
+static void (**actiontable)(struct entity *);
 static int registeredentities;
 
 static char collision;
 static const int collisionboxsize = 16;
 static struct sprite *collisionbox;
+
+static float friction = .2f;
+static float colpushconstant = .1f;
+static float knockbackconstant = 1;
 
 void em_init()
 {
@@ -55,6 +62,8 @@ void em_init()
     behaviour = NULL;
     destroy = NULL;
     isitem = NULL;
+    actiontable = s_malloc(sizeof(void (*)()) * 1, "em_init");
+    actiontable[0] = action_swing;
     registeredentities = 0;
 }
 
@@ -79,10 +88,15 @@ struct entity *em_create_entity(unsigned char id, float x, float y)
     out->id = id;
     out->sprite->x = x;
     out->sprite->y = y;
+    if(isitem[id])
+    {
+        out->rotx = x;
+        out->roty = y;
+    }
     return out;
 }
 
-int em_add_entity_to_chunk(struct map *map, struct entity *e)
+int em_add_entity_to_map(struct map *map, struct entity *e)
 {
     if(!e)
         return 1;
@@ -93,7 +107,7 @@ int em_add_entity_to_chunk(struct map *map, struct entity *e)
     return 1;
 }
 
-int em_remove_entity_from_chunk(struct map *map, struct entity *e)
+int em_remove_entity_from_map(struct map *map, struct entity *e)
 {
     if(!e)
         return 1;
@@ -143,15 +157,26 @@ void em_tick()
                         dy = 0;
                         e = node->p;
                         behaviour[e->id](e, &dx, &dy);
+                        if(!isitem[e->id] && e->actions)
+                        {
+                            actiontable[e->actions->actionid](e);
+                            if(e->actions->done)
+                                action_destroy(e);
+                        }
 
                         em_do_speed(e, dx, dy);
-                        dx = e->speedx;
-                        dy = e->speedy;
 
                         em_do_movement(map, e, &dx, &dy);
                         
+                        /*if(e->id == 1 && draw)
+                        {
+                            printf("%.5f %.5f\n", e->speedx, e->speedy);
+                        }*/
                         if(e->id == 0)
-                            sm_move_coord(dx, dy);
+                        {
+                            //printf("%.5f %.5f\n", e->speedx, e->speedy);
+                            sm_set_coord(e->sprite->x, e->sprite->y);
+                        }
                         
                         mm_call_tile_functions(map, e);
 
@@ -189,12 +214,17 @@ void em_do_speed(struct entity *e, float dx, float dy)
     
     e->speedx = e->speedx + dx;
     e->speedy = e->speedy + dy;
-    invdist = math_get_inverse_distance(e->speedx, e->speedy);
+
+    /*if(e->id == 0)
+    {
+        printf("%.2f %.2f\n", dx, dy);
+    }*/
+    /*invdist = math_get_inverse_distance(e->speedx, e->speedy);
     if(e->maxspeed * invdist < 1.0f)
     {
         e->speedx = e->speedx * invdist * e->maxspeed;
         e->speedy = e->speedy * invdist * e->maxspeed;
-    }
+    }*/
 }
 
 void em_do_movement(struct map *map, struct entity *e, float *dx, float *dy)
@@ -204,6 +234,8 @@ void em_do_movement(struct map *map, struct entity *e, float *dx, float *dy)
     struct chunk *chunk = NULL;
     struct node *node = NULL;
     struct entity *othere = NULL;
+    *dx = e->speedx;
+    *dy = e->speedy;
 
     struct tile *currenttile = map_get_tile_from_coordinate(map, e->sprite->x, e->sprite->y);
     if(currenttile)
@@ -212,12 +244,14 @@ void em_do_movement(struct map *map, struct entity *e, float *dx, float *dy)
         if(nexttile && nexttile->type & SOLID)
         {
             *dx = 0;
+            e->speedx = 0;
         }
         
         nexttile = map_get_tile_from_coordinate(map, e->sprite->x, e->sprite->y + *dy);
         if(nexttile && nexttile->type & SOLID)
         {
             *dy = 0;
+            e->speedy = 0;
         }
     }
 
@@ -240,15 +274,13 @@ void em_do_movement(struct map *map, struct entity *e, float *dx, float *dy)
                 {
                     ox = e->sprite->x + *dx - othere->sprite->x;
                     oy = e->sprite->y + *dy - othere->sprite->y;
-                    if(math_sqrt(ox * ox + oy * oy) < e->colrad + othere->colrad)
+                    float dist = math_get_distance(ox, oy);
+                    float coldist = e->colrad + othere->colrad;
+                    if(dist < coldist)
                     {
-                        if((isitem[e->id] && e->holder) || (isitem[othere->id] && othere->holder))
-                            collide = 0;
-                        else
-                        {
-                            collide = 1;
-                            break;
-                        }
+                        /*if((isitem[e->id] && e->holder) || (isitem[othere->id] && othere->holder))
+                            collide = 0;*/
+                        em_do_collide(e, othere, coldist - dist);
                     }
                 }
             }
@@ -260,18 +292,49 @@ void em_do_movement(struct map *map, struct entity *e, float *dx, float *dy)
         e->sprite->x += *dx;
         e->sprite->y += *dy;
         if(!isitem[e->id] && e->hand)
-        {
+        {   
+            e->hand->rotx = e->sprite->x;
+            e->hand->roty = e->sprite->y;
             e->hand->sprite->x += *dx;
             e->hand->sprite->y += *dy;
         }
+        
+        else if(isitem[e->id])
+        {
+            if(isitem[e->id])
+            {
+                float r;
+                if(e->holder)
+                    r = math_get_distance(e->holdx, e->holdy) + e->holder->colrad;
+                else
+                    r = math_get_distance(e->rotx - e->sprite->x, e->roty - e->sprite->y);
+                e->sprite->rot += e->angvel;
+                e->rotx += *dx;
+                e->roty += *dy;
+                e->sprite->x = e->rotx + math_cos(e->sprite->rot) * r;
+                e->sprite->y = e->roty + math_sin(e->sprite->rot) * r;
+            }
 
-        e->speedx -= e->speedx * .2f / (e->weight / 180.0f);
-        e->speedy -= e->speedy * .2f / (e->weight / 180.0f);
+            if(e->holder)
+            {
+                float r = math_get_distance(e->holdx, e->holdy) + e->holder->colrad;
+                float pushangle = e->sprite->rot - e->angvel / 2;
+                e->holder->speedx += math_cos(pushangle) * math_abs(e->angvel) * r / 6 * e->weight / (e->holder->weight + e->weight);
+                e->holder->speedy += math_sin(pushangle) * math_abs(e->angvel) * r / 6 * e->weight / (e->holder->weight + e->weight);
+            }
+            e->angvel -= e->angvel * friction;
+        }
+
+        if(!isitem[e->id])
+        {
+            e->speedx -= e->speedx * friction;
+            e->speedy -= e->speedy * friction;
+        }
 
         if(e->chunk != map_get_chunk_from_coordinate(map, e->sprite->x, e->sprite->y))
         {
-            em_remove_entity_from_chunk(map, e);
-            em_add_entity_to_chunk(map, e);
+            em_remove_entity_from_map(map, e);
+            em_add_entity_to_map(map, e);
         }
     }
 
@@ -282,9 +345,47 @@ void em_do_movement(struct map *map, struct entity *e, float *dx, float *dy)
     }
 }
 
-void em_do_collide(struct entity *one, struct entity *two)
+void em_do_collide(struct entity *one, struct entity *two, float dist)
 {
+    switch(isitem[one->id] | (isitem[two->id] << 1))
+    {
+        case 0://neither are items
+            ;
+            float invdist = math_get_inverse_distance(one->sprite->x - two->sprite->x, one->sprite->y - two->sprite->y);
+            float pushx = dist * colpushconstant * (one->accel > math_abs(one->speedx) ? one->accel : math_abs(one->speedx)) * (one->sprite->x - two->sprite->x) * invdist;
+            float pushy = dist * colpushconstant * (one->accel > math_abs(one->speedy) ? one->accel : math_abs(one->speedy)) * (one->sprite->y - two->sprite->y) * invdist;
 
+            one->speedx += pushx * two->weight / (two->weight + one->weight);//floats randomly flip signs between different compilation flags / changes to code above
+            one->speedy += pushy * two->weight / (two->weight + one->weight);//x86 issue (I think), excess precision or other error
+            two->speedx -= pushx * one->weight / (two->weight + one->weight);//could be issue with fast inv square root function
+            two->speedy -= pushy * one->weight / (two->weight + one->weight);
+            break;
+        case 1://one is an item, two is a pc
+            if(one->holder && one->holder->actions)
+            {
+                float r = math_get_distance(one->holdx, one->holdy) + one->holder->colrad;
+                float speedx = one->holder->speedx + one->speedx + one->angvel * math_cos(one->sprite->rot) * r;
+                float speedy = one->holder->speedy + one->speedy + one->angvel * math_sin(one->sprite->rot) * r;
+                
+                /*one->speedx -= speedx * two->weight / 2 / (one->weight + one->holder->weight + two->weight);
+                one->speedy -= speedy * two->weight / 2 / (one->weight + one->holder->weight + two->weight);*/
+                two->speedx -= speedx * (one->weight * knockbackconstant/*one->holder->strength*/) / (one->weight + two->weight);
+                two->speedy -= speedy * (one->weight * knockbackconstant/*one->holder->strength*/) / (one->weight + two->weight);
+                two->health -= one->damage;
+
+                //one->angvel -= (one->angvel * r - math_get_distance(speedx, speedy) * (two->weight) / (one->weight + one->holder->weight + two->weight)) / r;
+            }
+            break;
+        case 2://one is a pc, two is an item
+            if(!two->holder)
+            {
+                one->hand = two;
+                two->holder = one;
+            }
+            break;
+        case 3://both are items
+            break;
+    }
 }
 
 void em_destroy()
@@ -310,5 +411,6 @@ void em_destroy()
     s_free(behaviour, NULL);
     s_free(destroy, NULL);
     s_free(isitem, NULL);
+    s_free(actiontable, NULL);
     //al_destroy_bitmap(spritesheet);
 }

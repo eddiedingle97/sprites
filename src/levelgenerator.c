@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <math.h>
 #include "sprites.h"
 #include "map.h"
 #include "emath.h"
@@ -29,20 +30,19 @@ void lg_generate_level(char newmap)
     em_register_entity(knight_create, knight_behaviour, knight_destroy, 0);
     em_register_entity(orc_create, orc_behaviour, orc_destroy, 0);
 	knight = em_create_entity(0, 0, 0);
-	em_add_entity_to_chunk(map, knight);
+	em_add_entity_to_map(map, knight);
 
 	lg_add_enemies(map);
 
 	em_register_entity(sword_create, sword_behaviour, sword_destroy, 1);
-	sword = em_create_entity(2, 8.0f, 5.0f);
-	em_add_entity_to_chunk(map, sword);
-	knight->hand = sword;
-	sword->holder = knight;
+	sword = em_create_entity(2, 32.0f, 0.0f);
+	em_add_entity_to_map(map, sword);
+	
 }
 
 void lg_tick()
 {
-	//sword->sprite->rot += .05;
+	//sword->angvel += .02;
 }
 
 struct dict *lg_get_warp_table()

@@ -29,7 +29,6 @@ void item_get_stats_from_config(ALLEGRO_CONFIG *cfg, struct entity *e)
 	e->speedx = 0;
 	e->speedy = 0;
 	e->damage = u_atof(al_get_config_value(cfg, "stats", "damage"));
-	e->maxspeed = u_atof(al_get_config_value(cfg, "stats", "maxspeed"));
 	e->weight = u_atof(al_get_config_value(cfg, "stats", "weight"));
 	e->colrad = u_atof(al_get_config_value(cfg, "stats", "colrad"));
 }

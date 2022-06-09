@@ -12,6 +12,8 @@ struct entity *e_create(float x, float y, struct animation *an, void *data)
     out->data = data;
     out->chunk = NULL;
     out->hand = NULL;
+    out->actions = NULL;
+    out->noactions = 0;
 
     return out;
 }
@@ -45,7 +47,6 @@ void e_load_stats_from_config(ALLEGRO_CONFIG *cfg, struct entity *e)
 {
     e->speedx = 0;
     e->speedy = 0;
-    e->maxspeed = u_atof(al_get_config_value(cfg, "stats", "maxspeed"));
     e->weight = u_atof(al_get_config_value(cfg, "stats", "weight"));
     e->accel = u_atof(al_get_config_value(cfg, "stats", "accel"));
     e->colrad = u_atof(al_get_config_value(cfg, "stats", "colrad"));

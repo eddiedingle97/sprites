@@ -46,7 +46,7 @@ void map_create_test_chunk_list(struct map *map)
             //map->chunks[r][c] = map_create_test_chunk(x, y, map->chunksize);
             struct chunk *chunk = &map->chunks[r][c];
 
-            chunk->tiles = s_aligned_malloc(sizeof(struct tile) * map->chunksize * map->chunksize, 32, NULL);
+            chunk->tiles = s_malloc(sizeof(struct tile) * map->chunksize * map->chunksize, NULL);
             chunk->x = x;
             chunk->y = y;
 

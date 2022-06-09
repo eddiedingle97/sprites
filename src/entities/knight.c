@@ -1,8 +1,12 @@
 #include <stdio.h>
+#include <math.h>
 #include "../entity.h"
 #include "../keyboard.h"
+#include "../mouse.h"
 #include "../sprites.h"
 #include "../spritemanager.h"
+#include "../emath.h"
+#include "../action.h"
 #include "entities.h"
 
 void knight_behaviour(struct entity *e, float *dx, float *dy)
@@ -24,6 +28,9 @@ void knight_behaviour(struct entity *e, float *dx, float *dy)
     else
         data->idle = 0;
 
+    if(mouse_get_single_one() && e->noactions == 0 && e->hand)
+        action_init_swing(e, math_atan2(mouse_get_rel_y(), mouse_get_rel_x()), 0);
+
     sprite->i = data->idle;
 }
 
@@ -36,6 +43,7 @@ struct entity *knight_create()
     struct animation *an = e_load_animations_from_config(cfg);
 
     struct entity *out = e_create(0, 0, an, kd);
+    out->strength = 10;
     
     e_load_stats_from_config(cfg, out);
 

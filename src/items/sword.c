@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <math.h>
 #include <allegro5/allegro.h>
 #include "../sprites.h"
 #include "../spritemanager.h"
@@ -24,6 +25,12 @@ struct entity *sword_create()
 	
 	struct entity *out = item_create(swordbitmap, NULL);
 	item_get_stats_from_config(swordcfg, out);
+	out->sprite->rotoffset = u_atof(al_get_config_value(swordcfg, "sprite", "rotoffset")) * M_PI;
+	out->holdx = 0;
+	out->holdy = -8.5;
+	out->angvel = 0;
+	out->rotx = 0;
+	out->roty = 0;
 
 	noswords++;
 
@@ -32,11 +39,6 @@ struct entity *sword_create()
 
 void sword_behaviour(struct entity *e, float *dx, float *dy)
 {
-	/*if(e->holder)
-	{
-		e->sprite->x = e->holder->sprite->x + offsetx;
-		e->sprite->y = e->holder->sprite->y + offsety;
-	}*/
 	
 }
 

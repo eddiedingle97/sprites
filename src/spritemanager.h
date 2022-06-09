@@ -23,10 +23,11 @@ struct sprite
 	struct node *node;
 	union
 	{
-		struct//static 12 bytes
+		struct//static 16 bytes
 		{
 			ALLEGRO_BITMAP *bitmap;
 			float rot;
+			float rotoffset;
 		};
 		struct//dynamic 14 bytes
 		{

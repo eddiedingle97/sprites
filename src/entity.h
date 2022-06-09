@@ -10,18 +10,27 @@ struct entity
     struct chunk *chunk;
     union
     {
-        struct//pc
+        struct//pc 
         {
             float accel;
+            float strength;
+            float health;
             struct entity *hand;
+            struct action *actions;
+            unsigned char noactions;
         };
-        struct//item
+        struct//item 32 bytes
         {
+            float rotx;
+            float roty;
+            float holdx;
+            float holdy;
             float damage;
+            float angvel;
             struct entity *holder;
         };
     };
-    float maxspeed;
+    
     float weight;
     float speedx;
     float speedy;

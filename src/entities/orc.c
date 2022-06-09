@@ -43,48 +43,52 @@ void orc_behaviour(struct entity *entity, float *dx, float *dy)
     struct orcdata *data = entity->data;
     struct sprite *target = data->target->sprite;
     float dist;
-
-    dist = lerp_check(sprite->x, sprite->y, target->x, target->y, SOLID);
-    switch(data->state)
+    if(entity->health > 0)
     {
-        case IDLE:
-            if(dist != 0)
-                data->state = AGGRO;
-            else
-                break;
-        case AGGRO:
-            if(dist != 0)
-            {
-                *dx = target->x - sprite->x, *dy = target->y - sprite->y;
-                data->x = target->x;
-                data->y = target->y;
-                break;
-            }
-            else
-            {
-                data->state = SEEK;
-            }
-        case SEEK:
-            if(dist != 0)
-            {
-                *dx = target->x - sprite->x, *dy = target->y - sprite->y;
-                data->x = target->x;
-                data->y = target->y;
-                data->state = AGGRO;
-            }
+        dist = lerp_check(sprite->x, sprite->y, target->x, target->y, SOLID);
+        switch(data->state)
+        {
+            case IDLE:
+                if(dist != 0)
+                    data->state = AGGRO;
+                else
+                    break;
+            case AGGRO:
+                if(dist != 0)
+                {
+                    *dx = target->x - sprite->x, *dy = target->y - sprite->y;
+                    data->x = target->x;
+                    data->y = target->y;
+                    break;
+                }
+                else
+                {
+                    data->state = SEEK;
+                }
+            case SEEK:
+                if(dist != 0)
+                {
+                    *dx = target->x - sprite->x, *dy = target->y - sprite->y;
+                    data->x = target->x;
+                    data->y = target->y;
+                    data->state = AGGRO;
+                }
 
-            else if(math_in_range(sprite->x - 1, data->x, sprite->x + 1) && math_in_range(sprite->y - 1, data->y, sprite->y + 1))
-            {
-                data->state = IDLE;
-            }
-                
-            else
-            {
-                *dx = data->x - sprite->x, *dy = data->y - sprite->y;
-            }
+                else if(math_in_range(sprite->x - 1, data->x, sprite->x + 1) && math_in_range(sprite->y - 1, data->y, sprite->y + 1))
+                {
+                    data->state = IDLE;
+                }
+                    
+                else
+                {
+                    *dx = data->x - sprite->x, *dy = data->y - sprite->y;
+                }
 
-            break;
+                break;
+        }
     }
+    else
+        data->state = IDLE;
 
     if(*dx < 0)
         sprite->alflags |= ALLEGRO_FLIP_HORIZONTAL;
@@ -114,6 +118,7 @@ struct entity *orc_create()
 
     struct entity *out = e_create(0, 0, an, od);
     e_load_stats_from_config(orccfg, out);
+    out->health = 20;
     noorcs++;
     return out;
 }

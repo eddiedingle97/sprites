@@ -180,49 +180,49 @@ void mm_update_chunks()
 
         int r, c;
         for(c = corners[TOPRIGHT]->index_x + 1; c <= corners[TOPRIGHT]->index_x + range[RIGHT] && c < map->width; c++)//adds chunks to the right
-            for(r = corners[BOTTOMRIGHT]->index_y; r >= corners[TOPRIGHT]->index_y; r--);
+            for(r = corners[BOTTOMRIGHT]->index_y; r >= corners[TOPRIGHT]->index_y; r--);//for each chunk just added
 
         corners[TOPRIGHT] = map_get_chunk_from_index(map, c - 1, corners[TOPRIGHT]->index_y);
         corners[BOTTOMRIGHT] = map_get_chunk_from_index(map, c - 1, corners[BOTTOMRIGHT]->index_y);
 
         for(c = corners[TOPRIGHT]->index_x; c > corners[TOPRIGHT]->index_x + range[RIGHT] && c - 1 > -1; c--)//takes away chunks from the right
-            for(r = corners[BOTTOMRIGHT]->index_y; r >= corners[TOPRIGHT]->index_y; r--);
+            for(r = corners[BOTTOMRIGHT]->index_y; r >= corners[TOPRIGHT]->index_y; r--);//for each chunk just taken away
 
         corners[TOPRIGHT] = map_get_chunk_from_index(map, c, corners[TOPRIGHT]->index_y);
         corners[BOTTOMRIGHT] = map_get_chunk_from_index(map, c, corners[BOTTOMRIGHT]->index_y);
 
         for(c = corners[TOPLEFT]->index_x - 1; c >= corners[TOPLEFT]->index_x + range[LEFT] && c > -1; c--)//adds chunks to the left
-            for(r = corners[BOTTOMLEFT]->index_y; r >= corners[TOPLEFT]->index_y; r--);
+            for(r = corners[BOTTOMLEFT]->index_y; r >= corners[TOPLEFT]->index_y; r--);//for each chunk just added
 
         corners[TOPLEFT] = map_get_chunk_from_index(map, c + 1, corners[TOPLEFT]->index_y);
         corners[BOTTOMLEFT] = map_get_chunk_from_index(map, c + 1, corners[BOTTOMLEFT]->index_y);
 
         for(c = corners[TOPLEFT]->index_x; c < corners[TOPLEFT]->index_x + range[LEFT] && c + 1 < map->width; c++)//takes away chunks from the left
-            for(r = corners[BOTTOMLEFT]->index_y; r >= corners[TOPLEFT]->index_y; r--);
+            for(r = corners[BOTTOMLEFT]->index_y; r >= corners[TOPLEFT]->index_y; r--);//for each chunk just taken away
 
         corners[TOPLEFT] = map_get_chunk_from_index(map, c, corners[TOPLEFT]->index_y);
         corners[BOTTOMLEFT] = map_get_chunk_from_index(map, c, corners[BOTTOMLEFT]->index_y);
 
         for(r = corners[TOPLEFT]->index_y - 1; r >= corners[TOPLEFT]->index_y - range[UP] && r > -1; r--)//adds chunks on top
-            for(c = corners[TOPLEFT]->index_x; c <= corners[TOPRIGHT]->index_x; c++);
+            for(c = corners[TOPLEFT]->index_x; c <= corners[TOPRIGHT]->index_x; c++);//for each chunk just added
 
         corners[TOPLEFT] = map_get_chunk_from_index(map, corners[TOPLEFT]->index_x, r + 1);
         corners[TOPRIGHT] = map_get_chunk_from_index(map, corners[TOPRIGHT]->index_x, r + 1);
 
         for(r = corners[TOPLEFT]->index_y; r < corners[TOPLEFT]->index_y - range[UP] && r + 1 < map->height; r++)//takes away top chunks
-            for(c = corners[TOPLEFT]->index_x; c <= corners[TOPRIGHT]->index_x; c++);
+            for(c = corners[TOPLEFT]->index_x; c <= corners[TOPRIGHT]->index_x; c++);//for each chunk just taken away
 
         corners[TOPLEFT] = map_get_chunk_from_index(map, corners[TOPLEFT]->index_x, r);
         corners[TOPRIGHT] = map_get_chunk_from_index(map, corners[TOPRIGHT]->index_x, r);
 
         for(r = corners[BOTTOMLEFT]->index_y + 1; r <= corners[BOTTOMLEFT]->index_y - range[DOWN] && r < map->height; r++)//adds chunks to bottom
-            for(c = corners[BOTTOMLEFT]->index_x; c <= corners[BOTTOMRIGHT]->index_x; c++);
+            for(c = corners[BOTTOMLEFT]->index_x; c <= corners[BOTTOMRIGHT]->index_x; c++);//for each chunk just added
 
         corners[BOTTOMLEFT] = map_get_chunk_from_index(map, corners[BOTTOMLEFT]->index_x, r - 1);
         corners[BOTTOMRIGHT] = map_get_chunk_from_index(map, corners[BOTTOMRIGHT]->index_x, r - 1);
 
         for(r = corners[BOTTOMLEFT]->index_y; r > corners[BOTTOMLEFT]->index_y - range[DOWN] && r - 1 > -1; r--)//takes away bottom chunks
-            for(c = corners[BOTTOMLEFT]->index_x; c <= corners[BOTTOMRIGHT]->index_x; c++);
+            for(c = corners[BOTTOMLEFT]->index_x; c <= corners[BOTTOMRIGHT]->index_x; c++);//for each chunk just taken away
 
         corners[BOTTOMLEFT] = map_get_chunk_from_index(map, corners[BOTTOMLEFT]->index_x, r);
         corners[BOTTOMRIGHT] = map_get_chunk_from_index(map, corners[BOTTOMRIGHT]->index_x, r);
