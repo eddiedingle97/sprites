@@ -257,7 +257,7 @@ void maker_actions()
     }
 }
 
-void maker_show_solid_tiles()
+/*void maker_show_solid_tiles()
 {
     if(foregroundsprites)
     {
@@ -299,7 +299,7 @@ void maker_show_solid_tiles()
         else
             chunkleft = map_get_chunk_from_index(map, corners[TOPLEFT]->index_x, y + 1);
     }
-}
+}*/
 
 void maker_set_place_mode(struct tile *tile)
 {
@@ -563,7 +563,7 @@ void maker_edit_frame_handler(struct menu *m)
 
 void maker_set_current_tile(struct tile *tile)
 {
-    ALLEGRO_BITMAP *bit = mm_get_tile_bitmap(tile);
+    ALLEGRO_BITMAP *bit = NULL;//mm_get_tile_bitmap(tile);
     mouse_set_bitmap(bit);
     currenttile = tile;
 }

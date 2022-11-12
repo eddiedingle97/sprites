@@ -200,7 +200,7 @@ static void dfs(struct graph *graph, struct vertex *v)
 
 void graph_dfs(struct graph *graph)
 {
-    if(graph->novertices)
+    if(graph->novertices > 0)
     {
         graph->marked = 1;
         dfs(graph, &graph->vertices[0]);

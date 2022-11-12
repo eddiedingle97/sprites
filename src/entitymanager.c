@@ -19,7 +19,6 @@ void em_do_speed(struct entity *e, float dx, float dy);
 void em_do_collide(struct entity *one, struct entity *two, float dist);
 
 static struct entity *knight;
-static ALLEGRO_BITMAP *spritesheet;
 static struct entity *(**create)();
 static void (**destroy)(struct entity *);
 static void (**behaviour)(struct entity *, float *, float *);
@@ -31,16 +30,12 @@ static char collision;
 static const int collisionboxsize = 16;
 static struct sprite *collisionbox;
 
-static float friction = .2f;
-static float colpushconstant = .1f;
-static float knockbackconstant = 1;
+static float frictionconstant = .2f;
+static float collisionpushconstant = .1f;
+static float knockbackconstant = 15;
 
 void em_init()
 {
-    //spritesheet = al_load_bitmap(s_get_full_path_with_dir("images", "0x72_DungeonTilesetII_v1.3.png"));
-    if(!spritesheet)
-        debug_perror("Spritesheet failed to load in em_init\n");
-
     ALLEGRO_BITMAP *boxbitmap = al_create_bitmap(collisionboxsize, collisionboxsize);
     al_set_target_bitmap(boxbitmap);
     al_lock_bitmap(boxbitmap, 0, 0);
@@ -76,7 +71,10 @@ int em_register_entity(struct entity *(*c)(), void (*b)(struct entity *, float *
     destroy = s_realloc(destroy, registeredentities * sizeof(void (*)()), NULL);
     destroy[registeredentities - 1] = d;
     isitem = s_realloc(isitem, registeredentities * sizeof(char), NULL);
-    isitem[registeredentities - 1] = i;
+    if(i)
+        isitem[registeredentities - 1] = 1;
+    else
+        isitem[registeredentities - 1] = 0;
     return registeredentities - 1;
 }
 
@@ -131,6 +129,10 @@ struct chunk *em_get_chunk(struct map *map, int r, int c)
 
 void em_tick()
 {
+    /*
+        currently iterates through all of the chunks in a map, inefficient for large maps with few entities
+        find some other way to loop through entities
+    */
     struct list *maps = mm_get_map_list();
     struct map *map = NULL, *topmap = mm_get_top_map();
     struct node *mlnode = NULL;
@@ -148,7 +150,7 @@ void em_tick()
             for(r = 0; r < map->height; r++)
                 for(c = 0; c < map->width; c++)
                 {
-                    draw = map == topmap && mm_is_chunk_loaded(c, r);
+                    draw = mm_is_chunk_loaded(c, r) && map == topmap;
                     node = map->chunks[r][c].ehead;
                     for(; node; node = next)//FOR EACH ENTITY
                     {
@@ -168,36 +170,17 @@ void em_tick()
 
                         em_do_movement(map, e, &dx, &dy);
                         
-                        /*if(e->id == 1 && draw)
-                        {
-                            printf("%.5f %.5f\n", e->speedx, e->speedy);
-                        }*/
                         if(e->id == 0)
                         {
-                            //printf("%.5f %.5f\n", e->speedx, e->speedy);
                             sm_set_coord(e->sprite->x, e->sprite->y);
                         }
                         
-                        mm_call_tile_functions(map, e);
+                        //mm_call_tile_functions(map, e); DO EVENT TILE HANDLING
 
                         if(draw)
                             sm_add_sprite_to_layer(e->sprite);
                         else
                             sm_remove_sprite_from_layer(e->sprite);
-
-                        /*if(draw)
-                        {
-                            if(!isitem[e->id])
-                            {
-                                sm_deferred_draw(e->sprite);
-                                if(e->hand)
-                                {
-                                    sm_deferred_draw(e->hand->sprite);
-                                }
-                            }
-                            else if(isitem[e->id] && !e->holder)
-                                sm_deferred_draw(e->sprite);
-                        }*/
                     }
                 }
         }
@@ -214,17 +197,6 @@ void em_do_speed(struct entity *e, float dx, float dy)
     
     e->speedx = e->speedx + dx;
     e->speedy = e->speedy + dy;
-
-    /*if(e->id == 0)
-    {
-        printf("%.2f %.2f\n", dx, dy);
-    }*/
-    /*invdist = math_get_inverse_distance(e->speedx, e->speedy);
-    if(e->maxspeed * invdist < 1.0f)
-    {
-        e->speedx = e->speedx * invdist * e->maxspeed;
-        e->speedy = e->speedy * invdist * e->maxspeed;
-    }*/
 }
 
 void em_do_movement(struct map *map, struct entity *e, float *dx, float *dy)
@@ -278,8 +250,6 @@ void em_do_movement(struct map *map, struct entity *e, float *dx, float *dy)
                     float coldist = e->colrad + othere->colrad;
                     if(dist < coldist)
                     {
-                        /*if((isitem[e->id] && e->holder) || (isitem[othere->id] && othere->holder))
-                            collide = 0;*/
                         em_do_collide(e, othere, coldist - dist);
                     }
                 }
@@ -301,19 +271,16 @@ void em_do_movement(struct map *map, struct entity *e, float *dx, float *dy)
         
         else if(isitem[e->id])
         {
-            if(isitem[e->id])
-            {
-                float r;
-                if(e->holder)
-                    r = math_get_distance(e->holdx, e->holdy) + e->holder->colrad;
-                else
-                    r = math_get_distance(e->rotx - e->sprite->x, e->roty - e->sprite->y);
-                e->sprite->rot += e->angvel;
-                e->rotx += *dx;
-                e->roty += *dy;
-                e->sprite->x = e->rotx + math_cos(e->sprite->rot) * r;
-                e->sprite->y = e->roty + math_sin(e->sprite->rot) * r;
-            }
+            float r;
+            if(e->holder)
+                r = math_get_distance(e->holdx, e->holdy) + e->holder->colrad;
+            else
+                r = math_get_distance(e->rotx - e->sprite->x, e->roty - e->sprite->y);
+            e->sprite->rot += e->angvel;
+            e->rotx += *dx;
+            e->roty += *dy;
+            e->sprite->x = e->rotx + math_cos(e->sprite->rot) * r;
+            e->sprite->y = e->roty + math_sin(e->sprite->rot) * r;
 
             if(e->holder)
             {
@@ -322,14 +289,12 @@ void em_do_movement(struct map *map, struct entity *e, float *dx, float *dy)
                 e->holder->speedx += math_cos(pushangle) * math_abs(e->angvel) * r / 6 * e->weight / (e->holder->weight + e->weight);
                 e->holder->speedy += math_sin(pushangle) * math_abs(e->angvel) * r / 6 * e->weight / (e->holder->weight + e->weight);
             }
-            e->angvel -= e->angvel * friction;
+
+            e->angvel -= e->angvel * frictionconstant;
         }
 
-        if(!isitem[e->id])
-        {
-            e->speedx -= e->speedx * friction;
-            e->speedy -= e->speedy * friction;
-        }
+        e->speedx -= e->speedx * frictionconstant;
+        e->speedy -= e->speedy * frictionconstant;
 
         if(e->chunk != map_get_chunk_from_coordinate(map, e->sprite->x, e->sprite->y))
         {
@@ -352,8 +317,8 @@ void em_do_collide(struct entity *one, struct entity *two, float dist)
         case 0://neither are items
             ;
             float invdist = math_get_inverse_distance(one->sprite->x - two->sprite->x, one->sprite->y - two->sprite->y);
-            float pushx = dist * colpushconstant * (one->accel > math_abs(one->speedx) ? one->accel : math_abs(one->speedx)) * (one->sprite->x - two->sprite->x) * invdist;
-            float pushy = dist * colpushconstant * (one->accel > math_abs(one->speedy) ? one->accel : math_abs(one->speedy)) * (one->sprite->y - two->sprite->y) * invdist;
+            float pushx = dist * collisionpushconstant * (one->accel > math_abs(one->speedx) ? one->accel : math_abs(one->speedx)) * (one->sprite->x - two->sprite->x) * invdist;
+            float pushy = dist * collisionpushconstant * (one->accel > math_abs(one->speedy) ? one->accel : math_abs(one->speedy)) * (one->sprite->y - two->sprite->y) * invdist;
 
             one->speedx += pushx * two->weight / (two->weight + one->weight);//floats randomly flip signs between different compilation flags / changes to code above
             one->speedy += pushy * two->weight / (two->weight + one->weight);//x86 issue (I think), excess precision or other error
@@ -367,13 +332,9 @@ void em_do_collide(struct entity *one, struct entity *two, float dist)
                 float speedx = one->holder->speedx + one->speedx + one->angvel * math_cos(one->sprite->rot) * r;
                 float speedy = one->holder->speedy + one->speedy + one->angvel * math_sin(one->sprite->rot) * r;
                 
-                /*one->speedx -= speedx * two->weight / 2 / (one->weight + one->holder->weight + two->weight);
-                one->speedy -= speedy * two->weight / 2 / (one->weight + one->holder->weight + two->weight);*/
-                two->speedx -= speedx * (one->weight * knockbackconstant/*one->holder->strength*/) / (one->weight + two->weight);
-                two->speedy -= speedy * (one->weight * knockbackconstant/*one->holder->strength*/) / (one->weight + two->weight);
+                two->speedx -= speedx * (one->weight * knockbackconstant) / (one->weight + two->weight);
+                two->speedy -= speedy * (one->weight * knockbackconstant) / (one->weight + two->weight);
                 two->health -= one->damage;
-
-                //one->angvel -= (one->angvel * r - math_get_distance(speedx, speedy) * (two->weight) / (one->weight + one->holder->weight + two->weight)) / r;
             }
             break;
         case 2://one is a pc, two is an item
@@ -412,5 +373,4 @@ void em_destroy()
     s_free(destroy, NULL);
     s_free(isitem, NULL);
     s_free(actiontable, NULL);
-    //al_destroy_bitmap(spritesheet);
 }

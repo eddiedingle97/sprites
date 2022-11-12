@@ -7,6 +7,7 @@
 #include "../spritemanager.h"
 #include "../emath.h"
 #include "../action.h"
+#include "../debug.h"
 #include "entities.h"
 
 void knight_behaviour(struct entity *e, float *dx, float *dy)
@@ -31,7 +32,18 @@ void knight_behaviour(struct entity *e, float *dx, float *dy)
     if(mouse_get_single_one() && e->noactions == 0 && e->hand)
         action_init_swing(e, math_atan2(mouse_get_rel_y(), mouse_get_rel_x()), 0);
 
+    if(mouse_get_single_two() && e->noactions == 0 && e->hand)
+        action_init_swing(e, math_atan2(mouse_get_rel_y(), mouse_get_rel_x()), 1);
+
     sprite->i = data->idle;
+
+    if(debug_get())
+    {
+        if(kb_get_shift())
+            e->accel = 5;
+        else
+            e->accel = .25;
+    }
 }
 
 struct entity *knight_create()

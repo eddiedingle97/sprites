@@ -87,7 +87,7 @@ float math_abs(float f)
 
 void math_seed(unsigned int seed)
 {
-    if(seed)
+    if(seed != 0)
         srand(seed);
     else
     {
@@ -100,6 +100,11 @@ void math_seed(unsigned int seed)
 unsigned int math_get_random(int max)
 {
     return rand() % (max + 1);
+}
+
+unsigned int math_rand(int upto)
+{
+    return rand();
 }
 
 float math_atan2(float x, float y)

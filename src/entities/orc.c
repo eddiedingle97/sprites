@@ -101,7 +101,7 @@ void orc_behaviour(struct entity *entity, float *dx, float *dy)
 
 struct entity *orc_create()
 {
-    struct orcdata *od = s_malloc(sizeof(struct orcdata), NULL);//orc_get_stats();
+    struct orcdata *od = s_malloc(sizeof(struct orcdata), NULL);
     od->x = 0;
     od->y = 0;
     od->state = IDLE;

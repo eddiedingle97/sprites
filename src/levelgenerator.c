@@ -23,8 +23,8 @@ void lg_generate_level(char newmap)
 {
 	warptable = dict_create(wte_comp);
     mm_add_tile_map_to_list("DungeonTilesetIItiles.png", 16);
-    mm_register_tile_function(tf_warp);
-	struct map *map = mg_create_map(30, 30);
+    //mm_register_tile_function(tf_warp);
+	struct map *map = mg_create_island_map(500, 500);
 	mm_add_map(map);
 	mm_set_top_map(0);
     em_register_entity(knight_create, knight_behaviour, knight_destroy, 0);
@@ -37,7 +37,6 @@ void lg_generate_level(char newmap)
 	em_register_entity(sword_create, sword_behaviour, sword_destroy, 1);
 	sword = em_create_entity(2, 32.0f, 0.0f);
 	em_add_entity_to_map(map, sword);
-	
 }
 
 void lg_tick()
@@ -52,23 +51,29 @@ struct dict *lg_get_warp_table()
 
 void lg_add_enemies(struct map *map)
 {
-	int i, j;
-	for(j = 0; j < map->graph->novertices; j++)
+	if(map->graph)
 	{
-		struct vertex *v = graph_get_vertex(map->graph, j);
-		if(!v)
-			continue;
-		struct room *room = v->p;
-		for(i = 0; i < room->enemies; i++)
+		int i, j;
+		for(j = 0; j < map->graph->novertices; j++)
 		{
-			
-			int x = (room->x + 1 + math_get_random(room->w - 3)) * 16;
-			int y = (room->y - 1 - math_get_random(room->h - 3)) * 16;
-			//printf("adding enemy %d %d %d %d %d %d %.2f %.2f\n", room->x, room->w, room->y, room->h, x, y, (float)x, (float)y);
-			struct entity *e = em_create_entity(1, x, y);
-			struct orcdata *od = e->data;
-			od->target = knight;
-			map_add_entity_to_chunk(map, e);
+			struct vertex *v = graph_get_vertex(map->graph, j);
+			if(!v)
+				continue;
+			struct room *room = v->p;
+			for(i = 0; i < room->enemies; i++)
+			{
+				
+				int x = (room->x + 1 + math_get_random(room->w - 3)) * 16;
+				int y = (room->y - 1 - math_get_random(room->h - 3)) * 16;
+				//printf("adding enemy %d %d %d %d %d %d %.2f %.2f\n", room->x, room->w, room->y, room->h, x, y, (float)x, (float)y);
+				struct entity *e = em_create_entity(1, x, y);
+				if(e)
+				{
+					struct orcdata *od = e->data;
+					od->target = knight;
+					map_add_entity_to_chunk(map, e);
+				}
+			}
 		}
 	}
 }

@@ -12,6 +12,7 @@ int math_in_range(float small, float x, float large);
 float math_abs(float f);
 void math_seed(unsigned int seed);
 unsigned int math_get_random(int max);
+unsigned int math_rand();
 float math_atan2(float x, float y);
 float math_cos(float angle);
 float math_sin(float angle);

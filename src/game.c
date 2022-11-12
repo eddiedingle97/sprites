@@ -12,7 +12,6 @@
 #include "mapmanager.h"
 #include "menu.h"
 #include "menudriver.h"
-#include "maker.h"
 #include "entitymanager.h"
 #include "mapgenerator.h"
 #include "levelgenerator.h"
@@ -42,7 +41,7 @@ void game_init(char gamemode, char newmap, int width, int height)
         case MAKER:
             sm_init(al_load_bitmap(s_get_full_path_with_dir("images", "0x72_DungeonTilesetII_v1.3.png")), 0, 0);
             md_init();
-            maker_init();
+            //maker_init();
             break;
     }
 }
@@ -69,8 +68,8 @@ void game_destroy()
             break;
         case MAKER:
 
-            maker_destroy();
-            debug_printf("after maker_destroy\n");
+            /*maker_destroy();
+            debug_printf("after maker_destroy\n");*/
 
             md_destroy();
             debug_printf("after md_destroy\n");
@@ -147,21 +146,18 @@ void game_get_actions()
 
         case MAKER:
             md_menu_tick();
-            sm_set_zoom(scroll);
+            /*sm_set_zoom(scroll);
             maker_actions();
             sm_move_coord(up - down, right - left);
 
             if(kb_get_mapsave())
                 mm_save_map("map1");
 
-            if(kb_get_tile_menu_save())
-                maker_show_solid_tiles();
-
             if(kb_get_single_key(MISC))
                 maker_save_tile_menus();
 
             if(kb_get_next_tile_menu())
-                maker_show_tile_menu(-1);
+                maker_show_tile_menu(-1);*/
             
             break;
     }

@@ -3,6 +3,7 @@
 #include "map.h"
 
 struct map *mg_create_map(int w, int h);
+struct map *mg_create_island_map(int w, int h);
 
 struct coord
 {

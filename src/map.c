@@ -24,6 +24,7 @@ struct map *map_create(int chunksize, int tilesize, int width, int height)
     map->width = width;
     map->name = NULL;
     map->graph = NULL;
+    map->palette = NULL;
     map_create_test_chunk_list(map);
 
     return map;
@@ -47,20 +48,20 @@ void map_create_test_chunk_list(struct map *map)
             struct chunk *chunk = &map->chunks[r][c];
 
             chunk->tiles = s_malloc(sizeof(struct tile) * map->chunksize * map->chunksize, NULL);
-            chunk->x = x;
-            chunk->y = y;
 
             int r2, c2;
             for(r2 = 0; r2 < map->chunksize; r2++)
             {
                 for(c2 = 0; c2 < map->chunksize; c2++)
                 {
-                    chunk->tiles[c2 + r2 * map->chunksize].tilemap_x = 0;
+                    chunk->tiles[c2 + r2 * map->chunksize].id = 0;
+                    chunk->tiles[c2 + r2 * map->chunksize].type = 0;
+                    /*chunk->tiles[c2 + r2 * map->chunksize].tilemap_x = 0;
                     chunk->tiles[c2 + r2 * map->chunksize].tilemap_y = 0;
                     chunk->tiles[c2 + r2 * map->chunksize].tilemap_z = 0;
                     chunk->tiles[c2 + r2 * map->chunksize].type = 0;
                     chunk->tiles[c2 + r2 * map->chunksize].func = 0;
-                    chunk->tiles[c2 + r2 * map->chunksize].damage = 0;
+                    chunk->tiles[c2 + r2 * map->chunksize].damage = 0;*/
                 }
             }
 
@@ -99,30 +100,40 @@ void map_remove_entity_from_chunk(struct map *map, struct entity *e)
         if(node->p == e)
             break;
 
-    switch((!node->prev << 1) | !node->next)
+    if(node->next && node->prev)
     {
-        case 0://prev not null next not null, node = middle
-            node->prev->next = node->next;
-            node->next->prev = node->prev;
-            s_free(node, NULL);
-            break;
-        case 1://prev not null next null, node = tail
-            node->prev->next = NULL;
-            s_free(node, NULL);
-            break;
-        case 2://prev null next not null, node = head
-            ;
-            e->chunk->ehead = e->chunk->ehead->next;
-            s_free(e->chunk->ehead->prev, NULL);
-            e->chunk->ehead->prev = NULL;
-            break;
-        case 3://prev and next null
-            ;
-            s_free(e->chunk->ehead, NULL);
-            e->chunk->ehead = NULL;
-            break;
+        node->prev->next = node->next;
+        node->next->prev = node->prev;
+        s_free(node, NULL);
     }
+    else if(node->next && !node->prev)
+    {
+        e->chunk->ehead = e->chunk->ehead->next;
+        s_free(e->chunk->ehead->prev, NULL);
+        e->chunk->ehead->prev = NULL;
+    }
+    else if(!node->next && node->prev)
+    {
+        node->prev->next = NULL;
+        s_free(node, NULL);
+    }
+    else if(!node->next && !node->prev)
+    {
+        s_free(e->chunk->ehead, NULL);
+        e->chunk->ehead = NULL;
+    }
+    
     e->chunk = NULL;
+}
+
+float map_get_chunk_x(struct map *map, struct chunk *chunk)//x of top left corner
+{
+    return map->tilesize * map->chunksize * chunk->index_x - map->tilesize * map->width * map->chunksize / 2;
+}
+
+float map_get_chunk_y(struct map *map, struct chunk *chunk)//y of top left corner
+{
+    return -map->tilesize * map->chunksize * chunk->index_y + map->tilesize * map->height * map->chunksize / 2;
 }
 
 struct chunk *map_get_chunk_from_coordinate(struct map *map, float x, float y)
@@ -181,8 +192,8 @@ int map_save(struct map *map, char *mapname)
                 for(c2 = 0; c2 < map->chunksize; c2++)
                 {
                     struct tile *tile = &map->chunks[r][c].tiles[c2 + r2 * map->chunksize];
-                    count = sprintf(buf, "%d,%d,%d,%d,%d\n", tile->tilemap_x, tile->tilemap_y, tile->tilemap_z, tile->type, tile->damage);
-                    al_fwrite(file, buf, count);
+                    /*count = sprintf(buf, "%d,%d,%d,%d,%d\n", tile->tilemap_x, tile->tilemap_y, tile->tilemap_z, tile->type, tile->damage);
+                    al_fwrite(file, buf, count);*/
                 }
             }
         }
@@ -199,11 +210,11 @@ struct tile *map_get_tile_from_coordinate(struct map *map, float x, float y)
     if(!chunk)
         return NULL;
 
-    x = x - chunk->x;
-    y = chunk->y - y;
+    x = x - map_get_chunk_x(map, chunk);
+    y = map_get_chunk_y(map, chunk) - y;
     x /= map->tilesize;
     y /= map->tilesize;
-
+    
     return &chunk->tiles[(int)x + (int)y * map->chunksize];
 }
 
@@ -225,8 +236,8 @@ void map_create_chunks(struct map *map, ALLEGRO_FILE *file)
         {
             struct chunk *chunk = &map->chunks[r][c];
             chunk->tiles = s_malloc(sizeof(struct tile) * map->chunksize * map->chunksize, NULL);
-            chunk->x = x;
-            chunk->y = y;
+            /*chunk->x = x;
+            chunk->y = y;*/
             chunk->ehead = NULL;
 
             char buf[32];
@@ -239,21 +250,25 @@ void map_create_chunks(struct map *map, ALLEGRO_FILE *file)
                     if(!al_fgets(file, buf, 32))
                     {
                         debug_perror("Corrupted map file: not enough tiles\n");
-                        chunk->tiles[c2 + r2 * map->chunksize].tilemap_x = 0;
+                        chunk->tiles[c2 + r2 * map->chunksize].id = 0;
+                        chunk->tiles[c2 + r2 * map->chunksize].type = 0;
+                        /*chunk->tiles[c2 + r2 * map->chunksize].tilemap_x = 0;
                         chunk->tiles[c2 + r2 * map->chunksize].tilemap_y = 0;
                         chunk->tiles[c2 + r2 * map->chunksize].tilemap_z = 1;
                         chunk->tiles[c2 + r2 * map->chunksize].type = 0;
                         chunk->tiles[c2 + r2 * map->chunksize].func = 0;
-                        chunk->tiles[c2 + r2 * map->chunksize].damage = 0;
+                        chunk->tiles[c2 + r2 * map->chunksize].damage = 0;*/
                     }
                     else
                     {
-                        chunk->tiles[c2 + r2 * map->chunksize].tilemap_x = atoi(strtok(buf, ","));
+                        chunk->tiles[c2 + r2 * map->chunksize].id = 0;
+                        chunk->tiles[c2 + r2 * map->chunksize].type = 0;
+                        /*chunk->tiles[c2 + r2 * map->chunksize].tilemap_x = atoi(strtok(buf, ","));
                         chunk->tiles[c2 + r2 * map->chunksize].tilemap_y = atoi(strtok(NULL, ","));
                         chunk->tiles[c2 + r2 * map->chunksize].tilemap_z = atoi(strtok(NULL, ","));
                         chunk->tiles[c2 + r2 * map->chunksize].type = 0;
                         chunk->tiles[c2 + r2 * map->chunksize].func = 0;
-                        chunk->tiles[c2 + r2 * map->chunksize].damage = atoi(strtok(NULL, ","));
+                        chunk->tiles[c2 + r2 * map->chunksize].damage = atoi(strtok(NULL, ","));*/
                     }
                 }
             }
@@ -348,9 +363,11 @@ void map_destroy(struct map *map)
 
     if(map->graph)
     {
-        s_free(map->graph->vertices[0].p, NULL);
+        s_free(map->graph->vertices[0].p, NULL);//BAD HACK, NEEDS FIX
         graph_destroy(map->graph);
     }
+
+    s_free(map->palette, NULL);
 
     s_free(map, "Freeing map");
 }

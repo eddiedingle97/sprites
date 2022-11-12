@@ -11,6 +11,7 @@
 #include "mapmanager.h"
 #include "mapgenerator.h"
 #include "tilefunctions.h"
+#include "tilepalette.h"
 #include "debug.h"
 #include "colors.h"
 #include "emath.h"
@@ -19,8 +20,6 @@ static struct chunk *corners[4];
 static struct map *topmap;
 static struct list *maps;
 static const int DISTANCE = HEIGHT / 2;
-static void (**tjumptable)(struct map *, struct entity *);
-static unsigned int tjtsize;
 
 static struct tilemap **tilemaps;
 static int tilemapssize;
@@ -43,8 +42,6 @@ void mm_init()
     topmap = NULL;
     tilemapssize = 0;
     tilemaps = NULL;
-    tjumptable = NULL;
-    tjtsize = 0;
     int i;
     for(i = 0; i < 4; i++)
         corners[i] = NULL;
@@ -62,7 +59,6 @@ void mm_destroy()
         mm_destroy_tile_map(tilemaps[i]);
     }
     s_free(tilemaps, NULL);
-    s_free(tjumptable, NULL);
     //s_free(matrix, NULL);
 }
 
@@ -94,38 +90,26 @@ struct list *mm_get_map_list()
     return maps;
 }
 
-int mm_register_tile_function(void (*func)(struct map *, struct entity *))
+int mm_register_tile_event(void (*func)(struct map *, struct entity *))
 {
-    if(tjtsize < 8)
-    {
-        tjumptable = s_realloc(tjumptable, ++tjtsize * sizeof(void *(*)(struct map *, struct entity *)), "mm_register_tile_function: tjtable");
-        tjumptable[tjtsize - 1] = func;
-        return 1;
-    }
+   
     return 0;
 }
 
-void mm_call_tile_functions(struct map *map, struct entity *e)
+void mm_do_tile_event(struct map *map, struct entity *e)
 {
-    struct tile *tile = map_get_tile_from_coordinate(map, e->sprite->x, e->sprite->y);
-    if(tile)
-    {
-        int i;
-        for(i = 0; i < tjtsize && i < 8; i++)
-            if(tile->func & (1 << i))
-                tjumptable[i](map, e);
-    }
+
 }
 
-void mm_test_color_chunk(struct chunk *chunk)
+/*void mm_test_color_chunk(struct chunk *chunk)
 {  
     int r, c;
     for(r = 0; r < 5; r++)
         for(c = 0; c < 5; c++)
             chunk->tiles[c + r * 5].tilemap_z = 1;
-}
+}*/
 
-void mm_test_color_tile(float x, float y)
+/*void mm_test_color_tile(float x, float y)
 {
     struct map *map = topmap;
     struct chunk *chunk = map_get_chunk_from_coordinate(map, x, y);
@@ -139,7 +123,7 @@ void mm_test_color_tile(float x, float y)
     y /= map->tilesize;
 
     chunk->tiles[(int)x + (int)y * map->chunksize].tilemap_z = 1;
-}
+}*/
 
 struct chunk *mm_get_chunk(float x, float y)
 {
@@ -166,10 +150,10 @@ void mm_update_chunks()
 
         int range[4];
 
-        range[RIGHT] = (sm_get_coord(X) + distance - corners[TOPRIGHT]->x) / chunkgrid;
-        range[LEFT] = (sm_get_coord(X) - distance - corners[TOPLEFT]->x - chunkgrid) / chunkgrid;
-        range[UP] = (sm_get_coord(Y) + distance - corners[TOPLEFT]->y + chunkgrid) / chunkgrid;
-        range[DOWN] = (sm_get_coord(Y) - distance - corners[BOTTOMLEFT]->y) / chunkgrid;
+        range[RIGHT] = (sm_get_coord(X) + distance - map_get_chunk_x(map, corners[TOPRIGHT])) / chunkgrid;
+        range[LEFT] = (sm_get_coord(X) - distance - map_get_chunk_x(map, corners[TOPLEFT]) - chunkgrid) / chunkgrid;
+        range[UP] = (sm_get_coord(Y) + distance - map_get_chunk_y(map, corners[TOPLEFT]) + chunkgrid) / chunkgrid;
+        range[DOWN] = (sm_get_coord(Y) - distance - map_get_chunk_y(map, corners[BOTTOMLEFT])) / chunkgrid;
 
         if(!(range[RIGHT] || range[LEFT] || range[UP] || range[DOWN]))
             return;
@@ -285,11 +269,12 @@ struct tile *mm_update_tile(float x, float y, struct tile *tile)
     if(!oldtile)
         return NULL;
 
-    oldtile->tilemap_x = tile->tilemap_x;
+    *oldtile = *tile;
+    /*oldtile->tilemap_x = tile->tilemap_x;
     oldtile->tilemap_y = tile->tilemap_y;
     oldtile->tilemap_z = tile->tilemap_z;
     oldtile->type = tile->type;
-    oldtile->damage = tile->damage;
+    oldtile->damage = tile->damage;*/
 
     return oldtile;
 }
@@ -373,7 +358,7 @@ void mm_destroy_tile_map(struct tilemap *tm)
 int mm_add_tile_map_to_list(char *tilemapfile, int tilesize)//takes filepath and tilesize, adds a tile map struct to the list if it does not exist
 {
     int z = mm_get_tile_map_z(tilemapfile);
-    if(z == 1)
+    if(z == ERROR)
         return mm_add_tile_map(mm_load_tile_map_from_file(tilemapfile, tilesize));
 
     return z;
@@ -424,22 +409,22 @@ int mm_get_tile_map_z(char *tilemapfile)//looks for filename in tilemap list
     return ERROR;
 }
 
-struct tilemap *mm_get_tile_map_for_tile(struct tile *tile)
+/*struct tilemap *mm_get_tile_map_for_tile(struct tile *tile)
 {
     return tilemaps[tile->tilemap_z];
-}
+}*/
 
-struct tilemap *mm_get_tile_map_from_z(int z)
+/*struct tilemap *mm_get_tile_map_from_z(int z)
 {
     if(z < 0 || z >= tilemapssize)
         return NULL;
     return tilemaps[z];
-}
+}*/
 
-ALLEGRO_BITMAP *mm_get_tile_bitmap(struct tile *tile)
+/*ALLEGRO_BITMAP *mm_get_tile_bitmap(struct tile *tile)
 {
     return al_create_sub_bitmap(tilemaps[tile->tilemap_z]->bitmap, tile->tilemap_x, tile->tilemap_y, tilemaps[tile->tilemap_z]->tilesize, tilemaps[tile->tilemap_z]->tilesize);
-}
+}*/
 
 int mm_get_chunk_count()
 {
@@ -494,6 +479,7 @@ void mm_draw_chunks(ALLEGRO_DISPLAY *display)
     struct chunk *chunk;
     struct tilemap *tilemap;
     struct tile *tile;
+    struct palette *palette;
     int coordx = sm_get_coord(X), coordy = sm_get_coord(Y);
     int r, c, tr, tc;
     al_hold_bitmap_drawing(1);
@@ -507,9 +493,12 @@ void mm_draw_chunks(ALLEGRO_DISPLAY *display)
                 for(tc = 0; tc < chunksize; tc++)
                 {
                     tile = &chunk->tiles[tc + tr * chunksize];
-                    tilemap = tilemaps[tile->tilemap_z];
-
-                    al_draw_scaled_bitmap(tilemap->bitmap, tile->tilemap_x, tile->tilemap_y, tilemap->tilesize, tilemap->tilesize, GETTILEX(chunk->x, tilemap->tilesize, tc, zoom, coordx), GETTILEY(chunk->y, tilemap->tilesize, tr, zoom, coordy), newsize, newsize, 0);
+                    
+                    palette = &topmap->palette[tile->id];
+                    tilemap = tilemaps[palette->tilemap_z];
+                    
+                    //printf("%d %d %hhu %hhu %p %p %d\n", r, c, tile->id, tile->type, palette, tilemap, palette->tilemap_z);
+                    al_draw_scaled_bitmap(tilemap->bitmap, palette->tilemap_x, palette->tilemap_y, tilemap->tilesize, tilemap->tilesize, GETTILEX(map_get_chunk_x(topmap, chunk), tilemap->tilesize, tc, zoom, coordx), GETTILEY(map_get_chunk_y(topmap, chunk), tilemap->tilesize, tr, zoom, coordy), newsize, newsize, 0);
                 }
             }
         }
