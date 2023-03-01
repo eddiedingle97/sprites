@@ -22,7 +22,8 @@ void tf_warp(struct map *map, struct entity *e)
 
 	if(wtout)
 	{
-		map_remove_entity_from_chunk(map, e);
+		struct chunk *curchunk = map_get_chunk_from_coordinate(map, e->sprite->x, e->sprite->y);
+		map_remove_entity_from_chunk(map, curchunk, e);
 		e->sprite->x = wtout->x * 16.0f;
 		e->sprite->y = wtout->y * 16.0f;
 		map_add_entity_to_chunk(wtout->map, e);

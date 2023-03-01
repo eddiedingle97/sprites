@@ -25,6 +25,15 @@ struct map *map_create(int chunksize, int tilesize, int width, int height)
     map->name = NULL;
     map->graph = NULL;
     map->palette = NULL;
+    map->entitylists = s_malloc(sizeof(struct node *) * height * width, "map_create: map->entitylists");
+    int r, c;
+    for(r = 0; r < height; r++)
+    {
+        for(c = 0; c < width; c++)
+        {
+            map->entitylists[c + r * width] = NULL;
+        }
+    }
     map_create_test_chunk_list(map);
 
     return map;
@@ -67,7 +76,6 @@ void map_create_test_chunk_list(struct map *map)
 
             chunk->index_x = c;
             chunk->index_y = r;
-            chunk->ehead = NULL;
             x += gridsize;
         }
         y -= gridsize;
@@ -78,52 +86,66 @@ void map_create_test_chunk_list(struct map *map)
 void map_add_entity_to_chunk(struct map *map, struct entity *e)
 {
     struct chunk *chunk = map_get_chunk_from_coordinate(map, e->sprite->x, e->sprite->y);
-    if(chunk)
+    if(!chunk)
     {
-        struct node *node = chunk->ehead;
-        chunk->ehead = s_malloc(sizeof(struct node), NULL);
-        chunk->ehead->prev = NULL;
-        chunk->ehead->p = e;
-        chunk->ehead->next = node;
-        if(node)
-            node->prev = chunk->ehead;
-        e->chunk = chunk;
+        debug_printf("entity is not on a chunk, not adding\n");
+        return;
     }
+
+    struct node *newhead, *node = map->entitylists[chunk->index_x + chunk->index_y * map->width];
+    newhead = s_malloc(sizeof(struct node), NULL);
+    newhead->prev = NULL;
+    newhead->p = e;
+    newhead->next = node;
+    if(node)
+        node->prev = newhead;
+
+    map->entitylists[chunk->index_x + chunk->index_y * map->width] = newhead;
 }
 
-void map_remove_entity_from_chunk(struct map *map, struct entity *e)
+void map_remove_entity_from_chunk(struct map *map, struct chunk *chunk, struct entity *e)
 {
-    if(!e->chunk)
+    if(!chunk)
+    {
+        debug_printf("entity not on map, not removing\n");
         return;
-    struct node *node;
-    for(node = e->chunk->ehead; node; node = node->next)
+    }
+    
+    struct node *node, *head = map->entitylists[chunk->index_x + chunk->index_y * map->width];
+    for(node = head; node; node = node->next)
         if(node->p == e)
             break;
 
+    if(!node)
+    {
+        debug_printf("entity not found in chunk, not removing\n");
+        return;
+    }
+        
     if(node->next && node->prev)
     {
         node->prev->next = node->next;
         node->next->prev = node->prev;
-        s_free(node, NULL);
+        s_free(node, "mrefc middle");
     }
     else if(node->next && !node->prev)
     {
-        e->chunk->ehead = e->chunk->ehead->next;
-        s_free(e->chunk->ehead->prev, NULL);
-        e->chunk->ehead->prev = NULL;
+        head = head->next;
+        s_free(head->prev, "mrefc head");
+        head->prev = NULL;
     }
     else if(!node->next && node->prev)
     {
         node->prev->next = NULL;
-        s_free(node, NULL);
+        s_free(node, "mrefc tail");
     }
     else if(!node->next && !node->prev)
     {
-        s_free(e->chunk->ehead, NULL);
-        e->chunk->ehead = NULL;
+        s_free(head, "mrefc single");
+        head = NULL;
     }
-    
-    e->chunk = NULL;
+
+    map->entitylists[chunk->index_x + chunk->index_y * map->width] = head;
 }
 
 float map_get_chunk_x(struct map *map, struct chunk *chunk)//x of top left corner
@@ -214,6 +236,8 @@ struct tile *map_get_tile_from_coordinate(struct map *map, float x, float y)
     y = map_get_chunk_y(map, chunk) - y;
     x /= map->tilesize;
     y /= map->tilesize;
+
+    //printf("%.2f %.2f\n", x, y);
     
     return &chunk->tiles[(int)x + (int)y * map->chunksize];
 }
@@ -238,7 +262,6 @@ void map_create_chunks(struct map *map, ALLEGRO_FILE *file)
             chunk->tiles = s_malloc(sizeof(struct tile) * map->chunksize * map->chunksize, NULL);
             /*chunk->x = x;
             chunk->y = y;*/
-            chunk->ehead = NULL;
 
             char buf[32];
             int r2, c2;
@@ -319,6 +342,7 @@ struct map *map_load(char *dir)
     map->chunksize = atoi(strtok(NULL, ","));
     map->tilesize = atoi(strtok(NULL, ","));
     map->graph = NULL;
+    map->entitylists = NULL;
 
     map_create_chunks(map, mapfile);
 
@@ -330,16 +354,6 @@ struct map *map_load(char *dir)
 void map_destroy_chunk(struct chunk *chunk)
 {
     s_free(chunk->tiles, NULL);
-    if(chunk->ehead)
-    {
-        struct node *node = chunk->ehead->next;
-        for(; node; node = node->next)
-        {
-            s_free(chunk->ehead, NULL);
-            chunk->ehead = node;
-        }
-        s_free(chunk->ehead, NULL);
-    }
 }
 
 void map_destroy(struct map *map)
@@ -348,15 +362,23 @@ void map_destroy(struct map *map)
         return;
 
     int r, c;
+    struct node *node, *next;
     for(r = 0; r < map->height; r++)
     {
         for(c = 0; c < map->width; c++)
         {
             map_destroy_chunk(&map->chunks[r][c]);
+            node = map->entitylists[c + r * map->width];
+            for(; node; node = next)
+            {
+                next = node->next;
+                s_free(node, NULL);
+            }
         }
         s_free(map->chunks[r], NULL);
     }
     s_free(map->chunks, NULL);
+    s_free(map->entitylists, NULL);
 
     if(map->name)
         s_free(map->name, NULL);
@@ -369,5 +391,5 @@ void map_destroy(struct map *map)
 
     s_free(map->palette, NULL);
 
-    s_free(map, "Freeing map");
+    s_free(map, "freeing map");
 }

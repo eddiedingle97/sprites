@@ -98,7 +98,6 @@ struct tile *tp_get_tile(int tileid)
                 tile.type = IT_TILETYPE[IT_ERROR];
                 break;
         }
-        return &tile;//return error tile
     }
 
     switch(curtype)

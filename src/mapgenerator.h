@@ -22,6 +22,14 @@ struct room
     int enemies;
 };
 
+struct area
+{
+    int x1;
+    int y1;
+    int x2;
+    int y2;
+};
+
 int mg_room_center_x(struct room *room);
 int mg_room_center_y(struct room *room);
 

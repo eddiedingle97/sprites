@@ -469,7 +469,8 @@ float mm_global_to_rel_y(float y)
 void mm_draw_chunks(ALLEGRO_DISPLAY *display)
 {
     //redraws every frame
-    //optimize to redraw on zoom and on new chunks loaded
+    //OPT: to redraw on zoom and on new chunks loaded
+    //draw on screen sized bitmap, and scroll with player movement
     al_set_target_bitmap(al_get_backbuffer(display));
     al_clear_to_color(BLACK);
     float zoom = sm_get_zoom();
@@ -487,7 +488,7 @@ void mm_draw_chunks(ALLEGRO_DISPLAY *display)
     {
         for(c = corners[TOPLEFT]->index_x; c <= corners[TOPRIGHT]->index_x; c++)
         {
-            chunk = &topmap->chunks[r][c];
+            chunk = &topmap->chunks[r][c];//OPT: skip chunks whose tiles are entirely blank
             for(tr = 0; tr < chunksize; tr++)
             {
                 for(tc = 0; tc < chunksize; tc++)

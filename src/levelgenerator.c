@@ -24,13 +24,14 @@ void lg_generate_level(char newmap)
 	warptable = dict_create(wte_comp);
     mm_add_tile_map_to_list("DungeonTilesetIItiles.png", 16);
     //mm_register_tile_function(tf_warp);
-	struct map *map = mg_create_island_map(500, 500);
+	struct map *map = mg_create_map(50, 50);
 	mm_add_map(map);
 	mm_set_top_map(0);
     em_register_entity(knight_create, knight_behaviour, knight_destroy, 0);
     em_register_entity(orc_create, orc_behaviour, orc_destroy, 0);
 	knight = em_create_entity(0, 0, 0);
 	em_add_entity_to_map(map, knight);
+	knight->health = 10;
 
 	lg_add_enemies(map);
 
@@ -62,7 +63,6 @@ void lg_add_enemies(struct map *map)
 			struct room *room = v->p;
 			for(i = 0; i < room->enemies; i++)
 			{
-				
 				int x = (room->x + 1 + math_get_random(room->w - 3)) * 16;
 				int y = (room->y - 1 - math_get_random(room->h - 3)) * 16;
 				//printf("adding enemy %d %d %d %d %d %d %.2f %.2f\n", room->x, room->w, room->y, room->h, x, y, (float)x, (float)y);

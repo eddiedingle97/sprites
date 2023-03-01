@@ -8,7 +8,6 @@ struct entity *item_create(ALLEGRO_BITMAP *bitmap, void *data)
 {
 	struct entity *out = s_malloc(sizeof(struct entity), "item_create");
 	out->sprite = sm_create_global_sprite(bitmap, 0, 0, PLAYER, CENTERED);
-	out->chunk = NULL;
 	out->data = data;
 	out->holder = NULL;
 

@@ -15,7 +15,7 @@ float math_sqrt(float no)
     return sqrtf(no);
 }
 
-float math_fast_inverse_sqrt(float no)
+/*float math_fast_inverse_sqrt(float no)
 {
     long i;
     float x2, y;
@@ -30,7 +30,7 @@ float math_fast_inverse_sqrt(float no)
     y = y * (threehalfs - (x2 * y * y));
     
     return y;
-}
+}*/
 
 float math_get_distance(float xcomp, float ycomp)
 {
@@ -39,7 +39,7 @@ float math_get_distance(float xcomp, float ycomp)
 
 float math_get_inverse_distance(float xcomp, float ycomp)
 {
-    return math_fast_inverse_sqrt((xcomp * xcomp) + (ycomp * ycomp));
+    return 1.0f / math_get_distance(xcomp, ycomp);//math_fast_inverse_sqrt((xcomp * xcomp) + (ycomp * ycomp));
 }
 
 int math_round(float f)

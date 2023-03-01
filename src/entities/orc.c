@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <stdio.h>
 #include <allegro5/allegro.h>
 #include "../entity.h"
 #include "../keyboard.h"
@@ -15,6 +16,7 @@ enum ORCSTATE {IDLE, AGGRO, SEEK};
 static struct animation *orcanimations = NULL;
 static ALLEGRO_CONFIG *orccfg = NULL;
 static int noorcs = 0;
+static int visiondist = 0;
 
 float lerp_check(float x1, float y1, float x2, float y2, unsigned char tilemask)
 {
@@ -29,7 +31,7 @@ float lerp_check(float x1, float y1, float x2, float y2, unsigned char tilemask)
     {
         x2 += x;
         y2 += y;
-        t = mm_get_tile(x2, y2);//does not work with multiple maps, change this
+        t = mm_get_tile(x2, y2);//FIX: does not work with multiple maps, change this
         if(t && t->type & tilemask)
             return 0;
     }
@@ -42,19 +44,18 @@ void orc_behaviour(struct entity *entity, float *dx, float *dy)
     struct sprite *sprite = entity->sprite;
     struct orcdata *data = entity->data;
     struct sprite *target = data->target->sprite;
-    float dist;
+    float dist = lerp_check(sprite->x, sprite->y, target->x, target->y, SOLID);
     if(entity->health > 0)
     {
-        dist = lerp_check(sprite->x, sprite->y, target->x, target->y, SOLID);
         switch(data->state)
         {
             case IDLE:
-                if(dist != 0)
+                if(dist != 0 && dist < visiondist)//OPT: computes distance twice, oh well
                     data->state = AGGRO;
                 else
                     break;
             case AGGRO:
-                if(dist != 0)
+                if(dist != 0 && dist < visiondist)
                 {
                     *dx = target->x - sprite->x, *dy = target->y - sprite->y;
                     data->x = target->x;
@@ -66,7 +67,7 @@ void orc_behaviour(struct entity *entity, float *dx, float *dy)
                     data->state = SEEK;
                 }
             case SEEK:
-                if(dist != 0)
+                if(dist != 0 && dist < visiondist)
                 {
                     *dx = target->x - sprite->x, *dy = target->y - sprite->y;
                     data->x = target->x;
@@ -110,6 +111,7 @@ struct entity *orc_create()
     {
         orccfg = al_load_config_file(s_get_full_path_with_dir("config/entities", "orc.cfg"));
         an = e_load_animations_from_config(orccfg);
+        visiondist = u_atoi(al_get_config_value(orccfg, "stats", "visiondistance")) * 16;
 
         orcanimations = an;
     }

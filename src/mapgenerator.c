@@ -24,6 +24,7 @@ int mg_put_room_on_map(struct map *map, struct room *rooms);
 int mg_connect_room_exits(struct map *map, struct room *rooms, struct graph *graph);
 int mg_connect_rooms(struct map *map, struct graph *graph);
 struct tile *mg_update_tile(struct map *map, float x, float y, struct tile *tile);
+struct tile *mg_get_tile(struct map *map, float x, float y);
 void mg_fill_area(struct map *map, int x1, int y1, int x2, int y2, struct tile *tile);
 void mg_create_simple_dungeon(struct map *map, int norooms);
 void mg_create_classic_dungeon(struct map *map, int maxrooms);
@@ -78,14 +79,184 @@ void mg_island_map_iter(int x, int y, int z, float noise, struct map *map)
 
 void mg_create_island(struct map *map)
 {
-    math_seed(0);
+    math_seed(1670092660);
 
-    perlin_noise_iter(0, map->width * map->chunksize, map->height * map->chunksize, 1, 3, .002, .6, map, mg_island_map_iter);
+    /*struct noisemap *nm = */perlin_noise_iter(0, map->width * map->chunksize, map->height * map->chunksize, 1, 3, .002, .6, map, mg_island_map_iter);
+
+    
+
+    //perlin_destroy_noise_map(nm);
+
+    //struct area *areas = s_malloc(sizeof(struct area), "areas : mg_create_island");
+    int noareas = 1;
+    int notries = 0;
+    int x1, y1, x2, y2;
+    while(notries < 20)
+    {
+        x1 = (math_rand() % (map->width * map->chunksize)) - map->width * map->chunksize / 2;
+        y1 = (math_rand() % (map->height * map->chunksize)) - map->height * map->chunksize / 2;
+
+        if(mg_get_tile(map, x1, y1)->id == IT_GRASS)
+        {
+            x2 = x1;
+            y2 = y1;
+            int d;
+            int spreading;
+            //printf("%d %d\n", x1, y1);
+            do
+            {
+                spreading = 0;
+                for(d = 0; d < 4; d++)
+                {
+                    int notiles;
+                    int goodtiles = 1;
+                    int i;
+                    switch(d)
+                    {
+                        case 0://UP
+                            notiles = x2 - x1;
+                            for(i = 0; i <= notiles; i++)
+                            {
+                                struct tile *t = mg_get_tile(map, x1 + i, y1 + 1);
+                                goodtiles &= t ? t->id == IT_GRASS : 0;
+                            }
+                            if(goodtiles)
+                            {
+                                y1++;
+                                spreading |= 1;
+                            }
+                            break;
+                        case 1://DOWN
+                            notiles = x2 - x1;
+                            for(i = 0; i <= notiles; i++)
+                            {
+                                struct tile *t = mg_get_tile(map, x2 - i, y2 - 1);
+                                goodtiles &= t ? t->id == IT_GRASS : 0;
+                            }
+                            if(goodtiles)
+                            {
+                                y2--;
+                                spreading |= 1;
+                            }
+                            break;
+                        case 2://LEFT
+                            notiles = y1 - y2;
+                            for(i = 0; i <= notiles; i++)
+                            {
+                                struct tile *t = mg_get_tile(map, x1 - 1, y1 - i);
+                                goodtiles &= t ? t->id == IT_GRASS : 0;
+                            }
+                            if(goodtiles)
+                            {
+                                x1--;
+                                spreading |= 1;
+                            }
+                            break;
+                        case 3://RIGHT
+                            notiles = y1 - y2;
+                            for(i = 0; i <= notiles; i++)
+                            {
+                                struct tile *t = mg_get_tile(map, x2 + 1, y2 + i);
+                                goodtiles &= t ? t->id == IT_GRASS : 0;
+                            }
+                            if(goodtiles)
+                            {
+                                x2++;
+                                spreading |= 1;
+                            }
+                            break;
+                    }
+                }
+            } while(spreading);
+
+            /*int x, y;
+            for(x = x1; x < x2; x++)
+            {
+                for(y = y1; y > y2; y--)
+                {
+                    mg_update_tile(map, x, y, tp_get_tile(IT_DIRT));
+                }
+            }*/
+        }
+        
+        notries++;
+    }
 }
+
+/*void mg_create_new_dungeon(struct map *map, int maxrooms)
+{
+    math_seed(0);//1643581891//1649730122//1649739262//1649800390//1650157911
+
+    struct room *halls = NULL;
+    struct room *rooms = NULL;
+
+    struct room *rooms = s_malloc(norooms * sizeof(struct room), "mg_create_classic_dungeon");
+    memset(rooms, 0, norooms * sizeof(struct room));
+    
+    rooms[0].w = 7 + math_get_random(13);
+    rooms[0].h = 7 + math_get_random(13);
+    rooms[0].x = -3;
+    rooms[0].y = 3;
+    int leftx = -map->width * map->chunksize / 2, topy = map->height * map->chunksize / 2;
+    int rightx = -leftx - 20, bottomy = -topy + 20;
+    int maxradius = rightx < bottomy ? rightx - 10 : bottomy - 10;
+
+    int i, tries = 0;
+    int angle, distance;
+    for(i = 1; i < norooms; i++)
+    {
+        if(tries == 10)
+            break;
+        angle = math_get_random(360);
+        distance = 10 + math_get_random(maxradius);
+        rooms[i].x = math_floor(distance * math_cos_d(angle));
+        rooms[i].y = math_ceil(distance * math_sin_d(angle));
+        rooms[i].w = 7 + math_get_random(13);
+        rooms[i].h = 7 + math_get_random(13);
+        rooms[i].enemies = 3 + math_get_random(5);
+
+        if(mg_collides(rooms, i - 1, &rooms[i]))
+        {
+            i--;
+            tries++;
+            continue;
+        }
+        if(!math_in_range(leftx, rooms[i].x, rightx) || !math_in_range(bottomy, rooms[i].y, topy))
+        {
+            i--;
+            tries++;
+            continue;
+        }
+
+        tries = 0;
+    }
+
+    struct graph *graph = graph_create(0);
+    /*struct tile *t = map_get_tile_from_coordinate(map, (rooms[0].x + rooms[0].w - 3.0f) * 16.0f, (rooms[0].y - rooms[0].h + 3.0f) * 16.0f);
+    printf("%.2f %.2f\n", ((float)rooms[0].x + rooms[0].w - 3.0f) * 16.0f, ((float)rooms[0].y - rooms[0].h + 3.0f) * 16.0f);
+    printf("%d %d\n", rooms[0].x + rooms[0].w - 3, rooms[0].y - rooms[0].h + 3);*/
+    /*math_mergesort(rooms, i, room_comp, sizeof(struct room));
+    int j;
+    for(j = 0; j < i; j++)
+    {
+        graph_add_vertex(graph, &rooms[j], NULL);
+        mg_put_room_on_map(map, &rooms[j]);
+        
+    }
+
+    /*for(j = 0; j < i; j++)
+        debug_printf("%d %d\n", mg_room_center_x(&rooms[j]), mg_room_center_y(&rooms[j]));*/
+
+    /*delaunay_triangulation(graph, mg_room_center_x, mg_room_center_y);
+    
+    mg_connect_rooms(map, graph);
+
+    map->graph = graph;
+}*/
 
 void mg_create_classic_dungeon(struct map *map, int maxrooms)
 {
-    math_seed(0);//1643581891//1649730122//1649739262//1649800390//1650157911
+    math_seed(1676594803);//1643581891//1649730122//1649739262//1649800390//1650157911
 
     int norooms = 1 + math_get_random(maxrooms);
 
@@ -329,6 +500,12 @@ struct tile *mg_update_tile(struct map *map, float x, float y, struct tile *tile
     return oldtile;
 }
 
+struct tile *mg_get_tile(struct map *map, float x, float y)
+{
+    struct tile *tile = map_get_tile_from_coordinate(map, x * 16.0f, y * 16.0f);
+    return tile;
+}
+
 struct chunk *mg_get_chunk(struct map *map, float x, float y)
 {
     return NULL;
@@ -376,7 +553,7 @@ int mg_connect_rooms(struct map *map, struct graph *graph)
     struct vertex *v = NULL, *n = NULL;
     struct room *here = NULL, *there = NULL;
     struct coord to, from;
-    struct tile *floor = tp_get_tile(DT_FLOOR), *temp = NULL;
+    struct tile floor = *tp_get_tile(DT_FLOOR), *temp = NULL;
     for(i = 0; i < graph->noedges; i += 2)
     {
         e = &graph->edges[i];
@@ -396,51 +573,53 @@ int mg_connect_rooms(struct map *map, struct graph *graph)
             //mg_update_tile(map, to.x, to.y, tp_get_tile(ERROR));
 
             struct coord *path = a_star(map, &from, &to, &count, 0);
+            //a star is pointless here, just being lazy, tremendous performance hit
+            //just find a path with a right angle, same outcome
 
             if(path)
             {
                 for(count -= 2; count >= 0; count--)
                 {
-                    mg_update_tile(map, path[count].x, path[count].y, floor);
-                    if(path[count].x - path[count + 1].x)
+                    mg_update_tile(map, path[count].x, path[count].y, &floor);
+                    if(path[count].x - path[count + 1].x != 0)//path went right or left, add tiles above and below
                     {
                         temp = mg_get_tile_from_coordinate(map, path[count].x, path[count].y + 1);
-                        if(temp->id != DT_ERROR)
+                        if(temp->id == DT_EMPTY)
                             *temp = *tp_get_tile(DT_TOPWALL);
                         temp = mg_get_tile_from_coordinate(map, path[count].x, path[count].y - 1);
-                        if(temp->id != DT_ERROR)
+                        if(temp->id == DT_EMPTY)
                             *temp = *tp_get_tile(DT_BOTTOMWALL);
 
-                        if(up)
+                        /*if(up)
                         {
                             temp = mg_get_tile_from_coordinate(map, path[count + 1].x, path[count + 1].y - 1);
-                            if(temp->id != DT_ERROR)
+                            if(temp->id != DT_EMPTY)
                                 *temp = *tp_get_tile(DT_BOTTOMWALL);
                             temp = mg_get_tile_from_coordinate(map, path[count + 1].x, path[count + 1].y + 1);
-                            if(temp->id != DT_ERROR)
+                            if(temp->id != DT_EMPTY)
                                 *temp = *tp_get_tile(DT_TOPWALL);
-                        }
+                        }*/
                         right = 1;
                         up = 0;
                     }
-                    else
+                    else//path went up or down, add tiles left and right
                     {
                         temp = mg_get_tile_from_coordinate(map, path[count].x + 1, path[count].y);
-                        if(temp->id != DT_ERROR)
+                        if(temp->id == DT_EMPTY)
                             *temp = *tp_get_tile(DT_RIGHTWALL);
                         temp = mg_get_tile_from_coordinate(map, path[count].x - 1, path[count].y);
-                        if(temp->id != DT_ERROR)
+                        if(temp->id == DT_EMPTY)
                             *temp = *tp_get_tile(DT_LEFTWALL);
 
-                        if(right)
+                        /*if(right)
                         {
                             temp = mg_get_tile_from_coordinate(map, path[count + 1].x - 1, path[count + 1].y);
-                            if(temp->id != DT_ERROR)
+                            if(temp->id != DT_EMPTY)
                                 *temp = *tp_get_tile(DT_LEFTWALL);
                             temp = mg_get_tile_from_coordinate(map, path[count + 1].x + 1, path[count + 1].y);
-                            if(temp->id != DT_ERROR)
+                            if(temp->id != DT_EMPTY)
                                 *temp = *tp_get_tile(DT_RIGHTWALL);
-                        }
+                        }*/
                         right = 0;
                         up = 1;
                     }

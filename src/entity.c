@@ -10,7 +10,6 @@ struct entity *e_create(float x, float y, struct animation *an, void *data)
     struct entity *out = s_malloc(sizeof(struct entity), "e_create");
     out->sprite = sm_create_global_dynamic_sprite(an, x, y, PLAYER, CENTERED);
     out->data = data;
-    out->chunk = NULL;
     out->hand = NULL;
     out->actions = NULL;
     out->noactions = 0;

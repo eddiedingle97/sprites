@@ -299,7 +299,7 @@ void s_free(void *ptr, const char *msg)
 	if(debug)
 	{
 		if(msg)
-			printf("%s\n", msg);
+			printf("%p %s\n", ptr, msg);
 		if(ptr)
 			fcount += 1;
 		else

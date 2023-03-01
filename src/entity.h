@@ -7,7 +7,6 @@ struct entity
 {
     struct sprite *sprite;
     void *data;
-    struct chunk *chunk;
     union
     {
         struct//pc 
