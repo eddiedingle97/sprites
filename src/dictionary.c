@@ -128,6 +128,17 @@ void *dict_get_entry(struct dict *dict, void *key)
     return NULL;
 }
 
+void *dict_get_key(struct dict *dict, void *entry)
+{
+    int i;
+    for(i = 0; i < dict->size; i++)
+    {
+        if(dict->p[i] == entry)
+            return dict->keys[i];
+    }
+    return NULL;
+}
+
 static void dict_shuffle_up(struct dict *dict, int i)
 {
     int j;

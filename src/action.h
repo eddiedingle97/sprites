@@ -6,6 +6,7 @@ struct action
 {
 	unsigned short actionid;
 	unsigned short done;
+	
 	void *data;
 };
 
@@ -13,6 +14,8 @@ struct swingdata
 {
 	float angle;
 	int ccw;
+	unsigned short ticks;
+	unsigned short tickcount;
 };
 
 void action_init_swing(struct entity *e, float angle, int ccw);

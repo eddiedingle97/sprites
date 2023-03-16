@@ -1,0 +1,36 @@
+for(i = 0; i < 4; i++)
+{
+        axis[X] = -(corners[(i + 1) % 4][Y] - corners[i][Y]);
+        axis[Y] = corners[(i + 1) % 4][X] - corners[i][X];
+        float dist = math_get_distance(axis[X], axis[Y]);
+        if(dist == 0)//FIX: just do collision here, should never really happen anyway...
+            dist = .000001;
+        axis[X] /= dist;
+        axis[Y] /= dist;
+
+        float offset = (circlex - squarex) * axis[X] + (circley - squarey) * axis[Y];
+        float circcenter = circlex * axis[X] + circley * axis[Y];
+        float rectrangeone = corners[(i + 1) % 4][X] * axis[X] + corners[(i + 1) % 4][Y] * axis[Y];
+        float rectrangetwo = corners[(i + 2) % 4][X] * axis[X] + corners[(i + 2) % 4][Y] * axis[Y];
+        
+        if(rectrangeone > rectrangetwo ?
+            (rectrangetwo + offset - (circcenter + circle->colrad) > 0 || circcenter - circle->colrad - (rectrangeone + offset) > 0) :
+            (rectrangeone + offset - (circcenter + circle->colrad) > 0 || circcenter - circle->colrad - (rectrangetwo + offset) > 0))
+        {
+            printf("axisx %.2f, axisy %.2f, offset %.2f, c1 %.2f, c2 %.2f, r1 %.2f, r2 %.2f\n", axis[X], axis[Y], offset, circcenter - circle->colrad, circcenter + circle->colrad, rectrangeone + offset, rectrangetwo + offset);
+            nocollide = 1;
+            break;
+        }
+
+        if(dist < mindist)
+        {
+            mindist = dist;
+            closest = i;
+        }
+    }
+    if(nocollide)
+    {
+        printf("SAT iter %d\n", i);
+        return 0;
+    }
+}

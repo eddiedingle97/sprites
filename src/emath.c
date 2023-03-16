@@ -72,7 +72,7 @@ int math_ceil(float f)
         return out;
 }
 
-int math_in_range(float small, float x, float large)
+inline int math_in_range(float small, float x, float large)
 {
     return small < x && x < large;
 }
@@ -109,27 +109,27 @@ unsigned int math_rand(int upto)
 
 float math_atan2(float x, float y)
 {
-    return atan2f(x, y);
+    return atan2f(y, x);
 }
 
 float math_cos(float angle)
 {
-    return cos(angle);
+    return cosf(angle);
 }
 
 float math_sin(float angle)
 {
-    return sin(angle);
+    return sinf(angle);
 }
 
 float math_cos_d(int angle)
 {
-    return sincoslutable[(angle % 360) + 90];
+    return cosf(angle / 180.0f * M_PI);
 }
 
 float math_sin_d(int angle)
 {
-    return sincoslutable[angle % 360];
+    return sinf(angle / 180.0f * M_PI);
 }
 
 int math_arccos_d(float ratio)//could be done with binary search

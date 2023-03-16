@@ -27,16 +27,17 @@ void lg_generate_level(char newmap)
 	struct map *map = mg_create_map(50, 50);
 	mm_add_map(map);
 	mm_set_top_map(0);
-    em_register_entity(knight_create, knight_behaviour, knight_destroy, 0);
-    em_register_entity(orc_create, orc_behaviour, orc_destroy, 0);
+    em_register_entity(knight_create, knight_behaviour, knight_destroy, 12);
+    em_register_entity(orc_create, orc_behaviour, orc_destroy, 12);
+	em_register_entity(rusty_sword_create, rusty_sword_behaviour, rusty_sword_destroy, 3);
 	knight = em_create_entity(0, 0, 0);
 	em_add_entity_to_map(map, knight);
 	knight->health = 10;
 
 	lg_add_enemies(map);
 
-	em_register_entity(sword_create, sword_behaviour, sword_destroy, 1);
-	sword = em_create_entity(2, 32.0f, 0.0f);
+	em_register_entity(sword_create, sword_behaviour, sword_destroy, 3);
+	sword = em_create_entity(3, 32.0f, 0.0f);
 	em_add_entity_to_map(map, sword);
 }
 
@@ -71,7 +72,13 @@ void lg_add_enemies(struct map *map)
 				{
 					struct orcdata *od = e->data;
 					od->target = knight;
-					map_add_entity_to_chunk(map, e);
+					em_add_entity_to_map(map, e);
+					if(math_get_random(1))
+					{
+						e->hand = em_create_entity(2, x, y);
+						e->hand->holder = e;
+						em_add_entity_to_map(map, e->hand);
+					}
 				}
 			}
 		}

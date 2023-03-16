@@ -8,6 +8,8 @@
 #include "../item.h"
 #include "items.h"
 
+//OPT: somehow reuse sword.c code... just being lazy right now
+
 static ALLEGRO_BITMAP *swordbitmap = NULL;
 static ALLEGRO_CONFIG *swordcfg = NULL;
 static int noswords = 0;
@@ -15,11 +17,11 @@ static int noswords = 0;
 static float offsetx = 10.5f;
 static float offsety = 4.0f;
 
-struct entity *sword_create()
+struct entity *rusty_sword_create()
 {
 	if(!swordcfg)
 	{
-		swordcfg = al_load_config_file(s_get_full_path_with_dir("config/items", "sword.cfg"));
+		swordcfg = al_load_config_file(s_get_full_path_with_dir("config/items", "rustysword.cfg"));
 		swordbitmap = item_get_bitmap_from_config(swordcfg);
 	}
 	
@@ -32,22 +34,17 @@ struct entity *sword_create()
 	out->rotx = 0;
 	out->roty = 0;
 
-	out->width = (unsigned char)u_atoi(al_get_config_value(swordcfg, "stats", "hitboxwidth"));
-	out->height = (unsigned char)u_atoi(al_get_config_value(swordcfg, "stats", "hitboxheight"));
-	out->offsetx = (char)u_atoi(al_get_config_value(swordcfg, "stats", "hitboxoffsetx"));
-	out->offsety = (char)u_atoi(al_get_config_value(swordcfg, "stats", "hitboxoffsety"));
-
 	noswords++;
 
 	return out;
 }
 
-void sword_behaviour(struct entity *e, float *dx, float *dy)
+void rusty_sword_behaviour(struct entity *e, float *dx, float *dy)
 {
 	
 }
 
-void sword_destroy(struct entity *e)
+void rusty_sword_destroy(struct entity *e)
 {
 	if(--noswords == 0)
 	{

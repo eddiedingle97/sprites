@@ -30,10 +30,16 @@ void knight_behaviour(struct entity *e, float *dx, float *dy)
         data->idle = 0;
 
     if(mouse_get_single_one() && e->noactions == 0 && e->hand)
-        action_init_swing(e, math_atan2(mouse_get_rel_y(), mouse_get_rel_x()), 0);
+        action_init_swing(e, math_atan2(mouse_get_rel_x(), mouse_get_rel_y()), 0);
 
-    if(mouse_get_single_two() && e->noactions == 0 && e->hand)
-        action_init_swing(e, math_atan2(mouse_get_rel_y(), mouse_get_rel_x()), 1);
+    /*if(mouse_get_single_two() && e->noactions == 0 && e->hand)
+        action_init_swing(e, math_atan2(mouse_get_rel_y(), mouse_get_rel_x()), 1);*/
+
+    /*if(mouse_get_single_two() && e->noactions == 0 && e->hand)
+    {
+        e->hand->holder = NULL;
+        e->hand = NULL;
+    }*/
 
     sprite->i = data->idle;
 

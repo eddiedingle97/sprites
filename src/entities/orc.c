@@ -9,6 +9,7 @@
 #include "../mapmanager.h"
 #include "../emath.h"
 #include "../util.h"
+#include "../action.h"
 #include "entities.h"
 
 enum ORCSTATE {IDLE, AGGRO, SEEK};
@@ -45,6 +46,7 @@ void orc_behaviour(struct entity *entity, float *dx, float *dy)
     struct orcdata *data = entity->data;
     struct sprite *target = data->target->sprite;
     float dist = lerp_check(sprite->x, sprite->y, target->x, target->y, SOLID);
+    float attackdist = entity->hand ? entity->colrad + entity->hand->height : entity->colrad;//FIX: need better way to determine attackdist when wielding a weapon
     if(entity->health > 0)
     {
         switch(data->state)
@@ -60,6 +62,14 @@ void orc_behaviour(struct entity *entity, float *dx, float *dy)
                     *dx = target->x - sprite->x, *dy = target->y - sprite->y;
                     data->x = target->x;
                     data->y = target->y;
+
+                    if(dist < attackdist)
+                    {
+                        if(entity->hand && entity->noactions == 0)
+                        {
+                            action_init_swing(entity, math_atan2(*dx, *dy), 0);
+                        }
+                    }
                     break;
                 }
                 else
@@ -119,6 +129,7 @@ struct entity *orc_create()
         an = orcanimations;
 
     struct entity *out = e_create(0, 0, an, od);
+    out->strength = 10;
     e_load_stats_from_config(orccfg, out);
     out->health = 20;
     noorcs++;

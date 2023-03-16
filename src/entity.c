@@ -48,7 +48,17 @@ void e_load_stats_from_config(ALLEGRO_CONFIG *cfg, struct entity *e)
     e->speedy = 0;
     e->weight = u_atof(al_get_config_value(cfg, "stats", "weight"));
     e->accel = u_atof(al_get_config_value(cfg, "stats", "accel"));
-    e->colrad = u_atof(al_get_config_value(cfg, "stats", "colrad"));
+    printf("%p\n", al_get_config_value(cfg, "stats", "colrad"));
+    if(!al_get_config_value(cfg, "stats", "colrad"))
+    {
+        puts("here in e load stats");
+        e->width = (unsigned char)u_atoi(al_get_config_value(cfg, "stats", "hitboxwidth"));
+        e->height = (unsigned char)u_atoi(al_get_config_value(cfg, "stats", "hitboxheight"));
+        e->offsetx = (char)u_atoi(al_get_config_value(cfg, "stats", "hitboxoffsetx"));
+        e->offsety = (char)u_atoi(al_get_config_value(cfg, "stats", "hitboxoffsety"));
+    }
+    else
+        e->colrad = u_atof(al_get_config_value(cfg, "stats", "colrad"));
 }
 
 void e_destroy(struct entity *e)

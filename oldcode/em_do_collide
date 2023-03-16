@@ -1,0 +1,60 @@
+/*int onecomp = 0, twocomp = 0;
+
+    onecomp = (components[one->id] & ISITEM) + (components[one->id] & CIRCULARHITBOX) >> 2;
+    twocomp = (components[two->id] & ISITEM) + (components[two->id] & CIRCULARHITBOX) >> 2;
+
+    switch(onecomp)
+    {
+        case 0://one: (pc + rect hitbox)
+            switch(twocomp)
+            {
+                case 0://two: (pc + rect hitbox)
+                    break;
+                case 1://two: (item + rect hitbox)
+                    break;
+                case 2://two: (pc + circular hitbox)
+                    break;
+                case 3://two: (item + circular hitbox)
+                    break;
+            }
+            break;
+        case 1://one: (item + rect hitbox)
+            switch(twocomp)
+            {
+                case 0://two: (pc + rect hitbox)
+                    break;
+                case 1://two: (item + rect hitbox)
+                    break;
+                case 2://two: (pc + circular hitbox)
+                    break;
+                case 3://two: (item + circular hitbox)
+                    break;
+            }
+            break;
+        case 2://one: (pc + circular hitbox)
+            switch(twocomp)
+            {
+                case 0://two: (pc + rect hitbox)
+                    break;
+                case 1://two: (item + rect hitbox)
+                    break;
+                case 2://two: (pc + circular hitbox)
+                    break;
+                case 3://two: (item + circular hitbox)
+                    break;
+            }
+            break;
+        case 3://one: (item + circular hitbox)
+            switch(twocomp)
+            {
+                case 0://two: (pc + rect hitbox)
+                    break;
+                case 1://two: (item + rect hitbox)
+                    break;
+                case 2://two: (pc + circular hitbox)
+                    break;
+                case 3://two: (item + circular hitbox)
+                    break;
+            }
+            break;
+    }*/

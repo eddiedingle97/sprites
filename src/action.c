@@ -1,4 +1,5 @@
 #include <math.h>
+#include <stdio.h>
 #include "action.h"
 #include "emath.h"
 #include "sprites.h"
@@ -14,6 +15,8 @@ void action_init_swing(struct entity *e, float angle, int ccw)
 	struct action *a = s_malloc(sizeof(struct action), "action_init_swing: a");
 	sd->angle = angle;
 	sd->ccw = ccw;
+	sd->ticks = 15;//FIX: FPS dependent
+	sd->tickcount = 0;
 	a->data = sd;
 	a->done = 0;
 	a->actionid = 0;
@@ -27,38 +30,51 @@ void action_swing(struct entity *e)
 	float holddist = math_get_distance(e->hand->holdx, e->hand->holdy);
 	float r = holddist + e->colrad;
 	r /= 6;
-	if(sd->ccw)
+	if(sd->tickcount < sd->ticks)
 	{
-		if(e->hand->sprite->rot < sd->angle + M_PI_2)
+		if(sd->ccw)
 		{
-			e->hand->angvel += e->strength / (e->hand->weight * r * r);
-		}
-		else if(e->hand->sprite->rot > sd->angle + M_PI_2 && e->hand->angvel > 0)
-		{
-			e->hand->angvel -= e->strength / (e->hand->weight * r * r);
+			if(e->hand->sprite->rot < sd->angle + M_PI_2)
+			{
+				e->hand->angvel += e->strength / (e->hand->weight * r * r);
+			}
+			else if(e->hand->sprite->rot > sd->angle + M_PI_2 && e->hand->angvel > 0)
+			{
+				e->hand->angvel -= e->strength / (e->hand->weight * r * r);
+			}
+			else
+			{
+				e->actions->done = 1;
+				e->noactions--;
+			}
 		}
 		else
 		{
-			e->actions->done = 1;
-			e->noactions--;
+			if(e->hand->sprite->rot > sd->angle - M_PI_2)
+			{
+				e->hand->angvel -= e->strength / (e->hand->weight * r * r);
+			}
+			else if(e->hand->sprite->rot < sd->angle - M_PI_2 && e->hand->angvel < 0)
+			{
+				e->hand->angvel += e->strength / (e->hand->weight * r * r);
+			}
+			else
+			{
+				e->actions->done = 1;
+				e->noactions--;
+			}
 		}
 	}
 	else
 	{
-		if(e->hand->sprite->rot > sd->angle - M_PI_2)
-		{
-			e->hand->angvel -= e->strength / (e->hand->weight * r * r);
-		}
-		else if(e->hand->sprite->rot < sd->angle - M_PI_2 && e->hand->angvel < 0)
-		{
-			e->hand->angvel += e->strength / (e->hand->weight * r * r);
-		}
-		else
+		if(e->hand->angvel == 0)
 		{
 			e->actions->done = 1;
 			e->noactions--;
 		}
 	}
+
+	sd->tickcount++;
 }
 
 void action_destroy(struct entity *e)

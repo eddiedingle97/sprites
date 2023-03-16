@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <math.h>
 #include <allegro5/allegro.h>
 #include "sprites.h"
 #include "emath.h"
@@ -9,16 +10,18 @@
 #include "map.h"
 #include "action.h"
 #include "mapmanager.h"
+#include "dictionary.h"
 #include "debug.h"
 #include "colors.h"
 
 #include "entities/entities.h"
 
-enum EM_COMPONENTS {ISITEM = 1};
+enum EM_COMPONENTS {ISITEM = 1, HOLDABLE = 2, CANHOLD = 4, CIRCULARHITBOX = 8};
 
 void em_do_movement(struct map *map, int curcolumn, int currow, struct entity *e, float *dx, float *dy);
 void em_do_speed(struct entity *e, float dx, float dy);
 void em_do_collide(struct entity *one, struct entity *two, float dist);
+int em_do_square_circle_collision(struct entity *square, struct entity *circle, float *dx, float *dy, int squaremove);
 
 static struct entity *knight;
 static struct entity *(**create)();
@@ -85,11 +88,21 @@ struct entity *em_create_entity(unsigned char id, float x, float y)
     out->id = id;
     out->sprite->x = x;
     out->sprite->y = y;
-    if(components[id] & ISITEM)
-    {
-        out->rotx = x;
-        out->roty = y;
-    }
+    int i;
+    for(i = 1; i < (1<<7); i <<= 1)
+        switch(components[id] & i)
+        {
+            case 0:
+                break;
+            case ISITEM:
+                out->rotx = x;
+                out->roty = y;
+                break;
+            case HOLDABLE:
+                break;
+            case CANHOLD:
+                break;
+        }
     return out;
 }
 
@@ -158,10 +171,14 @@ void em_tick()
 
                         if(!(components[e->id] & ISITEM))
                         {
-                            if(e->health <= 0)
+                            if(e->health < 0 && e->id != 0)//don't kill player for now
                             {
+                                if(e->id == 0)
+                                    puts("killing player");
                                 em_remove_entity_from_map(map, curchunk, e);
                                 sm_remove_sprite_from_layer(e->sprite);
+                                if(e->hand)
+                                    e->hand->holder = NULL;
                                 destroy[e->id](e);
                                 continue;
                             }
@@ -257,15 +274,57 @@ void em_do_movement(struct map *map, int currow, int curcolumn, struct entity *e
             for(; node; node = node->next)
             {
                 othere = node->p;
+
                 if(e != othere)//FIX: comparing pointers... probably bad
                 {
-                    ox = e->sprite->x + *dx - othere->sprite->x;
-                    oy = e->sprite->y + *dy - othere->sprite->y;
-                    float dist = math_get_distance(ox, oy);
-                    float coldist = e->colrad + othere->colrad;
-                    if(dist < coldist)
+                    /*
+                        OPT: merge all of this into one function with em_do_collide, maybe use switch statement
+                    */
+                    if((components[e->id] & CIRCULARHITBOX) && (components[othere->id] & CIRCULARHITBOX))
                     {
-                        em_do_collide(e, othere, coldist - dist);
+                        ox = e->sprite->x + *dx - othere->sprite->x;
+                        oy = e->sprite->y + *dy - othere->sprite->y;
+                        float dist = math_get_distance(ox, oy);
+                        float coldist = e->colrad + othere->colrad;
+                        if(dist < coldist)
+                        {
+                            em_do_collide(e, othere, coldist - dist);
+                        }
+                    }
+                    else if(!(components[e->id] & CIRCULARHITBOX) && (components[othere->id] & CIRCULARHITBOX))//FIX: skip collision with holder / held items
+                    {
+                        //skip check if it will obviously not collide
+                        int largest = (e->width > e->height) ? e->width / 2 : e->height / 2;
+                        if(othere->sprite->x + othere->colrad < e->sprite->x + *dx - largest
+                            || othere->sprite->x - othere->colrad > e->sprite->x + *dx + largest)
+                            continue;
+                        if(othere->sprite->y + othere->colrad < e->sprite->y + *dy - largest
+                            || othere->sprite->y - othere->colrad > e->sprite->y + *dy + largest)
+                            continue;
+
+                        em_do_square_circle_collision(e, othere, dx, dy, 1);
+                    }
+                    else if((components[e->id] & CIRCULARHITBOX) && !(components[othere->id] & CIRCULARHITBOX))//FIX: skip collision with holder / held items
+                    {
+                        
+                        //skip check if it will obviously not collide
+                        int largest = (othere->width > othere->height) ? othere->width / 2 : othere->height / 2;
+                        if(e->sprite->x + e->colrad < othere->sprite->x + *dx - largest
+                            || e->sprite->x - e->colrad > othere->sprite->x + *dx + largest)
+                            continue;
+                        if(e->sprite->y + e->colrad < othere->sprite->y + *dy - largest
+                            || e->sprite->y - e->colrad > othere->sprite->y + *dy + largest)
+                            continue;
+                        
+                        if(em_do_square_circle_collision(othere, e, dx, dy, 0) && !e->hand && (components[othere->id] & ISITEM) && !othere->holder)
+                        {
+                            e->hand = othere;
+                            othere->holder = e;
+                        }
+                    }
+                    else if(!(components[e->id] & CIRCULARHITBOX) && !(components[othere->id] & CIRCULARHITBOX))
+                    {
+                        
                     }
                 }
             }
@@ -327,6 +386,141 @@ void em_do_movement(struct map *map, int currow, int curcolumn, struct entity *e
     }
 }
 
+int em_do_square_circle_collision(struct entity *square, struct entity *circle, float *dx, float *dy, int squaremove)//SAT check https://www.sevenson.com.au/programming/sat/
+{
+    float corners[4][2];
+    float squarex, squarey, circlex, circley, newrot;//square is usually a rectangle, oops
+    if(squaremove)
+    {
+        squarex = square->sprite->x + *dx;
+        squarey = square->sprite->y + *dy;
+    }
+    else
+    {
+        squarex = square->sprite->x;
+        squarey = square->sprite->y;
+    }
+    if(components[square->id] & ISITEM)
+    {
+        if(squaremove)
+            newrot = square->sprite->rot + square->sprite->rotoffset + square->angvel;
+        else
+            newrot = square->sprite->rot + square->sprite->rotoffset;
+
+        squarex += square->offsetx * math_cos(newrot) - square->offsety * math_sin(newrot);
+        squarey += square->offsetx * math_sin(newrot) + square->offsety * math_cos(newrot);
+
+        float st = math_sin(newrot), ct = math_cos(newrot);//compiler didn't do this automatically... why?
+
+        //topleft
+        corners[0][X] = squarex - square->width * ct / 2 - square->height * st / 2;//OPT: this will be recomputed every time, probably bad, compiler can do a lot of optimization here though
+        corners[0][Y] = squarey - square->width * st / 2 + square->height * ct / 2;//in clockwise order
+        //topright
+        corners[1][X] = squarex + square->width * ct / 2 - square->height * st / 2;
+        corners[1][Y] = squarey + square->width * st / 2 + square->height * ct / 2;
+        //bottomright
+        corners[2][X] = squarex + square->width * ct / 2 + square->height * st / 2;
+        corners[2][Y] = squarey + square->width * st / 2 - square->height * ct / 2;
+        //bottomleft
+        corners[3][X] = squarex - square->width * ct / 2 + square->height * st / 2;
+        corners[3][Y] = squarey - square->width * st / 2 - square->height * ct / 2;
+        //printf("width %hhd height %hhd offsetx %hhd offsety %hhd\n", square->width, square->height, square->offsetx, square->offsety);
+
+        //printf("%.2f %.2f %.2f\n%.2f %.2f\n%.2f %.2f\n%.2f %.2f\n%.2f %.2f\n%.2f %.2f\n", math_cos(newrot), math_sin(newrot), newrot, squarex, squarey, corners[0][X], corners[0][Y], corners[1][X], corners[1][Y], corners[2][X], corners[2][Y], corners[3][X], corners[3][Y]);
+    }
+    else
+    {
+        squarex += square->offsetx;
+        squarey += square->offsety;
+
+        corners[0][X] = squarex - square->width / 2;//OPT: this will be recomputed every time, probably bad, compiler can do a lot of optimization here though
+        corners[0][Y] = squarey + square->height / 2;//in clockwise order
+        corners[1][X] = squarex + square->width / 2;
+        corners[1][Y] = squarey + square->height / 2;
+        corners[2][X] = squarex + square->width / 2;
+        corners[2][Y] = squarey - square->height / 2;
+        corners[3][X] = squarex - square->width / 2;
+        corners[3][Y] = squarey - square->height / 2;
+        //printf("%.2f %.2f\n%.2f %.2f\n%.2f %.2f\n%.2f %.2f\n", corners[0][X], corners[0][Y], corners[1][X], corners[1][Y], corners[2][X], corners[2][Y], corners[3][X], corners[3][Y]);
+    }
+    if(!squaremove)
+    {
+        circlex = circle->sprite->x + *dx;
+        circley = circle->sprite->y + *dy;
+    }
+    else
+    {
+        circlex = circle->sprite->x;
+        circley = circle->sprite->y;
+    }
+
+    
+    float mindist = 1000000;
+    int i, closest = 0;
+    for(i = 0; i < 4; i++)//OPT: could unroll here
+    {
+        float dist = math_get_distance(corners[i][X] - circlex, corners[i][Y] - circley);
+        if(dist < circle->colrad)
+        {
+            em_do_collide(square, circle, circle->colrad - dist);
+            printf("did fast collide\n");
+            return 1;
+        }
+        
+        if(dist < mindist)
+        {
+            mindist = dist;
+            closest = i;
+        }
+    }
+    
+    float axis[2];
+    axis[X] = corners[closest][X] - circlex;
+    axis[Y] = corners[closest][Y] - circley;
+    float dist = math_get_distance(axis[X], axis[Y]);//should never return 0
+    axis[X] /= dist;
+    axis[Y] /= dist;
+
+    float min = 0, max = 0;
+
+    for(i = 0; i < 4; i++)//OPT: should unroll
+    {
+        float proj = corners[i][X] * axis[X] + corners[i][Y] * axis[Y];
+        //printf("proj %.2f\n", proj);
+        if(i == 0)
+        {
+            min = proj;
+            max = proj;
+        }
+        else if(proj > max)
+            max = proj;
+        else if(proj < min)
+            min = proj;
+    }
+
+    float offset = (circlex - squarex) * axis[X] + (circley - squarey) * axis[Y];
+    float circcenter = circlex * axis[X] + circley * axis[Y];
+    if(min - offset - (circcenter + circle->colrad) > 0 || circcenter - circle->colrad - (max - offset) > 0)
+    {
+        //printf("no collide slow\n%.2f %.2f %.2f %.2f %.2f %.2f\n", circcenter - circle->colrad, circcenter + circle->colrad, min + offset, max + offset, min + offset - (circcenter + circle->colrad), circcenter - circle->colrad - (max + offset));
+        return 1;
+    }
+
+    /*printf("did slow collide 1\n");
+    printf("%.2f %.2f %.2f %.2f\n", circcenter - circle->colrad, circcenter + circle->colrad, min + offset, max + offset);*/
+    /*if(circle->hand && components[square->id] & ISITEM && square->holder && circle->hand == square)
+    {
+        printf("did slow collide 1\n");
+        printf("cmin %.2f, cmax %.2f, rmin %.2f, rmax %.2f\n", circcenter - circle->colrad, circcenter + circle->colrad, min + offset, max + offset);
+        printf("%.2f %.2f\n%.2f %.2f\n%.2f %.2f\n%.2f %.2f\n%.2f %.2f\n%.2f %.2f\n", circlex, circley, corners[0][X], corners[0][Y], corners[1][X], corners[1][Y], corners[2][X], corners[2][Y], corners[3][X], corners[3][Y], axis[X], axis[Y]);
+    }*/
+    em_do_collide(square, circle, .1f);
+
+    return 0;
+}
+
+//enum EM_COMPONENTS {ISITEM = 1, HOLDABLE = 2, CANHOLD = 4, CIRCULARHITBOX = 8};
+
 void em_do_collide(struct entity *one, struct entity *two, float dist)
 {
     if(!(components[one->id] & ISITEM) && !(components[two->id] & ISITEM))
@@ -344,7 +538,7 @@ void em_do_collide(struct entity *one, struct entity *two, float dist)
     }
     else if((components[one->id] & ISITEM) && !(components[two->id] & ISITEM))
     {
-        if(one->holder && one->holder->actions)
+        if(one->holder && one->holder->actions)//FIX: generalize damage for speed, accel, or maybe not idk
         {
             float r = math_get_distance(one->holdx, one->holdy) + one->holder->colrad;
             float speedx = one->holder->speedx + one->speedx + one->angvel * math_cos(one->sprite->rot) * r;
@@ -357,7 +551,7 @@ void em_do_collide(struct entity *one, struct entity *two, float dist)
     }
     else if(!(components[one->id] & ISITEM) && (components[two->id] & ISITEM))
     {
-        if(!two->holder)
+        if(!one->hand && !two->holder)
         {
             one->hand = two;
             two->holder = one;

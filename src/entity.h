@@ -22,8 +22,8 @@ struct entity
         {
             float rotx;
             float roty;
-            float holdx;
-            float holdy;
+            float holdx;//FIX: put this in the <item>.c file
+            float holdy;//FIX: put this in the <item>.c file
             float damage;
             float angvel;
             struct entity *holder;
@@ -33,7 +33,21 @@ struct entity
     float weight;
     float speedx;
     float speedy;
-    float colrad;
+    union
+    {
+        struct//circular hit box
+        {
+            float colrad;
+        };
+        struct //rectangular hit box
+        {
+            unsigned char width;
+            unsigned char height;
+            char offsetx;//from center
+            char offsety;//from center
+        };
+    };
+    
     unsigned char id;
 };
 
