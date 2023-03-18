@@ -35,6 +35,6 @@ void item_get_stats_from_config(ALLEGRO_CONFIG *cfg, struct entity *e)
 void item_destroy(struct entity *e)
 {
 	sm_remove_sprite_from_layer(e->sprite);
-	s_free(e->sprite, NULL);
+	s_free(e->sprite, NULL);//DON'T destroy sprite bitmap, it is reused for every instance of an item, freeing it will cause crashes / segfaults. Should be freed in corresponding <item>.c file
 	s_free(e, NULL);
 }

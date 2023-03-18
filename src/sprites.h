@@ -3,6 +3,7 @@
 
 #define HEIGHT 900
 #define WIDTH 1600
+#define FPS 60
 
 void *s_malloc(int bytes, const char *msg);
 void *s_aligned_malloc(int b, int alignment, const char *msg);

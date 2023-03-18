@@ -25,6 +25,7 @@ static struct tilemap **tilemaps;
 static int tilemapssize;
 static const int HHEIGHT = HEIGHT / 2;
 static const int HWIDTH = WIDTH / 2;
+static struct dict *eventtable;
 static int *matrix;
 enum TILEMAPZ {EMPTY, ERROR, BLANK};
 
@@ -33,12 +34,14 @@ void mm_remove_chunk_from_layer(struct chunk *chunk, int chunksize);
 struct tilemap *mm_load_tile_map_from_file(char *tilemapfile, int tilesize);
 int mm_add_tile_map(struct tilemap *tm);
 void mm_destroy_tile_map(struct tilemap *tm);
+static int mm_tile_compare(struct coord *one, struct coord *two);
 
 enum DIR {UP = 0, DOWN = 1, LEFT = 2, RIGHT = 3};
 
 void mm_init()
 {
     maps = list_create();
+    eventtable = dict_create(mm_tile_compare);
     topmap = NULL;
     tilemapssize = 0;
     tilemaps = NULL;
@@ -59,7 +62,15 @@ void mm_destroy()
         mm_destroy_tile_map(tilemaps[i]);
     }
     s_free(tilemaps, NULL);
+    dict_destroy(eventtable);
     //s_free(matrix, NULL);
+}
+
+static int mm_tile_compare(struct coord *one, struct coord *two)
+{
+    if(one->x == two->x)
+        return one->y - two->y;
+    return one->x - two->x;
 }
 
 void mm_add_map(struct map *map)
@@ -90,15 +101,29 @@ struct list *mm_get_map_list()
     return maps;
 }
 
-int mm_register_tile_event(void (*func)(struct map *, struct entity *))
+int mm_register_tile_event(struct map *map, float x, float y, void (*func)(struct map *, struct entity *))
 {
-   
-    return 0;
+    struct tile *t = map_get_tile_from_coordinate(map, x, y);
+    if(!t)
+        return 0;
+    
+    struct coord *key = s_malloc(sizeof(struct coord), "mm_register_tile_function");
+    key->x = (int)(x / map->tilesize);
+    key->y = (int)(y / map->tilesize);
+
+    dict_add_entry(eventtable, key, func);
+    t->type |= EVENT;//FIX: not necessary right now, may be useful in the future
+
+    return 1;
 }
 
-void mm_do_tile_event(struct map *map, struct entity *e)
+void (*mm_get_tile_event(struct map *map, struct entity *e))(struct map *, struct entity *) 
 {
+    struct coord c;
+    c.x = (int)(e->sprite->x / map->tilesize);
+    c.y = (int)(e->sprite->y / map->tilesize);
 
+    return dict_get_entry(eventtable, &c);
 }
 
 /*void mm_test_color_chunk(struct chunk *chunk)

@@ -79,7 +79,7 @@ void mg_island_map_iter(int x, int y, int z, float noise, struct map *map)
 
 void mg_create_island(struct map *map)
 {
-    math_seed(1670092660);
+    math_seed(0);
 
     /*struct noisemap *nm = */perlin_noise_iter(0, map->width * map->chunksize, map->height * map->chunksize, 1, 3, .002, .6, map, mg_island_map_iter);
 

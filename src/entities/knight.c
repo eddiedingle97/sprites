@@ -10,7 +10,7 @@
 #include "../debug.h"
 #include "entities.h"
 
-void knight_behaviour(struct entity *e, float *dx, float *dy)
+void knight_behaviour(struct entity *e, int tick, float *dx, float *dy)
 {
     struct sprite *sprite = e->sprite;
     struct knightdata *data = e->data;

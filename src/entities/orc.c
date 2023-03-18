@@ -40,15 +40,18 @@ float lerp_check(float x1, float y1, float x2, float y2, unsigned char tilemask)
     return n;
 }
 
-void orc_behaviour(struct entity *entity, float *dx, float *dy)
+void orc_behaviour(struct entity *entity, int tick, float *dx, float *dy)
 {
     struct sprite *sprite = entity->sprite;
     struct orcdata *data = entity->data;
     struct sprite *target = data->target->sprite;
     float dist = lerp_check(sprite->x, sprite->y, target->x, target->y, SOLID);
-    float attackdist = entity->hand ? entity->colrad + entity->hand->height : entity->colrad;//FIX: need better way to determine attackdist when wielding a weapon
+    float attackdist = entity->hand ? 2 * entity->colrad + entity->hand->height : entity->colrad;//FIX: need better way to determine attackdist when wielding a weapon
     if(entity->health > 0)
     {
+        if(data->cooldown > 0)
+            data->cooldown--;
+
         switch(data->state)
         {
             case IDLE:
@@ -65,9 +68,10 @@ void orc_behaviour(struct entity *entity, float *dx, float *dy)
 
                     if(dist < attackdist)
                     {
-                        if(entity->hand && entity->noactions == 0)
+                        if(data->cooldown == 0 && entity->hand && entity->noactions == 0)
                         {
                             action_init_swing(entity, math_atan2(*dx, *dy), 0);
+                            data->cooldown = 30;
                         }
                     }
                     break;
@@ -116,6 +120,7 @@ struct entity *orc_create()
     od->x = 0;
     od->y = 0;
     od->state = IDLE;
+    od->cooldown = 0;
     struct animation *an;
     if(!orccfg)
     {

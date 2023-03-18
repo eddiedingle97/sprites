@@ -21,7 +21,6 @@
 #include "debug.h"
 #include "menu.h"
 
-static const float FPS = 1/60.0;
 static char debug;
 static unsigned long bytes = 0;
 static unsigned int mcount = 0;
@@ -64,7 +63,7 @@ int main(int argc, char **argv)
 		exit(1);
 	}
 
-	struct alobj *al = alobj_create(WIDTH, HEIGHT, FPS);
+	struct alobj *al = alobj_create(WIDTH, HEIGHT, 1.0 / FPS);
 
 	if(!al)
 		exit(1);

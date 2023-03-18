@@ -1,6 +1,7 @@
 #ifndef __MAPMANAGER_H__
 #define __MAPMANAGER_H__
 #include "map.h"
+#include "entity.h"
 
 void mm_init();
 void mm_destroy();
@@ -33,6 +34,8 @@ void mm_print_tile_maps();
 void mm_save_tile_maps(char *dir);
 int mm_load_tile_maps(char *dir);
 int mm_is_chunk_loaded(int x, int y);
+void (*mm_get_tile_event(struct map *map, struct entity *e))(struct map *, struct entity *);
+int mm_register_tile_event(struct map *map, float x, float y, void (*func)(struct map *, struct entity *));
 
 enum DIR2 {TOPLEFT = 0, TOPRIGHT = 1, BOTTOMLEFT = 2, BOTTOMRIGHT = 3};
 
