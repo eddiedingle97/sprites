@@ -37,6 +37,7 @@ struct chunk
     struct tile *tiles;
     unsigned short index_x;
     unsigned short index_y;
+    unsigned short flags;
 };
 
 struct map

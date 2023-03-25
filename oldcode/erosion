@@ -1,0 +1,48 @@
+float vec[2] = {0.0f, 0.0f}, center[2] = {0.0f, 0.0f}, wave[2] = {0.0f, 0.0f};
+    if(chunk->flags & MG_HASWATER && chunk->flags & ~MG_OCEAN)
+    {
+        for(i = -1; i < 1; i++)
+        {
+            for(j = -1; j < 1; j++)
+            {
+                if(i == 0 && j == 0)
+                    continue;
+                ochunk = map_get_chunk_from_index(map, chunk->index_x + i, chunk->index_y + j);
+                
+                if(ochunk && ochunk->flags & MG_OCEAN)
+                {
+                    vec[X] += i;
+                    vec[Y] += -j;
+                }
+            }
+        }
+        float dist = math_get_distance(vec[X], vec[Y]);
+        if(dist == 0)
+            return 0;
+        vec[X] /= dist;
+        vec[Y] /= dist;
+        
+        center[X] = map_get_chunk_x(map, chunk) + map->chunksize / 2.0f;
+        center[Y] = map_get_chunk_y(map, chunk) - map->chunksize / 2.0f;
+        
+        wave[X] = center[X] - vec[X] * map->chunksize;
+        wave[Y] = center[Y] - vec[Y] * map->chunksize;
+
+        float angle = math_atan2(vec[X], vec[Y]);
+        angle += M_PI * (math_get_random(30) - 15) / 180.0f; 
+        vec[X] = math_cos(angle);
+        vec[Y] = math_sin(angle);
+
+        struct tile *tile = NULL;
+        int notries = 0;
+        while(notries++ < 25)
+        {
+            tile = map_get_tile_from_coordinate(map, wave[X], wave[Y]);
+            if(tile && tile->id == IT_SAND)
+            {
+                *tile = *tp_get_tile(IT_WATER);
+                break;
+            }
+            wave[X] += vec[X];
+            wave[Y] += vec[Y];
+        }

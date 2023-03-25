@@ -24,13 +24,14 @@ struct room
 
 struct area
 {
-    int x1;
+    int x1;//topleft
     int y1;
-    int x2;
+    int x2;//bottomright
     int y2;
 };
 
 int mg_room_center_x(struct room *room);
 int mg_room_center_y(struct room *room);
+enum CHUNKFLAGS {MG_OCEAN = 1, MG_SHORE = 2, MG_MAINLAND = 4, MG_SMALLISLAND = 8, MG_HABITABLE = 16, MG_HASWATER = 32, MG_CHECKED = 64};
 
 #endif

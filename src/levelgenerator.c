@@ -29,8 +29,21 @@ void lg_generate_level(char newmap)
 	mm_set_top_map(0);
     em_register_entity(knight_create, knight_behaviour, knight_destroy, 12);
 	knight = em_create_entity(0, 0, 0);
-	em_add_entity_to_map(island, knight);
 	knight->health = 10;
+	em_add_entity_to_map(island, knight);
+	em_register_entity(lizard_create, lizard_behaviour, lizard_destroy, 12);
+	int r, c;
+	for(r = 0; r < island->height; r++)
+	{
+		for(c = 0; c < island->width; c++)
+		{
+			if(island->chunks[r][c].flags & MG_HABITABLE)
+			{
+				//em_add_entity_to_map(island, em_create_entity(1, c * island->chunksize * island->tilesize - island->width * island->tilesize / 2, -r * island->chunksize * island->tilesize - island->height * island->tilesize / 2));
+			}
+		}
+	}
+	
 
     //mm_register_tile_function(tf_warp);
 	/*struct map *map = mg_create_map(50, 50);

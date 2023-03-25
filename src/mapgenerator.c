@@ -1,5 +1,6 @@
 #include <allegro5/allegro.h>
 #include <stdio.h>
+#include <math.h>
 #include "sprites.h"
 #include "map.h"
 #include "mapmanager.h"
@@ -64,122 +65,285 @@ struct map *mg_create_island_map(int w, int h)
     return out;
 }
 
-void mg_island_map_iter(int x, int y, int z, float noise, struct map *map)
+void mg_per_chunk_perlin(struct map *map)
 {
-    x -= map->width * map->chunksize / 2;
-    y = map->height * map->chunksize / 2 - y;
+    perlin_init(0, 3);
+
+    int r, c, tr, tc;
+    float noise;
+    struct chunk *chunk;
+    struct tile *tile, *tptile;
+    int x, y, count = 0;//to be fed to perlin_noise_sample
+    int water, sand, grass, dirt;
+    for(r = 0; r < map->height; r++)
+    {
+        for(c = 0; c < map->width; c++)//FOR EACH CHUNK
+        {
+            chunk = &map->chunks[r][c];
+            x = c * map->chunksize;
+            y = r * map->chunksize;
+            water = 0;
+            sand = 0;
+            grass = 0;
+            dirt = 0;
+            for(tr = 0; tr < map->chunksize; tr++)
+            {
+                for(tc = 0; tc < map->chunksize; tc++)//FOR EACH TILE IN THE CHUNK
+                {
+                    tile = &chunk->tiles[tr * map->chunksize + tc];
+                    noise = perlin_noise_sample(map->width * map->chunksize, map->height * map->chunksize, x + tc, y + tr, 3, .002/*FIX: adjust this with map size*/, .6);
+                    count++;
+                    if(noise < .45)
+                    {
+                        *tile = *tp_get_tile(IT_WATER);
+                        water++;
+                    }
+                    else if(noise < .48)
+                    {
+                        *tile = *tp_get_tile(IT_SAND);
+                        sand++;
+                    }
+                    else
+                    {
+                        *tile = *tp_get_tile(IT_GRASS);
+                        grass++;
+                    }
+                }
+            }
+            //FOR EACH CHUNK
+            //enum CHUNKFLAGS {MG_OCEAN = 1, MG_SHORE = 2, MG_MAINLAND = 4, MG_SMALLISLAND = 8, MG_HABITABLE = 16, MG_HASWATER = 32};
+            float notiles = map->chunksize * map->chunksize;
+            float per = grass / notiles;
+            if(per > .6f)
+                chunk->flags |= MG_MAINLAND;
+            per = water / notiles;
+            if(per == 1.0f)
+                chunk->flags |= MG_OCEAN;
+            if(per > 0.0f)
+                chunk->flags |= MG_HASWATER;
+            per = sand / notiles;
+            if(per > 0.0f)
+                chunk->flags |= MG_SHORE;
+        }
+    }
+
+    perlin_done();
+}
+
+int mg_contiguous(struct map *map, struct chunk *one, struct chunk *two)
+{
+    //check if two chunks are contiguous... more annoying to solve than expected. custom a* needed?
+    //FIX: make a* take a function pointer instead of mask for collisions, will help constrain path further
+    int xdiff = one->index_x - two->index_x;
+    int ydiff = one->index_y - two->index_y;
     
-    if(noise < .45)
-        mg_update_tile(map, x, y, tp_get_tile(IT_WATER));
-    else if(noise < .48)
-        mg_update_tile(map, x, y, tp_get_tile(IT_SAND));
+    return 0;
+}
+
+int mg_update_areas(struct map *map, struct chunk *chunk, struct chunk **areas, int noareas)
+{
+    /*int i, j, expand = 0;
+    for(i = 0; i < 2 * noareas; i += 2)
+    {
+        if(chunk->index_x < areas[i]->index_x || chunk->index_x > areas[i + 1]->index_x)
+        {
+            if(chunk->index_x - areas[i]->index_x == -1)//direct left of area
+            {
+                //int sidelength = areas[i]->index_y - areas[i + 1]->index_y;
+                expand = 1;
+                for(j = areas[i]->index_y; j < areas[i + i]->index_y; j++)
+                {
+                    if(map->chunks[j][areas[i]->index_x - 1].flag & MG_OCEAN)
+                    {
+                        expand = 0;
+                        break;
+                    }
+                }
+                if(expand)
+                {
+
+                }
+            }
+            else if(chunk->index_x - areas[i + 1]->)
+        }
+
+        else if(chunk->index_y < areas[i]->index_y || chunk->index_y > areas[i + 1]->index_y);
+
+
+    }*/
+}
+
+int mg_island_chunk_post_check(struct map *map, struct chunk *chunk, int depth)//bread first search essentially
+{
+    if(chunk->flags & MG_CHECKED)
+        return 0;
+    long count = 0;
+    struct list *queue; 
+    if(!(chunk->flags & MG_OCEAN))
+    {
+        chunk->flags |= MG_CHECKED;
+        queue = list_create();
+        list_queue(queue, chunk);
+    }
     else
-        mg_update_tile(map, x, y, tp_get_tile(IT_GRASS));
+    {
+        chunk->flags |= MG_CHECKED;
+        return 0;
+    }
+    
+    struct chunk *ochunk;
+    
+    struct chunk **areas = s_malloc(2 * sizeof(struct chunk *), NULL);
+    areas[0] = chunk;
+    areas[1] = chunk;
+    int noareas = 1;
+
+    while(queue->size > 0)
+    {
+        chunk = list_dequeue(queue);
+        
+        count++;
+
+        mg_update_areas(map, chunk, areas, noareas);
+
+        ochunk = map_get_chunk_from_index(map, chunk->index_x + 1, chunk->index_y);
+        if(ochunk && !(ochunk->flags & MG_OCEAN) && !(ochunk->flags & MG_CHECKED))
+        {
+            ochunk->flags |= MG_CHECKED;
+            list_queue(queue, ochunk);
+        }
+
+        ochunk = map_get_chunk_from_index(map, chunk->index_x - 1, chunk->index_y);
+        if(ochunk && !(ochunk->flags & MG_OCEAN) && !(ochunk->flags & MG_CHECKED))
+        {
+            ochunk->flags |= MG_CHECKED;
+            list_queue(queue, ochunk);
+        }
+
+        ochunk = map_get_chunk_from_index(map, chunk->index_x, chunk->index_y + 1);
+        if(ochunk && !(ochunk->flags & MG_OCEAN) && !(ochunk->flags & MG_CHECKED))
+        {
+            ochunk->flags |= MG_CHECKED;
+            list_queue(queue, ochunk);
+        }
+
+        ochunk = map_get_chunk_from_index(map, chunk->index_x, chunk->index_y - 1);
+        if(ochunk && !(ochunk->flags & MG_OCEAN) && !(ochunk->flags & MG_CHECKED))
+        {
+            ochunk->flags |= MG_CHECKED;
+            list_queue(queue, ochunk);
+        }
+    }
+
+    list_destroy(queue);
+    s_free(areas, NULL);
+    
+    return count;
 }
 
 void mg_create_island(struct map *map)
 {
-    math_seed(0);
+    math_seed(1679340287);//1679171525
 
-    /*struct noisemap *nm = */perlin_noise_iter(0, map->width * map->chunksize, map->height * map->chunksize, 1, 3, .002, .6, map, mg_island_map_iter);
+    mg_per_chunk_perlin(map);
 
-    
+    //perlin_noise_iter(0, map->width * map->chunksize, map->height * map->chunksize, 1, 3, .002/*FIX: adjust this with map size*/, .6, &iid, mg_island_map_iter);
 
-    //perlin_destroy_noise_map(nm);
-
-    //struct area *areas = s_malloc(sizeof(struct area), "areas : mg_create_island");
-    int noareas = 1;
-    int notries = 0;
-    int x1, y1, x2, y2;
-    while(notries < 20)
+    int r, c, t, done = 0, count = 0, discrete = 0;
+    struct chunk *chunk;
+    while(!done)
     {
-        x1 = (math_rand() % (map->width * map->chunksize)) - map->width * map->chunksize / 2;
-        y1 = (math_rand() % (map->height * map->chunksize)) - map->height * map->chunksize / 2;
-
-        if(mg_get_tile(map, x1, y1)->id == IT_GRASS)
+        for(r = 0; r < map->height; r++)
         {
-            x2 = x1;
-            y2 = y1;
-            int d;
-            int spreading;
-            //printf("%d %d\n", x1, y1);
-            do
+            for(c = 0; c < map->width; c++)
             {
-                spreading = 0;
-                for(d = 0; d < 4; d++)
+                chunk = &map->chunks[r][c];
+                count = mg_island_chunk_post_check(map, chunk, 0);
+                if(count > 0)
                 {
-                    int notiles;
-                    int goodtiles = 1;
-                    int i;
-                    switch(d)
+                    printf("here %d\n", count);
+                    discrete++;
+                }
+            }
+        }
+        printf("discrete %d\n", discrete);
+        
+        done++;
+    }
+
+    /*for(r = 0; r < map->height; r++)//replace with some kind of cellular automata / game of life approach, think that would be best
+    {
+        for(c = 0; c < map->width; c++)
+        {
+            chunk = &map->chunks[r][c];
+            if(chunk->flags & MG_MAINLAND)
+            {
+                for(t = 0; t < map->chunksize * map->chunksize; t++)
+                {
+                    chunk->tiles[t] = *tp_get_tile(IT_DIRT);
+                }
+                int i, j, checkdone = 0;
+                for(i = -1; i < 1 && !checkdone; i++)
+                {
+                    for(j = -1; j < 1 && !checkdone; j++)
                     {
-                        case 0://UP
-                            notiles = x2 - x1;
-                            for(i = 0; i <= notiles; i++)
+                        if(map->chunks[r + i][c + j].flags & MG_SHORE)
+                        {
+                            chunk->flags |= MG_HABITABLE;
+                            for(t = 0; t < map->chunksize * map->chunksize; t++)
                             {
-                                struct tile *t = mg_get_tile(map, x1 + i, y1 + 1);
-                                goodtiles &= t ? t->id == IT_GRASS : 0;
+                                chunk->tiles[t] = *tp_get_tile(IT_DIRT);
                             }
-                            if(goodtiles)
-                            {
-                                y1++;
-                                spreading |= 1;
-                            }
-                            break;
-                        case 1://DOWN
-                            notiles = x2 - x1;
-                            for(i = 0; i <= notiles; i++)
-                            {
-                                struct tile *t = mg_get_tile(map, x2 - i, y2 - 1);
-                                goodtiles &= t ? t->id == IT_GRASS : 0;
-                            }
-                            if(goodtiles)
-                            {
-                                y2--;
-                                spreading |= 1;
-                            }
-                            break;
-                        case 2://LEFT
-                            notiles = y1 - y2;
-                            for(i = 0; i <= notiles; i++)
-                            {
-                                struct tile *t = mg_get_tile(map, x1 - 1, y1 - i);
-                                goodtiles &= t ? t->id == IT_GRASS : 0;
-                            }
-                            if(goodtiles)
-                            {
-                                x1--;
-                                spreading |= 1;
-                            }
-                            break;
-                        case 3://RIGHT
-                            notiles = y1 - y2;
-                            for(i = 0; i <= notiles; i++)
-                            {
-                                struct tile *t = mg_get_tile(map, x2 + 1, y2 + i);
-                                goodtiles &= t ? t->id == IT_GRASS : 0;
-                            }
-                            if(goodtiles)
-                            {
-                                x2++;
-                                spreading |= 1;
-                            }
-                            break;
+                            checkdone = 1;
+                        }
                     }
                 }
-            } while(spreading);
-
-            /*int x, y;
-            for(x = x1; x < x2; x++)
-            {
-                for(y = y1; y > y2; y--)
-                {
-                    mg_update_tile(map, x, y, tp_get_tile(IT_DIRT));
-                }
-            }*/
+            }
         }
-        
-        notries++;
+    }*/
+    struct tile *tile;
+    char buf[512];
+    int nobytes;
+    memset(buf, 0, 512);
+    if(debug_get())
+    {
+        ALLEGRO_BITMAP *bmap = al_create_bitmap(map->width, map->height);
+        struct sprite *mapsprite = sm_create_sprite(bmap, WIDTH / 2 - map->width, HEIGHT / 2, TEST, NOZOOM);
+        al_lock_bitmap(bmap, 0, ALLEGRO_LOCK_WRITEONLY);
+        al_set_target_bitmap(bmap);
+        ALLEGRO_FILE *f = al_fopen("map.ppm", "w");
+        nobytes = snprintf(buf, 511, "P3\n%d %d\n%d\n", 500, 500, 255);
+        al_fwrite(f, buf, nobytes);
+        for(r = 0; r < map->height; r++)
+        {
+            for(c = 0; c < map->width; c++)
+            {
+                chunk = &map->chunks[r][c];
+                if(chunk->flags & MG_HABITABLE)
+                {
+                    al_fwrite(f, "102 57 49\n", 8);
+                    al_put_pixel(c, r, al_map_rgb(102, 57, 49));
+                }
+                else if(chunk->flags & MG_MAINLAND)
+                {
+                    al_fwrite(f, "0 255 0\n", 8);
+                    al_put_pixel(c, r, al_map_rgb(0, 255, 0));
+                }
+                else if(chunk->flags & MG_OCEAN)
+                {
+                    al_fwrite(f, "0 0 255\n", 8);
+                    al_put_pixel(c, r, al_map_rgb(0, 0, 255));
+                }
+                else
+                {
+                    al_fwrite(f, "255 204 102\n", 12);
+                    al_put_pixel(c, r, al_map_rgb(255, 204, 102));
+                }
+            }
+        }
+        al_unlock_bitmap(bmap);
+        al_fclose(f);
+        debug_add_sprite(mapsprite);
     }
 }
 

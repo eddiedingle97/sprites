@@ -76,6 +76,7 @@ void map_create_test_chunk_list(struct map *map)
 
             chunk->index_x = c;
             chunk->index_y = r;
+            chunk->flags = 0;
             x += gridsize;
         }
         y -= gridsize;
@@ -144,6 +145,11 @@ void map_remove_entity_from_chunk(struct map *map, struct chunk *chunk, struct e
         s_free(head, "mrefc single");
         head = NULL;
     }
+
+    /*if(e->id == 0)
+    {
+        printf("%hd\n", chunk->flags);
+    }*/
 
     map->entitylists[chunk->index_x + chunk->index_y * map->width] = head;
 }
@@ -298,6 +304,7 @@ void map_create_chunks(struct map *map, ALLEGRO_FILE *file)
 
             chunk->index_x = c;
             chunk->index_y = r;
+            chunk->flags = 0;
             x += gridsize;
         }
         y -= gridsize;

@@ -69,7 +69,6 @@ void sm_deferred_draw(struct sprite *sprite);
 
 enum SPRITETYPE {LOCAL = 1, GLOBAL = 2, CENTERED = 4, NOZOOM = 8, DYNAMIC = 16};
 enum LAYERENUM {TEST, MENU, FOREGROUND, PLAYER, SECOND, BACKGROUND, LIMBO};
-enum COORDENUM {X, Y};
 
 #define LAYERS 7
 

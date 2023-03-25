@@ -5,8 +5,11 @@
 #include "sprites.h"
 #include "perlin.h"
 #include "emath.h"
+#include "debug.h"
 
 static int perm[512];
+static float *xoff = NULL;
+static float *yoff = NULL;
 
 void init_perlin_noise()
 {
@@ -129,6 +132,59 @@ void perlin_destroy_noise_map(struct noisemap *map)
 	s_free(map, NULL);
 }
 
+void perlin_init(int seed, int noiter)
+{
+	if(noiter == 0)
+	{
+		debug_printf("noiter = 0 in perlin_start\n");
+		noiter = 1;
+	}
+	if(seed != 0)
+		math_seed(seed);
+	
+	init_perlin_noise();
+	
+	xoff = s_malloc(noiter * sizeof(float), NULL);
+	yoff = s_malloc(noiter * sizeof(float), NULL);
+	int i;
+	for(i = 0; i < noiter; i++)
+	{
+		/*divisor += 1.0 / pow2;
+		pow2 *= 2;*/
+		xoff[i] = (math_rand() % 4096) / 256.0;
+		yoff[i] = (math_rand() % 4096) / 256.0;
+	}
+}
+
+float perlin_noise_sample(int width, int height, int x, int y, int noiter, float scale, float centerweight)
+{
+	float cx = width / 2;
+	float cy = height / 2;
+	float xcomp = (x - cx) / cx;
+	float ycomp = (y - cy) / cy;
+
+	float c = math_get_distance(xcomp, ycomp) < centerweight ? 0 : math_get_distance(xcomp, ycomp) - centerweight;//push noise down with cone formula if outside circle
+
+	float n = 0;
+	int pow2 = 1;
+	float divisor = 0;
+	int i;
+	for(i = 0; i < noiter; i++)
+	{
+		n += (((noise(x * scale * pow2 + xoff[i], y * scale * pow2 + yoff[i], 0) + 1) * (1 - c)) / (2.0 * pow2));
+		divisor += 1.0 / pow2;
+		pow2 *= 2;
+	}
+	n /= divisor;
+	return n;
+}
+
+void perlin_done()
+{
+	s_free(xoff, NULL);
+	s_free(yoff, NULL);
+}
+
 void perlin_noise_iter(int seed, int width, int height, int no_z, int noiter, float scale, float centerweight, void *data, void (*func)(int, int, int, float, void *))
 {
 	init_perlin_noise();
@@ -141,8 +197,8 @@ void perlin_noise_iter(int seed, int width, int height, int no_z, int noiter, fl
 	cy = height / 2;
 	float n;
 	float c;
-	float *xoff = s_malloc(noiter * sizeof(float), NULL);
-	float *yoff = s_malloc(noiter * sizeof(float), NULL);
+	xoff = s_malloc(noiter * sizeof(float), NULL);
+	yoff = s_malloc(noiter * sizeof(float), NULL);
 
 	for(z = 0; z < no_z; z++)
 	{
@@ -161,11 +217,8 @@ void perlin_noise_iter(int seed, int width, int height, int no_z, int noiter, fl
 			{
 				float xcomp = (x - cx) / cx;
 				float ycomp = (y - cy) / cy;
-				//if(centerweight != 0)
-					c = math_get_distance(xcomp, ycomp) < centerweight ? 0 : math_get_distance(xcomp, ycomp) - centerweight;//push noise down with cone formula if outside circle
-				//else
-					//c = 0;
-				//change c calculation to allow for non-square height-widths
+				c = math_get_distance(xcomp, ycomp) < centerweight ? 0 : math_get_distance(xcomp, ycomp) - centerweight;//push noise down with cone formula if outside circle
+
 				n = 0;
 				pow2 = 1;
 				for(i = 0; i < noiter; i++)

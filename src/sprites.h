@@ -16,4 +16,6 @@ char *s_get_full_path(char *str);
 char *s_get_full_path_with_dir(char *dir, char *file);
 struct list *s_get_file_list_from_dir(char *dir);
 
+enum COORDENUM {X, Y};
+
 #endif
