@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "graph.h"
+#include "list.h"
 #include "sprites.h"
 
 struct graph *graph_create(int type)
@@ -212,6 +213,7 @@ int graph_unmark(struct graph *graph)
     int i, count = 0;
     for(i = 0; i < graph->novertices; i++)
     {
+        //printf("%d %p\n", i, &graph->vertices[i]);
         graph->vertices[i].mark = 0;
         count++;
     }
@@ -226,4 +228,36 @@ int graph_is_connected(struct graph *graph)
     graph_dfs(graph);
 
     return graph->novertices == graph_unmark(graph);
+}
+
+int graph_two_vertices_are_connected(struct graph *graph, struct vertex *one, struct vertex *two)
+{
+    int i;
+    struct list *queue = list_create();
+    struct vertex *v = one;
+    do
+    {
+        for(i = 0; i < v->noedges; i++)
+        {
+            struct vertex *w = graph_get_next_vertex(graph, v, i);
+            if(!w)
+                continue;
+            if(w == two)//should be ok, no realloc-ing in this call
+            {
+                list_destroy(queue);
+                return 1;
+            }
+            if(!w->mark)
+            {
+                w->mark = 1;
+                list_queue(queue, w);
+            }
+        }
+        v = list_dequeue(queue);
+    } while(v != NULL && queue->size > 0);
+
+    list_destroy(queue);
+    graph_unmark(graph);
+
+    return 0;
 }

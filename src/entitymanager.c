@@ -16,24 +16,22 @@
 
 #include "entities/entities.h"
 
-enum EM_COMPONENTS {ITEM = 1, HOLDABLE = 2, CANHOLD = 4, CIRCULARHITBOX = 8};
-
-#define ISITEM(e) (components[e->id] & ITEM)
-#define ISCIRCULAR(e) (components[e->id] & CIRCULARHITBOX)
+#define ISITEM(e) (attributes[e->id] & ITEM)
+#define ISCIRCULAR(e) (attributes[e->id] & CIRCULARHITBOX)
+#define ISAIRBORNE(e) (e->flags & AIRBORNE)
+#define ISCALLONCOLLIDE(e) (attributes[e->id] & CALLONCOLLIDE)
 
 void em_do_movement(struct map *map, int curcolumn, int currow, struct entity *e, float *dx, float *dy);
 void em_do_speed(struct entity *e, float dx, float dy);
 void em_do_collide(struct entity *one, struct entity *two, float dist);
 int em_do_square_circle_collision(struct entity *square, struct entity *circle, float *dx, float *dy, int squaremove);
 
-static struct entity *knight;
 static struct entity *(**create)();
 static void (**destroy)(struct entity *);
-static void (**behaviour)(struct entity *, int, float *, float *);
-static char *components;
+static void (**behaviour)(struct map *, struct entity *, float *, float *);
+static char *attributes;
 static void (**actiontable)(struct entity *);
 static int registeredentities;
-static int tick = 0;
 
 static char collision;
 static const int collisionboxsize = 16;
@@ -41,11 +39,12 @@ static struct sprite *collisionbox;
 
 static float frictionconstant = .2f;
 static float collisionpushconstant = .1f;
+static float gravityconstant = .4f;
 static float knockbackconstant = 5;
 
 void em_init()
 {
-    ALLEGRO_BITMAP *boxbitmap = al_create_bitmap(collisionboxsize, collisionboxsize);
+    ALLEGRO_BITMAP *boxbitmap = al_create_bitmap(collisionboxsize, collisionboxsize);//get rid of this in the future
     al_set_target_bitmap(boxbitmap);
     al_lock_bitmap(boxbitmap, 0, 0);
     int i, thick;
@@ -65,13 +64,13 @@ void em_init()
     create = NULL;
     behaviour = NULL;
     destroy = NULL;
-    components = NULL;
+    attributes = NULL;
     actiontable = s_malloc(sizeof(void (*)(struct entity *)) * 1, NULL);
     actiontable[0] = action_swing;
     registeredentities = 0;
 }
 
-int em_register_entity(struct entity *(*c)(), void (*b)(struct entity *, int, float *, float *), void (*d)(struct entity *), char comps)
+int em_register_entity(struct entity *(*c)(), void (*b)(struct map *, struct entity *, float *, float *), void (*d)(struct entity *), char comps)
 {
     create = s_realloc(create, ++registeredentities * sizeof(void (*)()), NULL);
     create[registeredentities - 1] = c;
@@ -79,8 +78,8 @@ int em_register_entity(struct entity *(*c)(), void (*b)(struct entity *, int, fl
     behaviour[registeredentities - 1] = b;
     destroy = s_realloc(destroy, registeredentities * sizeof(void (*)()), NULL);
     destroy[registeredentities - 1] = d;
-    components = s_realloc(components, registeredentities * sizeof(char), NULL);
-    components[registeredentities - 1] = comps;
+    attributes = s_realloc(attributes, registeredentities * sizeof(char), NULL);
+    attributes[registeredentities - 1] = comps;
     return registeredentities - 1;
 }
 
@@ -94,7 +93,7 @@ struct entity *em_create_entity(unsigned char id, float x, float y)
     out->sprite->y = y;
     int i;
     for(i = 1; i < (1<<7); i <<= 1)
-        switch(components[id] & i)
+        switch(attributes[id] & i)
         {
             case 0:
                 break;
@@ -147,7 +146,6 @@ void em_tick()
     struct map *map = NULL, *topmap = mm_get_top_map();
     struct node *mlnode = NULL;
     struct chunk *curchunk = NULL;
-    tick++ % FPS;
     for(mlnode = maps->head; mlnode; mlnode = mlnode->next)
     {
         map = mlnode->p;
@@ -171,13 +169,14 @@ void em_tick()
                         /*
                             OPT: get tile and get chunk functions are called multiple times in this loop for each entity
                                 cache should help a lot with this, not a big deal
-                        */ 
+                        */
 
                         next = node->next;
                         dx = 0;
                         dy = 0;
                         e = node->p;
-                        behaviour[e->id](e, tick, &dx, &dy);
+                        if(!ISCALLONCOLLIDE(e))
+                            behaviour[e->id](map, e, &dx, &dy);
 
                         if(!ISITEM(e))
                         {
@@ -239,7 +238,7 @@ void em_do_speed(struct entity *e, float dx, float dy)
 
 void em_do_movement(struct map *map, int currow, int curcolumn, struct entity *e, float *dx, float *dy)
 {
-    int i, j, collide = 0;
+    int i, j, wallcollide = 0, ecollide = 0;
     float ox, oy;
     struct node *node = NULL;
     struct chunk *chunk = NULL;
@@ -247,11 +246,9 @@ void em_do_movement(struct map *map, int currow, int curcolumn, struct entity *e
     *dx = e->speedx;
     *dy = e->speedy;
 
-    /*if(e->id == 1)
-    {
-        //struct orcdata *data = e->data;
-        printf("%.2f %.2f %.2f\n", e->speedx, e->speedy, *dx);
-    }*/
+    /*
+        FIX: do raycasting approach in the future 
+    */
 
     struct tile *currenttile = map_get_tile_from_coordinate(map, e->sprite->x, e->sprite->y);
     if(currenttile)
@@ -261,6 +258,7 @@ void em_do_movement(struct map *map, int currow, int curcolumn, struct entity *e
         {
             *dx = 0;
             e->speedx = 0;
+            wallcollide = 1;
         }
         
         nexttile = map_get_tile_from_coordinate(map, e->sprite->x, e->sprite->y + *dy);
@@ -268,15 +266,16 @@ void em_do_movement(struct map *map, int currow, int curcolumn, struct entity *e
         {
             *dy = 0;
             e->speedy = 0;
+            wallcollide = 1;
         }
     }
 
-    if(!*dx && !*dy && !ISITEM(e))
-        collide = 1;
+    if(ISITEM(e))
+        wallcollide = 0;
 
-    for(i = -1; i < 2 && !collide; i++)//-1, 0, 1
+    for(i = -1; i < 2 && !wallcollide; i++)//-1, 0, 1
     {
-        for(j = -1; j < 2 && !collide; j++)//-1, 0, 1
+        for(j = -1; j < 2; j++)//-1, 0, 1
         {
             int x = curcolumn + i, y = currow + j;
             if(x < 0 || x >= map->width || y < 0 || y >= map->height)
@@ -287,7 +286,7 @@ void em_do_movement(struct map *map, int currow, int curcolumn, struct entity *e
             {
                 othere = node->p;
 
-                if(e != othere)//FIX: comparing pointers... probably bad
+                if(e != othere)//FIX: comparing pointers... probably bad... or not idk
                 {
                     /*
                         OPT: merge all of this into one function with em_do_collide, maybe use switch statement
@@ -301,6 +300,7 @@ void em_do_movement(struct map *map, int currow, int curcolumn, struct entity *e
                         if(dist < coldist)
                         {
                             em_do_collide(e, othere, coldist - dist);
+                            ecollide = 1;
                         }
                     }
                     else if(!ISCIRCULAR(e) && ISCIRCULAR(othere))//FIX: skip collision with holder / held items
@@ -314,11 +314,11 @@ void em_do_movement(struct map *map, int currow, int curcolumn, struct entity *e
                             || othere->sprite->y - othere->colrad > e->sprite->y + *dy + largest)
                             continue;
 
-                        em_do_square_circle_collision(e, othere, dx, dy, 1);
+                        if(em_do_square_circle_collision(e, othere, dx, dy, 1))
+                            ecollide = 1;
                     }
                     else if(ISCIRCULAR(e) && !ISCIRCULAR(othere))//FIX: skip collision with holder / held items
                     {
-                        
                         //skip check if it will obviously not collide
                         int largest = (othere->width > othere->height) ? othere->width / 2 : othere->height / 2;
                         if(e->sprite->x + e->colrad < othere->sprite->x + *dx - largest
@@ -328,7 +328,10 @@ void em_do_movement(struct map *map, int currow, int curcolumn, struct entity *e
                             || e->sprite->y - e->colrad > othere->sprite->y + *dy + largest)
                             continue;
                         
-                        if(em_do_square_circle_collision(othere, e, dx, dy, 0) && !e->hand && ISITEM(othere) && !othere->holder)
+                        int result = em_do_square_circle_collision(othere, e, dx, dy, 0);
+                        if(result)
+                            ecollide = 1;//need ecollide to stay true if there is a collision with a single entity. necessary
+                        if(result && !e->hand && ISITEM(othere) && !othere->holder)//FIX: pick up items better in the future
                         {
                             e->hand = othere;
                             othere->holder = e;
@@ -343,58 +346,73 @@ void em_do_movement(struct map *map, int currow, int curcolumn, struct entity *e
         }
     }
 
-    if(!collide)
+    //done with collision checks
+
+    e->sprite->x += *dx;
+    e->sprite->y += *dy;
+    if(!ISITEM(e) && e->hand)
     {
-        e->sprite->x += *dx;
-        e->sprite->y += *dy;
-        if(!ISITEM(e) && e->hand)
-        {   
-            e->hand->rotx = e->sprite->x;
-            e->hand->roty = e->sprite->y;
-            e->hand->sprite->x += *dx;
-            e->hand->sprite->y += *dy;
-        }
-        
-        else if(ISITEM(e))
+        e->hand->rotx = e->sprite->x;
+        e->hand->roty = e->sprite->y;
+        e->hand->sprite->x += *dx;
+        e->hand->sprite->y += *dy;
+    }
+    
+    else if(ISITEM(e))
+    {
+        float r;
+        if(e->holder)
+            r = math_get_distance(e->holdx, e->holdy) + e->holder->colrad;
+        else
+            r = math_get_distance(e->rotx - e->sprite->x, e->roty - e->sprite->y);
+        e->sprite->rot += e->angvel;
+        e->rotx += *dx;
+        e->roty += *dy;
+        e->sprite->x = e->rotx + math_cos(e->sprite->rot) * r;
+        e->sprite->y = e->roty + math_sin(e->sprite->rot) * r;
+
+        if(e->holder)
         {
-            float r;
-            if(e->holder)
-                r = math_get_distance(e->holdx, e->holdy) + e->holder->colrad;
-            else
-                r = math_get_distance(e->rotx - e->sprite->x, e->roty - e->sprite->y);
-            e->sprite->rot += e->angvel;
-            e->rotx += *dx;
-            e->roty += *dy;
-            e->sprite->x = e->rotx + math_cos(e->sprite->rot) * r;
-            e->sprite->y = e->roty + math_sin(e->sprite->rot) * r;
-
-            if(e->holder)
-            {
-                float r = math_get_distance(e->holdx, e->holdy) + e->holder->colrad;
-                float pushangle = e->sprite->rot - e->angvel / 2;
-                e->holder->speedx += math_cos(pushangle) * math_abs(e->angvel) * r / 6 * e->weight / (e->holder->weight + e->weight);
-                e->holder->speedy += math_sin(pushangle) * math_abs(e->angvel) * r / 6 * e->weight / (e->holder->weight + e->weight);
-            }
-
-            e->angvel -= e->angvel * frictionconstant;
+            float r = math_get_distance(e->holdx, e->holdy) + e->holder->colrad;
+            float pushangle = e->sprite->rot - e->angvel / 2;
+            e->holder->speedx += math_cos(pushangle) * math_abs(e->angvel) * r / 6 * e->weight / (e->holder->weight + e->weight);
+            e->holder->speedy += math_sin(pushangle) * math_abs(e->angvel) * r / 6 * e->weight / (e->holder->weight + e->weight);
         }
 
-        e->speedx -= e->speedx * frictionconstant;
-        e->speedy -= e->speedy * frictionconstant;
-
-        chunk = map_get_chunk_from_coordinate(map, e->sprite->x, e->sprite->y);
-
-        if(chunk->index_x != curcolumn || chunk->index_y != currow)
-        {
-            em_remove_entity_from_map(map, &map->chunks[currow][curcolumn], e);
-            em_add_entity_to_map(map, e);
-        }
+        e->angvel -= e->angvel * frictionconstant;
     }
 
-    else
+    chunk = map_get_chunk_from_coordinate(map, e->sprite->x, e->sprite->y);
+
+    if(chunk->index_x != curcolumn || chunk->index_y != currow)//do entity list management
     {
-        *dx = 0;
-        *dy = 0;
+        em_remove_entity_from_map(map, &map->chunks[currow][curcolumn], e);
+        em_add_entity_to_map(map, e);
+    }
+
+    if(!ISAIRBORNE(e))//ignore friction if airborne
+    {
+        e->speedx -= e->speedx * frictionconstant;
+        e->speedy -= e->speedy * frictionconstant;
+    }
+
+    else//update z if airborne
+    {
+        e->z += e->speedz;
+        e->speedz -= gravityconstant;
+        if(e->z < 0)
+        {
+            e->z = 0;
+            e->speedz = 0;
+            e->flags &= ~AIRBORNE;
+            wallcollide = 1;//FIX: may want to fix this so that we have info that we specifically hit the ground
+        }
+    }
+    
+    //FIX: maybe do this somewhere else... em_tick or where collision is actually checked.
+    if((ecollide || wallcollide) && ISCALLONCOLLIDE(e))//if there's a collision and entity calls behaviour on collision, call behaviour function
+    {
+        behaviour[e->id](map, e, dx, dy);
     }
 }
 
@@ -415,12 +433,12 @@ int em_do_square_circle_collision(struct entity *square, struct entity *circle, 
     if(ISITEM(square))
     {
         if(squaremove)
-            newrot = square->sprite->rot + square->sprite->rotoffset + square->angvel;
+            newrot = square->sprite->rot + square->sprite->rotoffset + square->angvel;//FIX: assumes square entity has a static bitmap
         else
             newrot = square->sprite->rot + square->sprite->rotoffset;
 
         float st = math_sin(newrot);
-        float ct = math_cos(newrot);//compiler didn't do this automatically... why? more variables?
+        float ct = math_cos(newrot);
 
         squarex += square->offsetx * ct - square->offsety * st;
         squarey += square->offsetx * st + square->offsety * ct;
@@ -523,7 +541,7 @@ int em_do_square_circle_collision(struct entity *square, struct entity *circle, 
 
     /*printf("did slow collide 1\n");
     printf("%.2f %.2f %.2f %.2f\n", circcenter - circle->colrad, circcenter + circle->colrad, min + offset, max + offset);*/
-    /*if(circle->hand && components[square->id] & ISITEM && square->holder && circle->hand == square)
+    /*if(circle->hand && attributes[square->id] & ISITEM && square->holder && circle->hand == square)
     {
         printf("did slow collide 1\n");
         printf("cmin %.2f, cmax %.2f, rmin %.2f, rmax %.2f\n", circcenter - circle->colrad, circcenter + circle->colrad, min + offset, max + offset);
@@ -534,7 +552,7 @@ int em_do_square_circle_collision(struct entity *square, struct entity *circle, 
     return 0;
 }
 
-//enum EM_COMPONENTS {ISITEM = 1, HOLDABLE = 2, CANHOLD = 4, CIRCULARHITBOX = 8};
+//enum EM_attributes {ISITEM = 1, HOLDABLE = 2, CANHOLD = 4, CIRCULARHITBOX = 8};
 
 void em_do_collide(struct entity *one, struct entity *two, float dist)
 {
@@ -589,7 +607,6 @@ void em_destroy()
                 for(node = map->entitylists[c + r * map->width]; node; node = node->next)
                     {
                         e = node->p;
-                        printf("destroying %d\n", e->id);
                         destroy[e->id](e);
                     }
     }
@@ -597,6 +614,6 @@ void em_destroy()
     s_free(create, NULL);
     s_free(behaviour, NULL);
     s_free(destroy, NULL);
-    s_free(components, NULL);
+    s_free(attributes, NULL);
     s_free(actiontable, NULL);
 }

@@ -10,7 +10,7 @@
 #include "../debug.h"
 #include "entities.h"
 
-void knight_behaviour(struct entity *e, int tick, float *dx, float *dy)
+void knight_behaviour(struct map *map, struct entity *e, float *dx, float *dy)
 {
     struct sprite *sprite = e->sprite;
     struct knightdata *data = e->data;
@@ -61,7 +61,6 @@ struct entity *knight_create()
     struct animation *an = e_load_animations_from_config(cfg);
 
     struct entity *out = e_create(0, 0, an, kd);
-    out->strength = 10;
     
     e_load_stats_from_config(cfg, out);
 

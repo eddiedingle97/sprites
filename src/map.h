@@ -4,6 +4,7 @@
 #include "list.h"
 #include "entity.h"
 #include "graph.h"
+#include "mapgenerator.h"
 
 struct tilemap
 {
@@ -49,7 +50,14 @@ struct map
     int tilesize;//in pixels
     int width;//in chunks
     int height;//in chunks
-    struct graph *graph;
+    union
+    {
+        struct
+        {
+            struct graph *graph;
+            struct room *rooms;//size = graph->novertices
+        };
+    };
     struct palette *palette;
 };
 
@@ -65,6 +73,7 @@ void map_add_entity_to_chunk(struct map *map, struct entity *e);
 void map_remove_entity_from_chunk(struct map *map, struct chunk *chunk, struct entity *e);
 int map_save(struct map *map, char *dir);
 void map_destroy_chunk(struct chunk *chunk);
+int map_get_room_index(struct map *map, struct entity *e);
 
 enum TILETYPE {SOLID = 1, BREAKABLE = 2, EVENT = 4};
 

@@ -30,6 +30,15 @@ void item_get_stats_from_config(ALLEGRO_CONFIG *cfg, struct entity *e)
 	e->damage = u_atof(al_get_config_value(cfg, "stats", "damage"));
 	e->weight = u_atof(al_get_config_value(cfg, "stats", "weight"));
 	e->colrad = u_atof(al_get_config_value(cfg, "stats", "colrad"));
+	if(!al_get_config_value(cfg, "stats", "colrad"))
+    {
+        e->width = (unsigned char)u_atoi(al_get_config_value(cfg, "stats", "hitboxwidth"));
+        e->height = (unsigned char)u_atoi(al_get_config_value(cfg, "stats", "hitboxheight"));
+        e->offsetx = (char)u_atoi(al_get_config_value(cfg, "stats", "hitboxoffsetx"));
+        e->offsety = (char)u_atoi(al_get_config_value(cfg, "stats", "hitboxoffsety"));
+    }
+    else
+        e->colrad = u_atof(al_get_config_value(cfg, "stats", "colrad"));
 }
 
 void item_destroy(struct entity *e)

@@ -1,14 +1,20 @@
 #include <stdio.h>
 #include <allegro5/allegro.h>
 #include "sprites.h"
+#include "debug.h"
 #include "spritemanager.h"
+#include "mapgenerator.h"
 #include "entity.h"
 #include "util.h"
+#include "emath.h"
 
 struct entity *e_create(float x, float y, struct animation *an, void *data)
 {
     struct entity *out = s_malloc(sizeof(struct entity), "e_create");
     out->sprite = sm_create_global_dynamic_sprite(an, x, y, PLAYER, CENTERED);
+    out->flags = 0;
+    out->height = 0;
+    out->z = 0;
     out->data = data;
     out->hand = NULL;
     out->actions = NULL;
@@ -21,7 +27,10 @@ struct animation *e_load_animations_from_config(ALLEGRO_CONFIG *cfg)
 {
     int noanimations = u_atoi(al_get_config_value(cfg, "", "animations"));
     if(noanimations == 0)
+    {
+        debug_perror("config file reports does not report a count of animations or reports 0 animations\n");
         return NULL;
+    }
     struct animation *out = s_aligned_malloc(noanimations * sizeof(struct animation), 32, "e_load_animations_from_config");
     char an[4] = "an ";
 
@@ -48,10 +57,10 @@ void e_load_stats_from_config(ALLEGRO_CONFIG *cfg, struct entity *e)
     e->speedy = 0;
     e->weight = u_atof(al_get_config_value(cfg, "stats", "weight"));
     e->accel = u_atof(al_get_config_value(cfg, "stats", "accel"));
-    printf("%p\n", al_get_config_value(cfg, "stats", "colrad"));
+    e->health = u_atof(al_get_config_value(cfg, "stats", "health"));
+    e->strength = u_atof(al_get_config_value(cfg, "stats", "strength"));
     if(!al_get_config_value(cfg, "stats", "colrad"))
     {
-        puts("here in e load stats");
         e->width = (unsigned char)u_atoi(al_get_config_value(cfg, "stats", "hitboxwidth"));
         e->height = (unsigned char)u_atoi(al_get_config_value(cfg, "stats", "hitboxheight"));
         e->offsetx = (char)u_atoi(al_get_config_value(cfg, "stats", "hitboxoffsetx"));

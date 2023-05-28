@@ -32,6 +32,7 @@ struct area
 
 int mg_room_center_x(struct room *room);
 int mg_room_center_y(struct room *room);
+struct coord *a_star(struct map *map, struct coord *start, struct coord *end, int *no, unsigned char typemask);
 enum CHUNKFLAGS {MG_OCEAN = 1, MG_SHORE = 2, MG_MAINLAND = 4, MG_SMALLISLAND = 8, MG_HABITABLE = 16, MG_HASWATER = 32, MG_CHECKED = 64};
 
 #endif

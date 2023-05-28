@@ -21,6 +21,8 @@ struct swingdata
 void action_init_swing(struct entity *e, float angle, int ccw);
 void action_swing(struct entity *e);
 
+void action_init_throw(struct entity *e, struct entity *throwe, float dx, float dy, float speed);
+
 
 void action_destroy(struct entity *e);
 

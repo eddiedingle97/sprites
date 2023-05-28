@@ -32,11 +32,6 @@ struct entity *sword_create()
 	out->rotx = 0;
 	out->roty = 0;
 
-	out->width = (unsigned char)u_atoi(al_get_config_value(swordcfg, "stats", "hitboxwidth"));
-	out->height = (unsigned char)u_atoi(al_get_config_value(swordcfg, "stats", "hitboxheight"));
-	out->offsetx = (char)u_atoi(al_get_config_value(swordcfg, "stats", "hitboxoffsetx"));
-	out->offsety = (char)u_atoi(al_get_config_value(swordcfg, "stats", "hitboxoffsety"));
-
 	noswords++;
 
 	return out;

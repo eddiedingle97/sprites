@@ -45,5 +45,6 @@ struct vertex *graph_get_next_vertex(struct graph *graph, struct vertex *vertex,
 void graph_dfs(struct graph *graph);
 int graph_unmark(struct graph *graph);
 int graph_is_connected(struct graph *graph);
+int graph_two_vertices_are_connected(struct graph *graph, struct vertex *one, struct vertex *two);
 
 #endif

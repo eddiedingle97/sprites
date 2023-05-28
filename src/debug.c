@@ -103,6 +103,7 @@ void debug_perror(char *format, ...)
     {
         if(!errno)
         {
+            printf("ERROR: ");
             va_list vl;
             va_start(vl, format);
             vfprintf(stderr, format, vl);

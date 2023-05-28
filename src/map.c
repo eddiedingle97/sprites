@@ -5,6 +5,7 @@
 #include "list.h"
 #include "sprites.h"
 #include "map.h"
+#include "mapgenerator.h"
 #include "spritemanager.h"
 #include "debug.h"
 #include "colors.h"
@@ -162,6 +163,36 @@ float map_get_chunk_x(struct map *map, struct chunk *chunk)//x of top left corne
 float map_get_chunk_y(struct map *map, struct chunk *chunk)//y of top left corner
 {
     return -map->tilesize * map->chunksize * chunk->index_y + map->tilesize * map->height * map->chunksize / 2;
+}
+
+int map_get_room_index(struct map *map, struct entity *e)
+{
+    if(!map->graph)
+        return -1;
+    int i;
+    struct room *room;
+    float mindist = map->height * map->width * map->chunksize * map->tilesize;
+    int closest = -1;
+    for(i = 0; i < map->graph->novertices; i++)
+    {
+        float x = mg_room_center_x(&map->rooms[i]) * map->tilesize - e->sprite->x;
+        float y = mg_room_center_y(&map->rooms[i]) * map->tilesize - e->sprite->y;
+
+        if(map->rooms[i].w * map->tilesize > x && x > 0 && map->rooms[i].h * map->tilesize > y && y > 0)
+        {
+            return i;
+        }
+        else
+        {
+            float dist = math_get_distance(x, y);
+            if(dist < mindist)
+            {
+                mindist = dist;
+                closest = i;
+            }
+        }
+    }
+    return i;
 }
 
 struct chunk *map_get_chunk_from_coordinate(struct map *map, float x, float y)
@@ -392,7 +423,7 @@ void map_destroy(struct map *map)
 
     if(map->graph)
     {
-        s_free(map->graph->vertices[0].p, NULL);//BAD HACK, NEEDS FIX
+        s_free(map->rooms, NULL);//BAD HACK, NEEDS FIX
         graph_destroy(map->graph);
     }
 

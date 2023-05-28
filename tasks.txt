@@ -1,0 +1,31 @@
+Features
+	towns on islands
+	islands with dungeons / warps
+	ECS, compress item data, and future entity type data
+		stats
+		inventory
+		alliance
+	post collision checks / behaviour
+	make spawning new entities an action
+	make throwing items an action
+
+Optimizations / Improvements
+	better data structures: 
+		dictionary (sucks, adding entries is very slow: should probably use some other internal structure, hash map, tree, etc.)
+		priority queue (really sucks, use heap or something)
+		graph (use less memory, maybe don't touch...)
+	put debug code in ifdef's
+	do better string stuff, current string stuff is probably bad
+	ray casting collision
+	have generic entity create, all data stored in cfg file
+
+Bugs
+	NPC sword swings / actions causing memory leaks
+	NPC's need better way to target player, segfault on player death / current implementation is prone to crash 
+
+Non-specific improvements / features
+	further island improvements / more interesting islands
+	better dungeons
+	better combat
+	more enemies
+	more items

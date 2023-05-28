@@ -29,11 +29,6 @@ struct entity *knife_create()
 	out->rotx = 0;
 	out->roty = 0;
 
-	out->width = (unsigned char)u_atoi(al_get_config_value(knifecfg, "stats", "hitboxwidth"));//move to e_get_stats or whatever
-	out->height = (unsigned char)u_atoi(al_get_config_value(knifecfg, "stats", "hitboxheight"));
-	out->offsetx = (char)u_atoi(al_get_config_value(knifecfg, "stats", "hitboxoffsetx"));
-	out->offsety = (char)u_atoi(al_get_config_value(knifecfg, "stats", "hitboxoffsety"));
-
 	noknifes++;
 
 	return out;

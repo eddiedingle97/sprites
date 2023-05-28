@@ -5,11 +5,32 @@
 
 struct entity
 {
-    struct sprite *sprite;
+    struct sprite *sprite;//probably pull most of this out for ECS in the future, have a single id for each entity
     void *data;
-    union
+    float weight;
+    float speedx;
+    float speedy;
+    float z;
+    float speedz;
+    unsigned char id;//specific to an entity type
+    unsigned char flags;
+    union//hit box data
     {
-        struct//pc 
+        struct//circular hit box
+        {
+            float colrad;
+        };
+        struct //rectangular hit box
+        {
+            unsigned char width;
+            unsigned char height;
+            char offsetx;//from center
+            char offsety;//from center
+        };
+    };
+    union//mutually exclusive stats, future entity types might not allocate this portion for data savings
+    {
+        struct//pc 29 bytes
         {
             float accel;
             float strength;
@@ -29,26 +50,12 @@ struct entity
             struct entity *holder;
         };
     };
-    
-    float weight;
-    float speedx;
-    float speedy;
-    union
-    {
-        struct//circular hit box
-        {
-            float colrad;
-        };
-        struct //rectangular hit box
-        {
-            unsigned char width;
-            unsigned char height;
-            char offsetx;//from center
-            char offsety;//from center
-        };
-    };
-    
-    unsigned char id;
+};
+
+struct pixcoord
+{
+    float x;
+    float y;
 };
 
 struct entity *e_create(float x, float y, struct animation *an, void *data);

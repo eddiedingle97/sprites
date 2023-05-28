@@ -29,6 +29,7 @@ struct tile *mg_get_tile(struct map *map, float x, float y);
 void mg_fill_area(struct map *map, int x1, int y1, int x2, int y2, struct tile *tile);
 void mg_create_simple_dungeon(struct map *map, int norooms);
 void mg_create_classic_dungeon(struct map *map, int maxrooms);
+void mg_create_hallway_dungeon(struct map *map, int maxrooms);
 void mg_create_island(struct map *map);
 struct coord *a_star(struct map *map, struct coord *start, struct coord *end, int *no, unsigned char typemask);
 int room_comp(struct room *one, struct room *two);
@@ -43,6 +44,7 @@ struct map *mg_create_map(int w, int h)
     //out->palettes[out->nopalettes - 1] = 
 
     mg_create_classic_dungeon(out, 50);
+    //mg_create_hallway_dungeon(out, 50);
 
     tp_destroy();
 
@@ -347,17 +349,129 @@ void mg_create_island(struct map *map)
     }
 }
 
-/*void mg_create_new_dungeon(struct map *map, int maxrooms)
+struct turtle
+{
+    int x;
+    int y;
+    int dir;
+    int valid;
+};
+
+void mg_create_hallway_dungeon(struct map *map, int maxrooms)//WIP...
 {
     math_seed(0);//1643581891//1649730122//1649739262//1649800390//1650157911
 
     struct room *halls = NULL;
     struct room *rooms = NULL;
+    int nohalls = 0;
+    int noturtles = 1;
+    struct turtle *turtles = s_malloc(noturtles * sizeof(struct turtle), NULL);
 
-    struct room *rooms = s_malloc(norooms * sizeof(struct room), "mg_create_classic_dungeon");
-    memset(rooms, 0, norooms * sizeof(struct room));
+    turtles[0].x = 0;
+    turtles[0].y = 0;
+    turtles[0].dir = 0;
+    turtles[0].valid = 1;
+    int i;
+    for(i = 1; i < noturtles; i++)
+    {
+        turtles[i].x = 0;
+        turtles[i].y = 0;
+        turtles[i].dir = 0;
+        turtles[i].valid = 1;
+    }
+
+    int dist, avdist = 50, hallhwidth = 2, noiter = 5, j;
+    for(j = 0; j < noiter; j++)
+    {
+        for(i = 0; i < noturtles; i++)
+        {
+            if(!turtles[i].valid)
+                continue;
+
+            dist = (math_get_random(avdist) + math_get_random(avdist) + math_get_random(avdist)) / 3;
+            if(math_get_random(1))//are we turning?
+            {
+                turtles[i].dir += math_get_random(1) ? 1 : -1;//turn up to 90 degrees
+                if(turtles[i].dir == -1)
+                    turtles[i].dir = 3;
+                else if (turtles[i].dir == 4)
+                    turtles[i].dir = 0;
+            }
+            struct room *newhall = NULL;
+
+            switch(turtles[i].dir)
+            {
+                case 0://right
+                    if(turtles[i].x + dist > map->width * map->chunksize / 2 || turtles[i].y + hallhwidth > map->height * map->chunksize / 2)
+                    {
+                        turtles[i].valid = 0;
+                        continue;
+                    }
+                    halls = s_realloc(halls, ++nohalls * sizeof(struct room), NULL);
+                    newhall = &halls[nohalls - 1];
+                    newhall->x = turtles[i].x;
+                    newhall->y = turtles[i].y + hallhwidth;
+                    newhall->w = dist;
+                    newhall->h = 2 * hallhwidth;
+                    turtles[i].x += dist;
+                    break;
+                case 1://up
+                    if(turtles[i].x - hallhwidth > map->width * map->chunksize / 2 || turtles[i].y + dist > map->height * map->chunksize / 2)
+                    {
+                        turtles[i].valid = 0;
+                        continue;
+                    }
+                    halls = s_realloc(halls, ++nohalls * sizeof(struct room), NULL);
+                    newhall = &halls[nohalls - 1];
+                    newhall->x = turtles[i].x - hallhwidth;
+                    newhall->y = turtles[i].y + dist;
+                    newhall->w = 2 * hallhwidth;
+                    newhall->h = dist;
+                    turtles[i].y += dist;
+                    break;
+                case 2://left
+                    if(turtles[i].x - dist < -map->width * map->chunksize / 2 || turtles[i].y + hallhwidth > map->height * map->chunksize / 2)
+                    {
+                        turtles[i].valid = 0;
+                        continue;
+                    }
+                    halls = s_realloc(halls, ++nohalls * sizeof(struct room), NULL);
+                    newhall = &halls[nohalls - 1];
+                    newhall->x = turtles[i].x - dist;
+                    newhall->y = turtles[i].y + hallhwidth;
+                    newhall->w = dist;
+                    newhall->h = 2 * hallhwidth;
+                    turtles[i].x -= dist;
+                    break;
+                case 3://down
+                    if(turtles[i].x - hallhwidth < -map->width * map->chunksize / 2 || turtles[i].y - dist > -map->height * map->chunksize / 2)
+                    {
+                        turtles[i].valid = 0;
+                        continue;
+                    }
+                    halls = s_realloc(halls, ++nohalls * sizeof(struct room), NULL);
+                    newhall = &halls[nohalls - 1];
+                    newhall->x = turtles[i].x - hallhwidth;
+                    newhall->y = turtles[i].y;
+                    newhall->w = 2 * hallhwidth;
+                    newhall->h = dist;
+                    turtles[i].y -= dist;
+                    break;
+            }
+        }
+    }
+
+    s_free(turtles, NULL);
+
+    for(i = 0; i < nohalls; i++)
+    {
+        mg_put_room_on_map(map, &halls[i]);
+    }
+    s_free(halls, NULL);
+    /*struct room *rooms = s_malloc(norooms * sizeof(struct room), "mg_create_classic_dungeon");
+    memset(rooms, 0, norooms * sizeof(struct room));*/
     
-    rooms[0].w = 7 + math_get_random(13);
+    /*rooms[0].w = 7 + math_get_random(13);
     rooms[0].h = 7 + math_get_random(13);
     rooms[0].x = -3;
     rooms[0].y = 3;
@@ -393,30 +507,30 @@ void mg_create_island(struct map *map)
         }
 
         tries = 0;
-    }
+    }*/
 
-    struct graph *graph = graph_create(0);
-    /*struct tile *t = map_get_tile_from_coordinate(map, (rooms[0].x + rooms[0].w - 3.0f) * 16.0f, (rooms[0].y - rooms[0].h + 3.0f) * 16.0f);
+    /*struct graph *graph = graph_create(0);
+    struct tile *t = map_get_tile_from_coordinate(map, (rooms[0].x + rooms[0].w - 3.0f) * 16.0f, (rooms[0].y - rooms[0].h + 3.0f) * 16.0f);
     printf("%.2f %.2f\n", ((float)rooms[0].x + rooms[0].w - 3.0f) * 16.0f, ((float)rooms[0].y - rooms[0].h + 3.0f) * 16.0f);
-    printf("%d %d\n", rooms[0].x + rooms[0].w - 3, rooms[0].y - rooms[0].h + 3);*/
-    /*math_mergesort(rooms, i, room_comp, sizeof(struct room));
+    printf("%d %d\n", rooms[0].x + rooms[0].w - 3, rooms[0].y - rooms[0].h + 3);
+    math_mergesort(rooms, i, room_comp, sizeof(struct room));
     int j;
     for(j = 0; j < i; j++)
     {
         graph_add_vertex(graph, &rooms[j], NULL);
         mg_put_room_on_map(map, &rooms[j]);
         
-    }
+    }*/
 
     /*for(j = 0; j < i; j++)
         debug_printf("%d %d\n", mg_room_center_x(&rooms[j]), mg_room_center_y(&rooms[j]));*/
 
-    /*delaunay_triangulation(graph, mg_room_center_x, mg_room_center_y);
+    //delaunay_triangulation(graph, mg_room_center_x, mg_room_center_y);
     
-    mg_connect_rooms(map, graph);
+    //mg_connect_rooms(map, graph);
 
-    map->graph = graph;
-}*/
+    //map->graph = graph;
+}
 
 void mg_create_classic_dungeon(struct map *map, int maxrooms)
 {
@@ -486,6 +600,7 @@ void mg_create_classic_dungeon(struct map *map, int maxrooms)
     mg_connect_rooms(map, graph);
 
     map->graph = graph;
+    map->rooms = rooms;
 }
 
 int room_comp(struct room *one, struct room *two)

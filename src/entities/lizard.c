@@ -14,7 +14,7 @@ static struct animation *lizardanimations = NULL;
 static ALLEGRO_CONFIG *lizardcfg = NULL;
 static int nolizards = 0;
 
-void lizard_behaviour(struct entity *e, int tick, float *dx, float *dy)
+void lizard_behaviour(struct map *map, struct entity *e, float *dx, float *dy)
 {
 	struct lizarddata *ld = e->data;
     e->sprite->i = ld->idle;
@@ -32,10 +32,8 @@ struct entity *lizard_create()
 	}
 
     struct entity *out = e_create(0, 0, lizardanimations, ld);
-    out->strength = 10;
 	
     e_load_stats_from_config(lizardcfg, out);
-	out->health = 20;
 	nolizards++;
 
     return out;

@@ -4,6 +4,19 @@
 #include "emath.h"
 #include "sprites.h"
 #include "entity.h"
+#include "entitymanager.h"
+
+void action_init_throw(struct entity *e, struct entity *throwe, float dx, float dy, float speed)//maybe do more with this later... quick and simple for now
+{
+	float speednorm = math_get_distance(dx, dy);
+	throwe->speedx = dx * speed / speednorm;
+	throwe->speedy = dy * speed / speednorm;
+	throwe->sprite->x = e->sprite->x + 4 * throwe->speedx;
+	throwe->sprite->y = e->sprite->y + 4 * throwe->speedy;
+	throwe->flags |= AIRBORNE;
+	throwe->z = 5;
+	throwe->speedz = 5;
+}
 
 void action_init_swing(struct entity *e, float angle, int ccw)
 {

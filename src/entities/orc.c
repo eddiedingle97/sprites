@@ -19,7 +19,7 @@ static ALLEGRO_CONFIG *orccfg = NULL;
 static int noorcs = 0;
 static int visiondist = 0;
 
-float lerp_check(float x1, float y1, float x2, float y2, unsigned char tilemask)
+/*float lerp_check(float x1, float y1, float x2, float y2, unsigned char tilemask)
 {
     float x = x1 - x2, y = y1 - y2;
     int n = math_sqrt(x * x + y * y), i = 0;
@@ -38,14 +38,14 @@ float lerp_check(float x1, float y1, float x2, float y2, unsigned char tilemask)
     }
 
     return n;
-}
+}*/
 
-void orc_behaviour(struct entity *entity, int tick, float *dx, float *dy)
+void orc_behaviour(struct map *map, struct entity *entity, float *dx, float *dy)
 {
     struct sprite *sprite = entity->sprite;
     struct orcdata *data = entity->data;
     struct sprite *target = data->target->sprite;
-    float dist = lerp_check(sprite->x, sprite->y, target->x, target->y, SOLID);
+    float dist = eu_lerp_check(map, sprite->x, sprite->y, target->x, target->y, SOLID);
     float attackdist = entity->hand ? 2 * entity->colrad + entity->hand->height : entity->colrad;//FIX: need better way to determine attackdist when wielding a weapon
     if(entity->health > 0)
     {
@@ -55,7 +55,7 @@ void orc_behaviour(struct entity *entity, int tick, float *dx, float *dy)
         switch(data->state)
         {
             case IDLE:
-                if(dist != 0 && dist < visiondist)//OPT: computes distance twice, oh well
+                if(dist != 0 && dist < visiondist)
                     data->state = AGGRO;
                 else
                     break;
@@ -134,9 +134,7 @@ struct entity *orc_create()
         an = orcanimations;
 
     struct entity *out = e_create(0, 0, an, od);
-    out->strength = 10;
     e_load_stats_from_config(orccfg, out);
-    out->health = 20;
     noorcs++;
     return out;
 }
