@@ -41,7 +41,7 @@ struct entity
         };
         struct//item 32 bytes
         {
-            float rotx;
+            float rotx;//point item is rotating about
             float roty;
             float holdx;//FIX: put this in the <item>.c file
             float holdy;//FIX: put this in the <item>.c file
@@ -50,12 +50,6 @@ struct entity
             struct entity *holder;
         };
     };
-};
-
-struct pixcoord
-{
-    float x;
-    float y;
 };
 
 struct entity *e_create(float x, float y, struct animation *an, void *data);

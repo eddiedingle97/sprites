@@ -7,6 +7,7 @@
 #include <allegro5/allegro_native_dialog.h>
 #include <allegro5/allegro_font.h>
 #include <allegro5/allegro_ttf.h>
+#include <allegro5/allegro_primitives.h>
 #include <mimalloc.h>
 #include "sprites.h"
 #include "keyboard.h"
@@ -113,6 +114,18 @@ int main(int argc, char **argv)
 		exit(1);
 	}
 
+	if(!al_init_primitives_addon())
+	{
+		fprintf(stderr, "init primitives add on failed\n");
+		alobj_destroy(al);
+		al_uninstall_keyboard();
+		al_uninstall_mouse();
+		al_shutdown_image_addon();
+		al_shutdown_font_addon();
+		al_shutdown_ttf_addon();
+		exit(1);
+	}
+
 	al_register_event_source(al->event_queue, al_get_display_event_source(al->display));
 	al_register_event_source(al->event_queue, al_get_timer_event_source(al->timer));
 	al_register_event_source(al->event_queue, al_get_keyboard_event_source());
@@ -133,6 +146,9 @@ int main(int argc, char **argv)
 
 	kb_init();
 	mouse_init(&mousestate);
+	#ifndef DEBUG
+		debug = 0;
+	#endif
 	debug_init(debug);
 	game_init(mode, newmap, width, height);
 
@@ -160,7 +176,6 @@ int main(int argc, char **argv)
 		if(redraw && al_is_event_queue_empty(al->event_queue))
 		{
 			start = clock();
-
 			
 			game_tick(al->display);
 			mouse_draw(al->display);
@@ -196,6 +211,9 @@ int main(int argc, char **argv)
 
 	al_shutdown_font_addon();
 	debug_printf("after al_shutdown_font_addon\n");
+
+	al_shutdown_primitives_addon();
+	debug_printf("after al_shutdown_primitives_addon\n");
 
 	alobj_destroy(al);
 	debug_printf("after alobj_destroy\n");

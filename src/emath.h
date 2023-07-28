@@ -18,7 +18,9 @@ float math_cos(float angle);
 float math_sin(float angle);
 float math_cos_d(int angle);
 float math_sin_d(int angle);
-int math_arccos_d(float ratio);
+float math_get_vec_comp(float from, float to);
+int math_vec_norm(float *x, float *y);
+float math_arccos(float ratio);
 void math_mergesort(void *list, int size, int (*comp)(void *, void *), int datasize);
 
 #endif

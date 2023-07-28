@@ -48,17 +48,29 @@ struct map
     struct node **entitylists;
     int chunksize;//in tiles
     int tilesize;//in pixels
-    int width;//in chunks
-    int height;//in chunks
+    int width;//maps width in chunks, width in pixels = tilesize * chunksize * width
+    int height;//maps width in chunks, height in pixels = tilesize * chunksize * height
     union
     {
-        struct
+        struct//some map types may not need / use this information
         {
             struct graph *graph;
             struct room *rooms;//size = graph->novertices
         };
     };
     struct palette *palette;
+};
+
+struct pixcoord
+{
+    float x;
+    float y;
+};
+
+struct coord
+{
+    int x;
+    int y;
 };
 
 struct map *map_create(int chunksize, int tilesize, int width, int height);
@@ -74,6 +86,11 @@ void map_remove_entity_from_chunk(struct map *map, struct chunk *chunk, struct e
 int map_save(struct map *map, char *dir);
 void map_destroy_chunk(struct chunk *chunk);
 int map_get_room_index(struct map *map, struct entity *e);
+void map_test_color_tile(struct map *map, float x, float y);
+
+float mu_grid_heur(struct map *map, struct coord *cur, struct coord *end);
+struct pixcoord *mu_a_star(struct map *map, struct pixcoord *start, struct pixcoord *end, int *no, unsigned char typemask, 
+	float (*cost)(struct map *, struct coord *, struct coord *, void *), void *data);
 
 enum TILETYPE {SOLID = 1, BREAKABLE = 2, EVENT = 4};
 

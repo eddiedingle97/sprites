@@ -10,7 +10,7 @@ static struct
 } keys[ALLEGRO_KEY_MAX];
 
 static unsigned char keyconfig[] = {ALLEGRO_KEY_W, ALLEGRO_KEY_A, ALLEGRO_KEY_S, ALLEGRO_KEY_D, ALLEGRO_KEY_ESCAPE, ALLEGRO_KEY_LSHIFT, ALLEGRO_KEY_M, ALLEGRO_KEY_Z, ALLEGRO_KEY_N,
-ALLEGRO_KEY_T, ALLEGRO_KEY_ENTER, ALLEGRO_KEY_TAB, ALLEGRO_KEY_SLASH, ALLEGRO_KEY_TILDE};
+ALLEGRO_KEY_T, ALLEGRO_KEY_ENTER, ALLEGRO_KEY_TAB, ALLEGRO_KEY_SLASH, ALLEGRO_KEY_TILDE, ALLEGRO_KEY_SPACE};
 static char gettext = 0;
 static char *textfield = NULL;
 static int textfieldsize = 0;
@@ -78,7 +78,7 @@ void kb_tick()
     }
 }
 
-char kb_get_key(unsigned char k)
+char kb_get_key(int k)
 {
     return keys[keyconfig[k]].key;
 }

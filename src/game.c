@@ -15,6 +15,8 @@
 #include "entitymanager.h"
 #include "mapgenerator.h"
 #include "levelgenerator.h"
+#include "delaunay.h"
+#include "threadmanager.h"
 #include "debug.h"
 
 #include "graph.h"
@@ -23,6 +25,19 @@ void game_get_actions();
 static char mode;
 char buf[64];
 static char *gt = NULL;
+
+/*ALLEGRO_COND *delcond;
+ALLEGRO_MUTEX *delmut;*/
+
+static int coord_get_x(struct coord *coord)
+{
+    return coord->x;
+}
+
+static int coord_get_y(struct coord *coord)
+{
+    return coord->y;
+}
 
 void game_init(char gamemode, char newmap, int width, int height)
 {
@@ -33,7 +48,17 @@ void game_init(char gamemode, char newmap, int width, int height)
             sm_init(al_load_bitmap(s_get_full_path_with_dir("images", "0x72_DungeonTilesetII_v1.3.png")), 0, 0);
             mm_init();
             em_init();
-            lg_generate_level(newmap);
+            tm_init();
+            struct map *map = lg_generate_level(newmap);
+            /*delcond = al_create_cond();
+            delmut = al_create_mutex();
+            struct delaunaydata *ddata = s_malloc(sizeof(struct delaunaydata), NULL);
+            ddata->cond = delcond;
+            ddata->mutex = delmut;
+            ddata->graph = map->graph;
+            ddata->get_x = coord_get_x;
+            ddata->get_y = coord_get_y;
+            tm_queue_thread(delaunay_triangulation_debug, ddata);*/
 
             break;
         case REG:
@@ -53,6 +78,9 @@ void game_destroy()
         case NONE:
             lg_destroy_level();
             debug_printf("after lg_destroy_level\n");
+
+            tm_destroy();
+            debug_printf("after tm_destroy\n");
 
             em_destroy();
             debug_printf("after em_destroy\n");
@@ -116,6 +144,11 @@ void game_get_actions()
 
     if(kb_get_toggle_debug())
         debug_toggle_sprites();
+        
+    /*if(kb_get_key(SPACE) || kb_get_single_key(NEXTTILEMENU))
+    {
+        al_signal_cond(delcond);
+    }*/
 
     if(kb_get_gettext())
     {
@@ -130,15 +163,17 @@ void game_get_actions()
 
     /*if(mouse_get_single_one())
     {
-        struct tile *tile = mm_get_tile_from_rel_coordinate(mouse_get_rel_x(), mouse_get_rel_y());
-        tile->damage--;
+        struct map *map = mm_get_top_map();
+        int roomindex = map_get_room_index(map, sm_rel_to_global_x(mouse_get_rel_x()), sm_rel_to_global_y(mouse_get_rel_y()));
+        struct room *room;
+        if(roomindex != -1)
+            room = &map->rooms[roomindex];
     }*/
 
     switch(mode)
     {
         case NONE:
             sm_set_zoom(scroll);
-            
             break;
 
         case REG:

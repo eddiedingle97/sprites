@@ -16,10 +16,12 @@
 
 #include "entities/entities.h"
 
+//FIX: probably just replace these with inline functions... kind of silly not to
 #define ISITEM(e) (attributes[e->id] & ITEM)
 #define ISCIRCULAR(e) (attributes[e->id] & CIRCULARHITBOX)
 #define ISAIRBORNE(e) (e->flags & AIRBORNE)
 #define ISCALLONCOLLIDE(e) (attributes[e->id] & CALLONCOLLIDE)
+#define ISKILLONNEGATIVEHEALTH(e) (attributes[e->id] & KILLONNEGATIVEHEALTH)
 
 void em_do_movement(struct map *map, int curcolumn, int currow, struct entity *e, float *dx, float *dy);
 void em_do_speed(struct entity *e, float dx, float dy);
@@ -44,7 +46,7 @@ static float knockbackconstant = 5;
 
 void em_init()
 {
-    ALLEGRO_BITMAP *boxbitmap = al_create_bitmap(collisionboxsize, collisionboxsize);//get rid of this in the future
+    ALLEGRO_BITMAP *boxbitmap = al_create_bitmap(collisionboxsize, collisionboxsize);//FIX: get rid of this in the future
     al_set_target_bitmap(boxbitmap);
     al_lock_bitmap(boxbitmap, 0, 0);
     int i, thick;
@@ -92,7 +94,7 @@ struct entity *em_create_entity(unsigned char id, float x, float y)
     out->sprite->x = x;
     out->sprite->y = y;
     int i;
-    for(i = 1; i < (1<<7); i <<= 1)
+    for(i = 1; i < (1 << 7); i <<= 1)
         switch(attributes[id] & i)
         {
             case 0:
@@ -180,7 +182,7 @@ void em_tick()
 
                         if(!ISITEM(e))
                         {
-                            if(e->health < 0 && e->id != 0)//don't kill player for now
+                            if(ISKILLONNEGATIVEHEALTH(e) && e->health < 0)
                             {
                                 if(e->id == 0)
                                     puts("killing player");
@@ -236,6 +238,7 @@ void em_do_speed(struct entity *e, float dx, float dy)
     e->speedy = e->speedy + dy;
 }
 
+#define WALLCOLLISION 0
 void em_do_movement(struct map *map, int currow, int curcolumn, struct entity *e, float *dx, float *dy)
 {
     int i, j, wallcollide = 0, ecollide = 0;
@@ -247,11 +250,11 @@ void em_do_movement(struct map *map, int currow, int curcolumn, struct entity *e
     *dy = e->speedy;
 
     /*
-        FIX: do raycasting approach in the future 
+        FIX: do raycasting approach in the future, currently entities can phase through walls at high speeds
     */
 
     struct tile *currenttile = map_get_tile_from_coordinate(map, e->sprite->x, e->sprite->y);
-    if(currenttile)
+    if(currenttile && WALLCOLLISION)
     {
         struct tile *nexttile = map_get_tile_from_coordinate(map, e->sprite->x + *dx, e->sprite->y);
         if(nexttile && nexttile->type & SOLID)
@@ -384,7 +387,8 @@ void em_do_movement(struct map *map, int currow, int curcolumn, struct entity *e
 
     chunk = map_get_chunk_from_coordinate(map, e->sprite->x, e->sprite->y);
 
-    if(chunk->index_x != curcolumn || chunk->index_y != currow)//do entity list management
+    //do entity list management
+    if(chunk->index_x != curcolumn || chunk->index_y != currow)//FIX: segfault here when entity leaves map
     {
         em_remove_entity_from_map(map, &map->chunks[currow][curcolumn], e);
         em_add_entity_to_map(map, e);
@@ -408,11 +412,11 @@ void em_do_movement(struct map *map, int currow, int curcolumn, struct entity *e
             wallcollide = 1;//FIX: may want to fix this so that we have info that we specifically hit the ground
         }
     }
-    
+
     //FIX: maybe do this somewhere else... em_tick or where collision is actually checked.
     if((ecollide || wallcollide) && ISCALLONCOLLIDE(e))//if there's a collision and entity calls behaviour on collision, call behaviour function
     {
-        behaviour[e->id](map, e, dx, dy);
+        behaviour[e->id](map, e, dx, dy);//dx and dy are float pointers here
     }
 }
 
@@ -422,21 +426,33 @@ int em_do_square_circle_collision(struct entity *square, struct entity *circle, 
     float squarex, squarey, circlex, circley, newrot;//square is usually a rectangle, oops
     if(squaremove)
     {
-        squarex = square->sprite->x + *dx;
-        squarey = square->sprite->y + *dy;
+        if(ISITEM(square))
+        {
+            newrot = square->sprite->rot + square->angvel;
+            float r;
+            if(square->holder)
+                r = math_get_distance(square->holdx, square->holdy) + square->holder->colrad;
+            else
+                r = math_get_distance(square->rotx - square->sprite->x, square->roty - square->sprite->y);
+            squarex = square->rotx + math_cos(newrot) * r;
+            squarey = square->roty + math_sin(newrot) * r;
+        }
+        else
+        {
+            squarex = square->sprite->x + *dx;
+            squarey = square->sprite->y + *dy;
+        }
     }
     else
     {
+        if(ISITEM(square))
+            newrot = square->sprite->rot + square->sprite->rotoffset;//FIX: figure out what should go here...
+        
         squarex = square->sprite->x;
         squarey = square->sprite->y;
     }
     if(ISITEM(square))
     {
-        if(squaremove)
-            newrot = square->sprite->rot + square->sprite->rotoffset + square->angvel;//FIX: assumes square entity has a static bitmap
-        else
-            newrot = square->sprite->rot + square->sprite->rotoffset;
-
         float st = math_sin(newrot);
         float ct = math_cos(newrot);
 
@@ -491,10 +507,9 @@ int em_do_square_circle_collision(struct entity *square, struct entity *circle, 
     for(i = 0; i < 4; i++)//OPT: could unroll here
     {
         float dist = math_get_distance(corners[i][X] - circlex, corners[i][Y] - circley);
-        if(dist < circle->colrad)
+        if(dist < circle->colrad)//fast collision
         {
             em_do_collide(square, circle, circle->colrad - dist);
-            //printf("did fast collide\n");
             return 1;
         }
         
@@ -533,26 +548,15 @@ int em_do_square_circle_collision(struct entity *square, struct entity *circle, 
     float circcenter = circlex * axis[X] + circley * axis[Y];
     float rmin_cmax = min - offset - (circcenter + circle->colrad);
     float rmax_cmin = circcenter - circle->colrad - (max - offset);
-    if(rmin_cmax > 0 || rmax_cmin > 0)
+    if(rmin_cmax > 0 || rmax_cmin > 0)//projections do not overlap
     {
-        //printf("no collide slow\n%.2f %.2f %.2f %.2f %.2f %.2f\n", circcenter - circle->colrad, circcenter + circle->colrad, min + offset, max + offset, min + offset - (circcenter + circle->colrad), circcenter - circle->colrad - (max + offset));
         return 1;
     }
 
-    /*printf("did slow collide 1\n");
-    printf("%.2f %.2f %.2f %.2f\n", circcenter - circle->colrad, circcenter + circle->colrad, min + offset, max + offset);*/
-    /*if(circle->hand && attributes[square->id] & ISITEM && square->holder && circle->hand == square)
-    {
-        printf("did slow collide 1\n");
-        printf("cmin %.2f, cmax %.2f, rmin %.2f, rmax %.2f\n", circcenter - circle->colrad, circcenter + circle->colrad, min + offset, max + offset);
-        printf("%.2f %.2f\n%.2f %.2f\n%.2f %.2f\n%.2f %.2f\n%.2f %.2f\n%.2f %.2f\n", circlex, circley, corners[0][X], corners[0][Y], corners[1][X], corners[1][Y], corners[2][X], corners[2][Y], corners[3][X], corners[3][Y], axis[X], axis[Y]);
-    }*/
-    em_do_collide(square, circle, rmin_cmax > rmax_cmin ? rmax_cmin : rmin_cmax);
+    em_do_collide(square, circle, rmin_cmax > rmax_cmin ? rmax_cmin : rmin_cmax);//projections overlap
 
     return 0;
 }
-
-//enum EM_attributes {ISITEM = 1, HOLDABLE = 2, CANHOLD = 4, CIRCULARHITBOX = 8};
 
 void em_do_collide(struct entity *one, struct entity *two, float dist)
 {
@@ -574,11 +578,14 @@ void em_do_collide(struct entity *one, struct entity *two, float dist)
         if(one->holder && one->holder->actions)//FIX: generalize damage for speed, accel, or maybe not idk
         {
             float r = math_get_distance(one->holdx, one->holdy) + one->holder->colrad;
-            float speedx = one->holder->speedx + one->speedx + one->angvel * math_sin(one->sprite->rot + one->angvel) * r;
-            float speedy = one->holder->speedy + one->speedy + one->angvel * math_cos(one->sprite->rot + one->angvel) * r;
+            float speedx = one->holder->speedx + one->speedx + one->angvel * math_sin(one->sprite->rot) * r;
+            float speedy = one->holder->speedy + one->speedy + one->angvel * math_cos(one->sprite->rot) * r;
             
             two->speedx -= speedx * one->weight * knockbackconstant / (one->weight + two->weight);
             two->speedy -= speedy * one->weight * knockbackconstant / (one->weight + two->weight);
+            printf("%.2f %.2f %.2f %.2f\n %.2f %.2f %.2f %.2f\n", 
+            one->angvel, math_sin(one->sprite->rot), math_cos(one->sprite->rot), speedx * one->weight * knockbackconstant / (one->weight + two->weight),
+            one->sprite->x, one->sprite->y, two->sprite->x, two->sprite->y);
         }
     }
     else if(!ISITEM(one) && ISITEM(two))

@@ -1,4 +1,5 @@
 #include <allegro5/allegro.h>
+#include <allegro5/allegro_primitives.h>
 #include <stdio.h>
 #include <math.h>
 #include "sprites.h"
@@ -7,6 +8,7 @@
 #include "map.h"
 #include "mapmanager.h"
 #include "entity.h"
+#include "emath.h"
 #include "colors.h"
 #include "debug.h"
 
@@ -24,7 +26,7 @@ static int tick = 0;
 static float coord[2];
 static float zoom = MAXZOOM;
 static const float ZOOMINC = .125;
-static int deferreddrawthisframe[LAYERS];
+static int deferreddrawthisframe[LAYERS];//FIX: remove later, not used at all
 static ALLEGRO_BITMAP *deferredlayers[LAYERS];
 
 void sm_init(ALLEGRO_BITMAP *ss, int x, int y)
@@ -42,6 +44,21 @@ void sm_init(ALLEGRO_BITMAP *ss, int x, int y)
 		deferreddrawthisframe[i] = 0;
 		list_append(layers, list_create());
 	}
+}
+
+void sm_draw_line_function(struct sprite *sprite)
+{
+	al_draw_line(sm_get_x(sm_global_to_rel_x(sprite->x), 0), sm_get_y(sm_global_to_rel_y(sprite->y), 0), sm_get_x(sm_global_to_rel_x(sprite->x2), 0), sm_get_y(sm_global_to_rel_y(sprite->y2), 0), RED, 1);
+}
+
+struct sprite *sm_draw_line(float x1, float y1, float x2, float y2)
+{
+	struct sprite *line = sm_create_global_sprite(NULL, x1, y1, TEST, SELFDRAW);
+	line->draw = sm_draw_line_function;
+	line->x2 = x2;
+	line->y2 = y2;
+	sm_add_sprite_to_layer(line);
+	return line;
 }
 
 void sm_add_sprite_to_layer(struct sprite *sprite)
@@ -154,6 +171,11 @@ void sm_default_draw(struct sprite *sprite)
     	neww = an->width * zoom;
 		newh = an->height * zoom;
     	sprite->cycle = sprite->cycle % an->spritecount;
+	}
+	else if(sprite->type & SELFDRAW)
+	{
+		sprite->draw(sprite);
+		return;
 	}
 	else
 	{
@@ -454,12 +476,12 @@ void sm_destroy_sprite(struct sprite *sprite)
 	if(!sprite)
 		return;
 
-	if(!(sprite->type & DYNAMIC))
+	if(!(sprite->type & DYNAMIC) && !(sprite->type & SELFDRAW))
 	{
 		al_destroy_bitmap(sprite->bitmap);
-		sm_remove_sprite_from_layer(sprite);
 	}
-	
+	if(!(sprite->type & DYNAMIC))
+		sm_remove_sprite_from_layer(sprite);
 	if(sprite->name)
 	{
 		debug_printf("Free sprite %s\n", sprite->name);

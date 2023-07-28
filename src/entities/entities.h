@@ -7,7 +7,9 @@
 #include "../map.h"
 
 float eu_lerp_check(struct map *map, float x1, float y1, float x2, float y2, unsigned char tilemask);
-struct pixcoord *eu_a_star(struct map *map, float startx, float starty, float endx, float endy, int *no, unsigned char typemask);
+struct pixcoord *eu_a_star(struct map *map, float startx, float starty, float endx, float endy, int *no, unsigned char typemask,
+    float (*cost)(struct map *, struct coord *, struct coord *, void *data), void *data);
+int eu_follow_path(struct map *map, struct entity *e, struct pixcoord *path, int pathsize, int *next, float *dx, float *dy);
 
 struct knightdata
 {

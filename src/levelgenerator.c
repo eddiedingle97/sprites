@@ -19,7 +19,7 @@ static struct entity *sword;
 void lg_add_enemies(struct map *map);
 int wte_comp(struct warptableentry *one, struct warptableentry *two);
 
-void lg_generate_level(char newmap)
+struct map *lg_generate_level(char newmap)
 {
 	warptable = dict_create(wte_comp);
     mm_add_tile_map_to_list("DungeonTilesetIItiles.png", 16);
@@ -44,7 +44,7 @@ void lg_generate_level(char newmap)
 		}
 	}*/
 	
-	struct map *map = mg_create_map(50, 50);
+	struct map *map = mg_create_map(900, 900);
 	mm_add_map(map);
 	mm_set_top_map(0);
     em_register_entity(knight_create, knight_behaviour, knight_destroy, 12);
@@ -56,7 +56,7 @@ void lg_generate_level(char newmap)
 
 	//lg_add_enemies(map);
 
-	em_register_entity(sword_create, sword_behaviour, sword_destroy, 3);
+	/*em_register_entity(sword_create, sword_behaviour, sword_destroy, 3);
 	em_register_entity(lizard_create, lizard_behaviour, lizard_destroy, 12);
 	sword = em_create_entity(3, 0.0f, 0.0f);
 	em_add_entity_to_map(map, sword);
@@ -66,11 +66,13 @@ void lg_generate_level(char newmap)
 	em_add_entity_to_map(map, lizard);
 
 	em_register_entity(necro_create, necro_behaviour, necro_destroy, 12);
-	em_register_entity(potion_create, potion_behaviour, potion_destroy, CIRCULARHITBOX | CALLONCOLLIDE);
+	em_register_entity(potion_create, potion_behaviour, potion_destroy, CIRCULARHITBOX | CALLONCOLLIDE | KILLONNEGATIVEHEALTH);
 	struct entity *necro = em_create_entity(5, 100.0f, 0.0f);
 	em_add_entity_to_map(map, necro);
 	struct necrodata *nd = necro->data;
-	nd->target = knight;
+	nd->target = knight;*/
+
+	return map;
 }
 
 void lg_tick()

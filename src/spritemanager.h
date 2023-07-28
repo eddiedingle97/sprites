@@ -36,6 +36,11 @@ struct sprite
 			unsigned char cycle;
 			int alflags;
 		};
+		struct//selfdraw 16 bytes
+		{
+			void (*draw)();
+			float x2, y2;
+		};
 	};
 	char *name;
 };
@@ -45,6 +50,7 @@ struct sprite *sm_create_sprite(ALLEGRO_BITMAP *bit, float x, float y, int layer
 struct sprite *sm_create_global_sprite(ALLEGRO_BITMAP *bitmap, float x, float y, int layer, int typeflags);
 struct sprite *sm_create_global_dynamic_sprite(struct animation *an, float x, float y, int layer, int typeflags);
 ALLEGRO_BITMAP *sm_get_sub_bitmap(unsigned int x, unsigned int y, unsigned int width, unsigned int height);
+struct sprite *sm_draw_line(float x1, float y1, float x2, float y2);
 void sm_add_sprite_to_layer(struct sprite *sprite);
 void sm_draw_sprites(ALLEGRO_DISPLAY *display);
 void sm_move_to_front(struct node *id);
@@ -67,7 +73,7 @@ void sm_set_coord(float x, float y);
 void sm_default_draw(struct sprite *sprite);
 void sm_deferred_draw(struct sprite *sprite);
 
-enum SPRITETYPE {LOCAL = 1, GLOBAL = 2, CENTERED = 4, NOZOOM = 8, DYNAMIC = 16};
+enum SPRITETYPE {LOCAL = 1, GLOBAL = 2, CENTERED = 4, NOZOOM = 8, DYNAMIC = 16, SELFDRAW = 32};
 enum LAYERENUM {TEST, MENU, FOREGROUND, PLAYER, SECOND, BACKGROUND, LIMBO};
 
 #define LAYERS 7

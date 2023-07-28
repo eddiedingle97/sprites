@@ -1,0 +1,42 @@
+static int intersect(struct graph *graph, struct vertex *one, struct vertex *two, struct edge **inter)
+{
+    void *rone = one->p, *rtwo = two->p, *pone = NULL, *ptwo = NULL;
+    struct vertex *vpone = NULL, *vptwo = NULL;
+    *inter = NULL;
+    int i;
+    double m1 = (double)(get_y(rone) - get_y(rtwo)) / (double)(get_x(rone) - get_x(rtwo));
+    if(m1 == INFINITY)
+        m1 = 10000000000;
+    if(debug_get())
+    {
+        if(m1 == NAN || m1 == INFINITY)
+        {
+            debug_perror("vertical line in intersect function in delaunay.c");
+        }
+    }
+    double b1 = (double)get_y(rone) - (m1 * get_x(rone));
+    for(i = 0; i < graph->noedges; i += 2)
+    {
+        vpone = graph_get_vertex(graph, graph->edges[i].to);
+        vptwo = graph_get_vertex(graph, graph->edges[i].from);
+        if(vpone && vptwo)
+        {
+            pone = vpone->p;
+            ptwo = vptwo->p;
+
+            double m2 = (double)(get_y(pone) - get_y(ptwo)) / (double)(get_x(pone) - get_x(ptwo));
+            if(m2 == INFINITY)
+                m2 = 10000000000;
+            if(m1 == m2)
+                continue;
+            double b2 = (double)get_y(pone) - (m2 * get_x(pone));
+            double x = (b2 - b1) / (m1 - m2);
+            if((math_in_range(get_x(rone) + 1, x, get_x(rtwo) - 1) || math_in_range(get_x(rtwo) + 1, x, get_x(rone) - 1)) && (math_in_range(get_x(pone) + 1, x, get_x(ptwo) - 1) || math_in_range(get_x(ptwo) + 1, x, get_x(pone) - 1)))
+            {
+                *inter = &graph->edges[i];
+                return 1;
+            }
+        }
+    }
+    return 0;
+}

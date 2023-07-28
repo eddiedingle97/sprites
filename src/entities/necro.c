@@ -21,26 +21,28 @@ static ALLEGRO_CONFIG *necrocfg = NULL;
 static int nonecros = 0;
 static int visiondist = 0;
 
-/*float lerp_check(float x1, float y1, float x2, float y2, unsigned char tilemask)
+struct astardata
 {
-    float x = x1 - x2, y = y1 - y2;
-    int n = math_sqrt(x * x + y * y), i = 0;
-    struct tile *t = NULL;
+    struct entity *necro;
+    struct entity *target;
+    float xcomp;
+    float ycomp;
+};
 
-    x /= n;
-    y /= n;
+float a_star_cost(struct map *map, struct coord *cur, struct coord *end, void *data)
+{
+    struct astardata *d = data;
+    float xcomp = math_get_vec_comp(d->necro->sprite->x, cur->x * map->tilesize);
+    float ycomp = math_get_vec_comp(d->necro->sprite->y, cur->y * map->tilesize);
 
-    for(i = 0; i < n; i++)
-    {
-        x2 += x;
-        y2 += y;
-        t = mm_get_tile(x2, y2);//FIX: does not work with multiple maps, change this
-        if(t && t->type & tilemask)
-            return 0;
-    }
+    if(!math_vec_norm(&xcomp, &ycomp));//do something here, or don't, shouldn't be catastrophic
 
-    return n;
-}*/
+    float dp = xcomp * d->xcomp + ycomp * d->ycomp;
+    dp *= -1;
+    dp += 1;//invert, then shift to value between 0 - 2, will cause vectors that "agree" to give smaller costs
+
+    return (math_abs(cur->x - end->x) + math_abs(cur->y - end->y)) * dp;
+}
 
 struct room *pick_room(struct map *map, struct entity *e, struct entity *target)
 {
@@ -58,7 +60,7 @@ struct room *pick_room(struct map *map, struct entity *e, struct entity *target)
         escapex = (float)mg_room_center_x(&map->rooms[i]) * map->tilesize - e->sprite->x;
         escapey = (float)mg_room_center_y(&map->rooms[i]) * map->tilesize - e->sprite->y;
         float dp = escapex * chasex + escapey * chasey;
-        if(dp > maxdp && graph_two_vertices_are_connected(map->graph, &map->graph->vertices[curroom], &map->graph->vertices[i]))
+        if(dp > maxdp && graph_min_hops(map->graph, &map->graph->vertices[curroom], &map->graph->vertices[i]) >= 0)
         {
             maxdp = dp;
             farthestroom = i;
@@ -119,16 +121,31 @@ void necro_behaviour(struct map *map, struct entity *entity, float *dx, float *d
                     data->escapeplan = pick_room(map, entity, data->target);
                     if(!data->escapeplan)
                     {
-                        puts("no escape");
+                        //puts("no escape");
                         break;
                     }
                        
                     //use a function pointer instead of tile mask in the future for better a star paths (i.e. takes into account other entities...)
                     if(!data->escaperoute)
                     {
-                        data->escaperoute = eu_a_star(map, entity->sprite->x, entity->sprite->y, mg_room_center_x(data->escapeplan) * 16, mg_room_center_y(data->escapeplan) * 16, &data->escaperoutesize, SOLID);
-                        puts("now here");
-                        data->nexttile = 0;
+                        struct astardata *adata = s_malloc(sizeof(struct astardata), NULL);
+                        adata->necro = entity;
+                        adata->target = data->target;
+                        adata->xcomp = math_get_vec_comp(data->target->sprite->x, entity->sprite->x);
+                        adata->ycomp = math_get_vec_comp(data->target->sprite->y, entity->sprite->y);
+
+                        if(!math_vec_norm(&adata->xcomp, &adata->ycomp))//should never happen, will be in aggro next frame either way
+                        {
+                            s_free(adata, NULL);
+                            data->escapeplan = NULL;
+                            break;
+                        }
+
+                        data->escaperoute = eu_a_star(map, entity->sprite->x, entity->sprite->y, 
+                        mg_room_center_x(data->escapeplan) * map->tilesize, mg_room_center_y(data->escapeplan) * map->tilesize, &data->escaperoutesize, SOLID,
+                        a_star_cost, adata);
+                        s_free(adata, NULL);
+                        data->nexttile = 1;
                     }
                 }
                 else
@@ -139,22 +156,15 @@ void necro_behaviour(struct map *map, struct entity *entity, float *dx, float *d
                         break;
                     }
                     //define some way to exit this state and enter spawn state, preferably before it reaches the proposed room (i.e. data->escapeplan)
+                    int curroom = map_get_room_index(map, entity);
+                    int enemyroom = map_get_room_index(map, data->target);
 
-                    //FIX: probably a bad way to check if we arrived at the tile, being lazy
-                    if(map_get_tile_from_coordinate(map, entity->sprite->x, entity->sprite->y) == map_get_tile_from_coordinate(map, data->escaperoute[data->nexttile].x, data->escaperoute[data->nexttile].y))
+                    if(eu_follow_path(map, entity, data->escaperoute, data->escaperoutesize, &data->nexttile, dx, dy))
                     {
-                        data->nexttile++;
-                        if(data->nexttile == data->escaperoutesize)
-                        {
-                            s_free(data->escaperoute, NULL);
-                            data->escaperoute = NULL;
-                            data->escapeplan = NULL;
-                            break;
-                        }
+                        s_free(data->escaperoute, NULL);
+                        data->escaperoute = NULL;
+                        data->escapeplan = NULL;
                     }
-
-                    *dx = data->escaperoute[data->nexttile].x - entity->sprite->x;
-                    *dy = data->escaperoute[data->nexttile].y - entity->sprite->y;
                 }
                 break;
             case SPAWN:
@@ -162,7 +172,6 @@ void necro_behaviour(struct map *map, struct entity *entity, float *dx, float *d
                 if(data->cooldown == 0 && data->nospawned < data->maxspawned)
                 {
                     struct entity *neworc = em_create_entity(1, entity->sprite->x + (1 + math_get_random(2)) * map->tilesize, entity->sprite->y + (1 + math_get_random(2)) * map->tilesize);
-                    //printf("%p\n", neworc);
                     struct orcdata *od = neworc->data;
                     od->target = data->target;
                     em_add_entity_to_map(map, neworc);
@@ -179,11 +188,14 @@ void necro_behaviour(struct map *map, struct entity *entity, float *dx, float *d
                 {
                     struct entity *pot = em_create_entity(6, entity->sprite->x, entity->sprite->y);
                     em_add_entity_to_map(map, pot);
-                    action_init_throw(entity, pot, data->target->sprite->x - entity->sprite->x, data->target->sprite->y - entity->sprite->y, 2);
+                    action_throw(entity, pot, data->target->sprite->x - entity->sprite->x, data->target->sprite->y - entity->sprite->y, 2);
                     data->cooldown = 240;//use different variable for cooldown
                 }
                 else
                     data->cooldown--;
+
+                /**dx = entity->sprite->x - data->target->sprite->x;
+                *dy = entity->sprite->y - data->target->sprite->y;*/
                 break;
         }
     }

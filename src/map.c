@@ -128,22 +128,22 @@ void map_remove_entity_from_chunk(struct map *map, struct chunk *chunk, struct e
     {
         node->prev->next = node->next;
         node->next->prev = node->prev;
-        s_free(node, "mrefc middle");
+        s_free(node, NULL);
     }
     else if(node->next && !node->prev)
     {
         head = head->next;
-        s_free(head->prev, "mrefc head");
+        s_free(head->prev, NULL);
         head->prev = NULL;
     }
     else if(!node->next && node->prev)
     {
         node->prev->next = NULL;
-        s_free(node, "mrefc tail");
+        s_free(node, NULL);
     }
     else if(!node->next && !node->prev)
     {
-        s_free(head, "mrefc single");
+        s_free(head, NULL);
         head = NULL;
     }
 
@@ -277,6 +277,16 @@ struct tile *map_get_tile_from_coordinate(struct map *map, float x, float y)
     //printf("%.2f %.2f\n", x, y);
     
     return &chunk->tiles[(int)x + (int)y * map->chunksize];
+}
+
+#include "tilepalette.h"
+
+void map_test_color_tile(struct map *map, float x, float y)
+{
+    struct tile *t = map_get_tile_from_coordinate(map, x, y);
+
+    if(t)
+        t->id = DT_ERROR;
 }
 
 void map_create_chunks(struct map *map, ALLEGRO_FILE *file)
@@ -422,11 +432,11 @@ void map_destroy(struct map *map)
         s_free(map->name, NULL);
 
     if(map->graph)
-    {
-        s_free(map->rooms, NULL);//BAD HACK, NEEDS FIX
         graph_destroy(map->graph);
-    }
 
+    if(map->rooms)
+        s_free(map->rooms, NULL);
+    
     s_free(map->palette, NULL);
 
     s_free(map, "freeing map");

@@ -13,11 +13,13 @@ Optimizations / Improvements
 	better data structures: 
 		dictionary (sucks, adding entries is very slow: should probably use some other internal structure, hash map, tree, etc.)
 		priority queue (really sucks, use heap or something)
-		graph (use less memory, maybe don't touch...)
-	put debug code in ifdef's
-	do better string stuff, current string stuff is probably bad
+		graph (deleting edges causes unexpected null returns, this is just laziness)
+	put debug code in ifdef's -- maybe done
+	do better string stuff, current string stuff is probably bad / dangerous
 	ray casting collision
 	have generic entity create, all data stored in cfg file
+	split tile data between flags and id's, should improve draw loop
+	in delaunay triangulation, store edges in counter-clockwise order
 
 Bugs
 	NPC sword swings / actions causing memory leaks
