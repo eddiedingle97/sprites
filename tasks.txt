@@ -24,6 +24,7 @@ Optimizations / Improvements
 Bugs
 	NPC sword swings / actions causing memory leaks
 	NPC's need better way to target player, segfault on player death / current implementation is prone to crash 
+	fix delaunay get_candidate function to work with extreme angles that currently cause it to fail from floating point imprecision
 
 Non-specific improvements / features
 	further island improvements / more interesting islands

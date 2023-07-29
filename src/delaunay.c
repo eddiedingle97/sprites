@@ -23,14 +23,12 @@ static void delaunay_triangulation_f(struct vertex *vertices, int size, struct g
 {
     if(size == 2)
     {
-        //printf("base case (%d, %d), (%d, %d)\n", get_x(vertices[0].p), get_y(vertices[0].p), get_x(vertices[1].p), get_y(vertices[1].p));
         graph_add_edge_v(graph, &vertices[0], &vertices[1], math_get_distance(get_x(vertices[0].p) - get_x(vertices[1].p), get_y(vertices[0].p) - get_y(&vertices[1].p)));
         return;
     }
 
     if(size == 3)
     {
-        //printf("base case (%d, %d), (%d, %d), (%d, %d)\n", get_x(vertices[0].p), get_y(vertices[0].p), get_x(vertices[1].p), get_y(vertices[1].p), get_x(vertices[2].p), get_y(vertices[2].p));
         graph_add_edge_v(graph, &vertices[0], &vertices[1], math_get_distance(get_x(vertices[0].p) - get_x(vertices[1].p), get_y(vertices[0].p) - get_y(vertices[1].p)));
         graph_add_edge_v(graph, &vertices[1], &vertices[2], math_get_distance(get_x(vertices[1].p) - get_x(vertices[2].p), get_y(vertices[1].p) - get_y(vertices[2].p)));
         graph_add_edge_v(graph, &vertices[2], &vertices[0], math_get_distance(get_x(vertices[2].p) - get_x(vertices[0].p), get_y(vertices[2].p) - get_y(vertices[0].p)));
@@ -85,12 +83,12 @@ static void delaunay_triangulation_f(struct vertex *vertices, int size, struct g
     {
         int lccw = counter_clockwise(lowr, lowl, lowlnextv);
         int rccw = counter_clockwise(lowl, lowrnextv, lowr);
-        if(lccw > 0 || (lccw == 0 && get_y(lowlnextv->p) > get_y(lowl->p)))
+        if(lccw > 0)
         {
             lowl = lowlnextv;
             lowlnextv = get_next_vertex_from_vertical(graph, lowlnextv, 0);
         }
-        else if(rccw > 0 || (rccw == 0 && get_y(lowrnextv->p) > get_y(lowr->p)))
+        else if(rccw > 0)
         {
             lowr = lowrnextv;
             lowrnextv = get_next_vertex_from_vertical(graph, lowrnextv, 1);
@@ -146,7 +144,7 @@ static float get_angle(struct vertex *one, struct vertex *two, struct vertex *th
         return -1.0f;
 
     float d12, d23, d13;
-    int x = 0, y = 0, ax = 0, ay = 0;
+    long x = 0, y = 0, ax = 0, ay = 0;
     x = get_x(one->p) - get_x(two->p);
     y = get_y(one->p) - get_y(two->p);
     ax = x;
@@ -154,14 +152,19 @@ static float get_angle(struct vertex *one, struct vertex *two, struct vertex *th
     d12 = math_sqrt(x * x + y * y);
     x = get_x(two->p) - get_x(three->p);
     y = get_y(two->p) - get_y(three->p);
-    if(ax * y - ay * x <= 0)//cross product
-        return -1.0f;
+    if(ax * y - ay * x <= 0)//cross product, use ints for precision. I realize now this is weird for two vectors of different origin... maybe change this in the future, it works for now
+        return -1.0f;//if < 0 discard, don't need negative angles for candidate function, if 0 discard, angle is either 0 or 180 degrees. FIX: maybe don't discard angles of 0?
     d23 = math_sqrt(x * x + y * y);
     x = get_x(one->p) - get_x(three->p);
     y = get_y(one->p) - get_y(three->p);
     d13 = math_sqrt(x * x + y * y);
     float result = (d12 * d12 + d23 * d23 - d13 * d13) / (2 * d12 * d23);
-    return math_arccos(result) * 180.0f / M_PI;
+    if(result < -1.0f)
+        return 180.0f;
+    else if(result > 1.0f)
+        return 0.0f;
+    else
+        return math_arccos(result) * 180.0f / M_PI;
 }
 
 float *angles = NULL;
@@ -250,7 +253,7 @@ static struct vertex *get_candidate(struct graph *graph, struct vertex *target, 
 
 static int intersect(struct graph *graph, struct vertex *one, struct vertex *two, struct edge **inter)
 {
-    puts("in intersect");
+    //puts("in intersect");
     int x1 = get_x(one->p), y1 = get_y(one->p), x2 = get_x(two->p), y2 = get_y(two->p);
     int x3, y3, x4, y4;
     double sx1, sy1, sx2, sy2, s, t;
@@ -286,12 +289,12 @@ static int intersect(struct graph *graph, struct vertex *one, struct vertex *two
             if(((t > denom) == (denom > 0)) || ((s > denom) == (denom > 0)))
                 continue;
             
-            printf("exiting intersect found %p %d %d %ld %ld %.2f %.2f %.2f\n", e, e->to, e->from, one - graph->vertices, two - graph->vertices, s, t, denom);
+            //printf("exiting intersect found %p %d %d %ld %ld %.2f %.2f %.2f\n", e, e->to, e->from, one - graph->vertices, two - graph->vertices, s, t, denom);
             *inter = e;
             return 1;
         }
     }
-    puts("exiting intersect");
+    //puts("exiting intersect");
     return 0;
 }
 
@@ -357,7 +360,7 @@ struct vertex *get_next_vertex_from_vertical(struct graph *graph, struct vertex 
     int i, smallestanglei = -1;
     struct vertex *w = NULL;
     
-    float d12, d23, d13, vx, vy, angle, smallestangle = /*ccw ? -1 :*/ 4;
+    float d12, d23, d13, vx, vy, angle, smallestangle = 4;
     vx = get_x(v->p);
     vy = get_y(v->p);
     d12 = 1;
@@ -382,21 +385,13 @@ struct vertex *get_next_vertex_from_vertical(struct graph *graph, struct vertex 
             if(ccw && get_x(w->p) > vx)
                 angle += (M_PI - angle);
             else if(!ccw && get_x(w->p) < vx)
-            {
-                printf("%.2f %.2f\n", angle, 2 * (M_PI / 2 - angle));
                 angle += (M_PI - angle);
-            }
 
             if(angle < smallestangle)
             {
                 smallestangle = angle;
                 smallestanglei = i;
             }
-            /*else if(ccw && angle > smallestangle)
-            {
-                smallestangle = angle;
-                smallestanglei = i;
-            }*/
 
             //printf("%.2f %d : %.2f %d %d %.2f %d, %.2f, %.2f, %.2f, %.10f\n", angle, i, smallestangle, smallestanglei, get_x(w->p), vx, get_x(w->p) < vx, d12, d23, d13,(d12 * d12 + d23 * d23 - d13 * d13) / (2 * d12 * d23));
         }
@@ -484,14 +479,12 @@ static void delaunay_triangulation_f_debug(struct vertex *vertices, int size, st
 
     while(1)
     {
-        int lccw = counter_clockwise(lowr, lowl, lowlnextv);
-        int rccw = counter_clockwise(lowl, lowrnextv, lowr);
-        if(lccw > 0 || (lccw == 0 && get_y(lowlnextv->p) > get_y(lowl->p)))
+        if(counter_clockwise(lowr, lowl, lowlnextv))
         {
             lowl = lowlnextv;
             lowlnextv = get_next_vertex_from_vertical(graph, lowlnextv, 0);
         }
-        else if(rccw > 0 || (rccw == 0 && get_y(lowrnextv->p) > get_y(lowr->p)))
+        else if(counter_clockwise(lowl, lowrnextv, lowr))
         {
             lowr = lowrnextv;
             lowrnextv = get_next_vertex_from_vertical(graph, lowrnextv, 1);
@@ -582,7 +575,6 @@ static struct vertex *get_candidate_debug(struct graph *graph, struct vertex *ta
         for(i = 0; i < target->noedges; i++)
             angles[i] = get_angle(neighbor, target, graph_get_next_vertex(graph, target, i));
             
-    
     for(i = 0; i < target->noedges + 1; i++)
         order[i] = i;
 

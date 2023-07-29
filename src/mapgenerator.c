@@ -379,6 +379,7 @@ int coord_get_y(struct coord *coord)
 
 void mg_create_recursive_dungeon(struct map *map, int maxrooms)//not a recursive function, just starts with large rooms and reiterates with smaller room sizes
 {
+    //1690652793 -- currently fails delaunay
     math_seed(0);//1686504579//1688432932//1688434343//1688504818//1690048624//1690219895
 
     struct room *rooms = NULL;//s_malloc(maxrooms * sizeof(struct room));
