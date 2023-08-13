@@ -44,7 +44,7 @@ struct map *lg_generate_level(char newmap)
 		}
 	}*/
 	
-	struct map *map = mg_create_map(900, 900);
+	struct map *map = mg_create_map(500, 500);
 	mm_add_map(map);
 	mm_set_top_map(0);
     em_register_entity(knight_create, knight_behaviour, knight_destroy, 12);

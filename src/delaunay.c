@@ -81,14 +81,12 @@ static void delaunay_triangulation_f(struct vertex *vertices, int size, struct g
 
     while(1)
     {
-        int lccw = counter_clockwise(lowr, lowl, lowlnextv);
-        int rccw = counter_clockwise(lowl, lowrnextv, lowr);
-        if(lccw > 0)
+        if(counter_clockwise(lowr, lowl, lowlnextv) > 0)
         {
             lowl = lowlnextv;
             lowlnextv = get_next_vertex_from_vertical(graph, lowlnextv, 0);
         }
-        else if(rccw > 0)
+        else if(counter_clockwise(lowl, lowrnextv, lowr) > 0)
         {
             lowr = lowrnextv;
             lowrnextv = get_next_vertex_from_vertical(graph, lowrnextv, 1);
@@ -152,7 +150,7 @@ static float get_angle(struct vertex *one, struct vertex *two, struct vertex *th
     d12 = math_sqrt(x * x + y * y);
     x = get_x(two->p) - get_x(three->p);
     y = get_y(two->p) - get_y(three->p);
-    if(ax * y - ay * x <= 0)//cross product, use ints for precision. I realize now this is weird for two vectors of different origin... maybe change this in the future, it works for now
+    if(ax * y - ay * x <= 0)//cross product, use ints for precision.
         return -1.0f;//if < 0 discard, don't need negative angles for candidate function, if 0 discard, angle is either 0 or 180 degrees. FIX: maybe don't discard angles of 0?
     d23 = math_sqrt(x * x + y * y);
     x = get_x(one->p) - get_x(three->p);
@@ -163,6 +161,8 @@ static float get_angle(struct vertex *one, struct vertex *two, struct vertex *th
         return 180.0f;
     else if(result > 1.0f)
         return 0.0f;
+    else if(d23 * d12 == 0.0f)
+            return 0.0f;
     else
         return math_arccos(result) * 180.0f / M_PI;
 }
@@ -251,12 +251,11 @@ static struct vertex *get_candidate(struct graph *graph, struct vertex *target, 
     return out;
 }
 
-static int intersect(struct graph *graph, struct vertex *one, struct vertex *two, struct edge **inter)
+static int intersect(struct graph *graph, struct vertex *one, struct vertex *two, struct edge **inter)//goal was to avoid floats and division to avoid imprecision
 {
-    //puts("in intersect");
     int x1 = get_x(one->p), y1 = get_y(one->p), x2 = get_x(two->p), y2 = get_y(two->p);
     int x3, y3, x4, y4;
-    double sx1, sy1, sx2, sy2, s, t;
+    long sx1, sy1, sx2, sy2, s, t, denom;
     int i;
     *inter = NULL;
     sx1 = x2 - x1;
@@ -264,8 +263,8 @@ static int intersect(struct graph *graph, struct vertex *one, struct vertex *two
     for(i = 0; i < graph->noedges; i += 2)
     {
         struct edge *e = &graph->edges[i];
-        struct vertex *three = graph_get_vertex(graph, e->from);//&graph->vertices[e->from];
-        struct vertex *four = graph_get_vertex(graph, e->to);//&graph->vertices[e->to];
+        struct vertex *three = graph_get_vertex(graph, e->from);
+        struct vertex *four = graph_get_vertex(graph, e->to);
         
         if(three && four)
         {
@@ -275,14 +274,43 @@ static int intersect(struct graph *graph, struct vertex *one, struct vertex *two
             y4 = get_y(four->p);
             sx2 = x4 - x3;
             sy2 = y4 - y3;
-            double denom = -sx2 * sy1 + sx1 * sy2;
-            if(denom == 0)
-                continue;
+            denom = -sx2 * sy1 + sx1 * sy2;
             s = (-sy1 * (x1 - x3) + sx1 * (y1 - y3));
-            if((s < 0) == (denom > 0))
-                continue;
             t = (-sy2 * (x1 - x3) + sx2 * (y1 - y3));
-            if(s == 0 || t == 0 || s == denom || t == denom)
+            if(denom == 0)//collinear or parallel
+            {
+                if(s != 0)//parallel
+                    continue;
+                long ndenom = sx2 * sx2 + sy2 * sy2;
+                long sdr = sx1 * sx2 + sy1 * sy2;
+                long t0 = (x1 - x3) * sx2 + (y1 - y3) * sy2;
+                long t1 = (x1 + sx1 - x3) * sx2 + (y1 + sy1 - y3) * sy2;
+                if(sdr > 0)
+                {
+                    if(t0 < ndenom && t1 > 0)//collinear and overlapping
+                    {
+                        *inter = e;
+                        return 1;
+                    }
+                    else
+                        continue;
+                }
+                if(sdr < 0)
+                {
+                    if(t1 < ndenom && t0 > 0)//collinear and overlapping
+                    {
+                        *inter = e;
+                        return 1;
+                    }
+                    else
+                        continue;
+                }
+                else//collinear and disjoint
+                    continue;
+            }
+            if((s == 0 || t == 0 || s == denom || t == denom))//endpoints touch
+                continue;
+            if((s < 0) == (denom > 0))
                 continue;
             if((t < 0) == (denom > 0))
                 continue;
@@ -378,6 +406,8 @@ struct vertex *get_next_vertex_from_vertical(struct graph *graph, struct vertex 
             if(inter < -1.0f)
                 angle = M_PI;
             else if(inter > 1.0f)
+                angle = 0.0f;
+            else if(d23 == 0.0f)
                 angle = 0.0f;
             else
                 angle = math_arccos(inter);
@@ -479,12 +509,12 @@ static void delaunay_triangulation_f_debug(struct vertex *vertices, int size, st
 
     while(1)
     {
-        if(counter_clockwise(lowr, lowl, lowlnextv))
+        if(counter_clockwise(lowr, lowl, lowlnextv) > 0)
         {
             lowl = lowlnextv;
             lowlnextv = get_next_vertex_from_vertical(graph, lowlnextv, 0);
         }
-        else if(counter_clockwise(lowl, lowrnextv, lowr))
+        else if(counter_clockwise(lowl, lowrnextv, lowr) > 0)
         {
             lowr = lowrnextv;
             lowrnextv = get_next_vertex_from_vertical(graph, lowrnextv, 1);

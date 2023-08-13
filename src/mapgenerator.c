@@ -29,6 +29,7 @@ void mg_add_path(struct map *map, struct coord *path, int count, int width);
 struct tile *mg_update_tile(struct map *map, float x, float y, struct tile *tile);
 struct tile *mg_get_tile(struct map *map, float x, float y);
 struct tile *mg_get_tile_from_coordinate(struct map *map, float x, float y);
+struct coord *mg_right_angle_path(struct map *map, struct coord *start, struct coord *end, int *pathsize);
 void mg_fill_area(struct map *map, int x1, int y1, int x2, int y2, struct tile *tile);
 void mg_create_simple_dungeon(struct map *map, int norooms);
 void mg_create_classic_dungeon(struct map *map, int maxrooms);
@@ -380,7 +381,7 @@ int coord_get_y(struct coord *coord)
 void mg_create_recursive_dungeon(struct map *map, int maxrooms)//not a recursive function, just starts with large rooms and reiterates with smaller room sizes
 {
     //1690652793 -- currently fails delaunay
-    math_seed(0);//1686504579//1688432932//1688434343//1688504818//1690048624//1690219895
+    math_seed(0);
 
     struct room *rooms = NULL;//s_malloc(maxrooms * sizeof(struct room));
     int norooms = 0;
@@ -397,11 +398,11 @@ void mg_create_recursive_dungeon(struct map *map, int maxrooms)//not a recursive
     struct graph *graph = graph_create(0);
 
     int i, j, retries;
-    for(i = 1; i <= 1; i++)
+    for(i = 1; i <= 2; i++)
     {
         retries = 0;
         int roomiter = (minlargerooms + math_get_random(minlargerooms)) * i;
-        for(j = 0; j < roomiter; j++)
+        while(retries < 300)
         {
             rooms = s_realloc(rooms, ++norooms * sizeof(struct room), NULL);
             struct room *room = &rooms[norooms - 1];
@@ -417,8 +418,6 @@ void mg_create_recursive_dungeon(struct map *map, int maxrooms)//not a recursive
                 retries++;
                 continue;
             }
-            if(retries > 100)
-                break;
 
             nodes = s_realloc(nodes, ++nonodes * sizeof(struct coord), NULL);
             struct coord *node = &nodes[nonodes - 1];
@@ -463,18 +462,47 @@ void mg_create_recursive_dungeon(struct map *map, int maxrooms)//not a recursive
     {
         mg_put_room_on_map(map, &rooms[i]);
     }
-    printf("%d %d %d %d\n", retries, norooms, nonodes, graph->novertices);
+    //printf("%d %d %d %d\n", retries, norooms, nonodes, graph->novertices);
 
     puts("before d");
     delaunay_triangulation(graph, coord_get_x, coord_get_y);
     puts("after d");
 
-    if(graph_is_connected(graph))
+    /*while(1)//FIX: do this because delaunay triangulation is hard
+    {
+        graph_dfs(graph);
+        for(i = 0; i < graph->novertices; i++)
+        {
+            if(!graph->vertices[i].mark)
+            {
+                j = i;
+                while(!graph->vertices[j].mark)
+                {
+                    j = ++j % graph->novertices;
+                    if(j == i)
+                    {
+                        debug_printf("something very wrong happened in mg_create_recursive_dungeon");
+                        goto loopexit;
+                    }
+                }
+                
+                graph_add_edge(graph, i, j, math_get_distance(coord_get_x(graph->vertices[i].p) - coord_get_x(graph->vertices[j].p), coord_get_y(graph->vertices[i].p) - coord_get_y(graph->vertices[j].p))); 
+                graph_unmark(graph);
+                continue;
+            }
+        }
+        break;
+    }
+loopexit:*/
+
+    /*if(graph_is_connected(graph))
         puts("graph is connected");
     else
-        puts("graph is disconnected");
+        puts("graph is disconnected");*/
 
-    /*struct edge **mst = graph_mst(graph);//set of edges is directional i.e. no two edges u->v and v->u
+    
+
+    struct edge **mst = graph_mst(graph);//set of edges is directional i.e. no two edges u->v and v->u
     struct edge *hall = NULL;
     struct vertex *u = NULL, *v = NULL;
     struct coord *path = NULL, start, end;
@@ -488,7 +516,7 @@ void mg_create_recursive_dungeon(struct map *map, int maxrooms)//not a recursive
             v = graph_get_vertex(graph, hall->to);
             start = *(struct coord *)u->p;
             end = *(struct coord *)v->p;
-            path = mg_a_star(map, &start, &end, &pathsize, 0);
+            path = mg_right_angle_path(map, &start, &end, &pathsize);//mg_a_star(map, &start, &end, &pathsize, 0);
             mg_add_path(map, path, pathsize, 4);
         }
         s_free(mst, NULL);
@@ -497,7 +525,7 @@ void mg_create_recursive_dungeon(struct map *map, int maxrooms)//not a recursive
     {
         puts("graph not connected");
         //mg_connect_coords(map, graph, 4);
-    }*/
+    }
 
     map->graph = graph;
     map->rooms = rooms;
@@ -510,6 +538,7 @@ void mg_add_path(struct map *map, struct coord *path, int count, int width)
     struct tile *temp = NULL;
     struct tile floor = *tp_get_tile(DT_FLOOR);
     int i, j, last;
+    int leftright = 0, updown = 0;
 
     if(path)
     {
@@ -529,18 +558,17 @@ void mg_add_path(struct map *map, struct coord *path, int count, int width)
                 if(!DISABLEWALLS && temp && temp->id == DT_EMPTY)
                     *temp = *tp_get_tile(DT_TOPWALL);
                 
-
-                /*if(up)
+                /*if(updown)
                 {
                     temp = mg_get_tile_from_coordinate(map, path[count + 1].x, path[count + 1].y - 1);
-                    if(temp->id != DT_EMPTY)
+                    if(temp && temp->id != DT_EMPTY)
                         *temp = *tp_get_tile(DT_BOTTOMWALL);
                     temp = mg_get_tile_from_coordinate(map, path[count + 1].x, path[count + 1].y + 1);
-                    if(temp->id != DT_EMPTY)
+                    if(temp && temp->id != DT_EMPTY)
                         *temp = *tp_get_tile(DT_TOPWALL);
                 }*/
-                /*right = 1;
-                up = 0;*/
+                leftright = 1;
+                updown = 0;
             }
             else//path went up or down, add tiles left and right
             {
@@ -555,28 +583,105 @@ void mg_add_path(struct map *map, struct coord *path, int count, int width)
                 if(!DISABLEWALLS && temp && temp->id == DT_EMPTY)
                     *temp = *tp_get_tile(DT_RIGHTWALL);
 
-                /*if(right)
+                /*if(leftright)
                 {
                     temp = mg_get_tile_from_coordinate(map, path[count + 1].x - 1, path[count + 1].y);
-                    if(temp->id != DT_EMPTY)
+                    if(temp && temp->id != DT_EMPTY)
                         *temp = *tp_get_tile(DT_LEFTWALL);
                     temp = mg_get_tile_from_coordinate(map, path[count + 1].x + 1, path[count + 1].y);
-                    if(temp->id != DT_EMPTY)
+                    if(temp && temp->id != DT_EMPTY)
                         *temp = *tp_get_tile(DT_RIGHTWALL);
                 }*/
-                /*right = 0;
-                up = 1;*/
+                leftright = 0;
+                updown = 1;
             }
         }
         if(debug_get())
         {
             temp = mg_get_tile_from_coordinate(map, path[last].x, path[last].y);
-            *temp = *tp_get_tile(DT_ERROR);
+            if(temp)
+                *temp = *tp_get_tile(DT_ERROR);
             temp = mg_get_tile_from_coordinate(map, path[0].x, path[0].y);
-            *temp = *tp_get_tile(DT_ERROR);
+            if(temp)
+                *temp = *tp_get_tile(DT_ERROR);
         }
         s_free(path, NULL);
     }
+}
+
+struct coord *mg_right_angle_path(struct map *map, struct coord *start, struct coord *end, int *pathsize)
+{
+    struct coord *out = NULL;
+    *pathsize = 0;
+    int pivotx, pivoty;
+    int curx = start->x;
+    int cury = start->y;
+    out = s_realloc(out, ++(*pathsize) * sizeof(struct coord), NULL);
+    out[*pathsize - 1].x = start->x;
+    out[*pathsize - 1].y = start->y;
+    switch(math_rand() % 2)
+    {
+        case 0:
+            //pivotx = start->x;
+            //pivoty = end->y;
+            while(cury > end->y)
+            {
+                out = s_realloc(out, ++(*pathsize) * sizeof(struct coord), NULL);
+                out[*pathsize - 1].x = curx;
+                out[*pathsize - 1].y = --cury;
+            }
+            while(cury < end->y)
+            {
+                out = s_realloc(out, ++(*pathsize) * sizeof(struct coord), NULL);
+                out[*pathsize - 1].x = curx;
+                out[*pathsize - 1].y = ++cury;
+            }
+            while(curx > end->x)
+            {
+                out = s_realloc(out, ++(*pathsize) * sizeof(struct coord), NULL);
+                out[*pathsize - 1].x = --curx;
+                out[*pathsize - 1].y = cury;
+            }
+            while(curx < end->x)
+            {
+                out = s_realloc(out, ++(*pathsize) * sizeof(struct coord), NULL);
+                out[*pathsize - 1].x = ++curx;
+                out[*pathsize - 1].y = cury;
+            }
+            break;
+        case 1:
+            //pivotx = end->x;
+            //pivoty = start->y;
+            while(curx > end->x)
+            {
+                out = s_realloc(out, ++(*pathsize) * sizeof(struct coord), NULL);
+                out[*pathsize - 1].x = --curx;
+                out[*pathsize - 1].y = cury;
+            }
+            while(curx < end->x)
+            {
+                out = s_realloc(out, ++(*pathsize) * sizeof(struct coord), NULL);
+                out[*pathsize - 1].x = ++curx;
+                out[*pathsize - 1].y = cury;
+            }
+            while(cury > end->y)
+            {
+                out = s_realloc(out, ++(*pathsize) * sizeof(struct coord), NULL);
+                out[*pathsize - 1].x = curx;
+                out[*pathsize - 1].y = --cury;
+            }
+            while(cury < end->y)
+            {
+                out = s_realloc(out, ++(*pathsize) * sizeof(struct coord), NULL);
+                out[*pathsize - 1].x = curx;
+                out[*pathsize - 1].y = ++cury;
+            }
+            break;
+    }
+    /*out = s_realloc(out, ++(*pathsize) * sizeof(struct coord), NULL);
+    out[*pathsize - 1].x = end->x;
+    out[*pathsize - 1].y = end->y;*/
+    return out;
 }
 
 void mg_create_hallway_dungeon(struct map *map, int maxrooms)//WIP...
