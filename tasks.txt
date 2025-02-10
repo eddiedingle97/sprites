@@ -13,7 +13,7 @@ Optimizations / Improvements
 	better data structures: 
 		dictionary (sucks, adding entries is very slow: should probably use some other internal structure, hash map, tree, etc.)
 		priority queue (really sucks, use heap or something)
-		graph (deleting edges causes unexpected null returns, this is just laziness)
+		graph (deleting edges causes unexpected null returns, this feels like laziness)
 	put debug code in ifdef's -- maybe done
 	do better string stuff, current string stuff is probably bad / dangerous
 	ray casting collision

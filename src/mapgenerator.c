@@ -47,7 +47,8 @@ struct map *mg_create_map(int w, int h)
     out->palette = tp_get_palette_copy();//s_realloc(out->palettes, ++out->nopalettes * sizeof(struct palette *), "mg_create_map");
     //out->palettes[out->nopalettes - 1] = 
 
-    mg_create_recursive_dungeon(out, 50);
+    mg_create_classic_dungeon(out, 50);
+    //mg_create_recursive_dungeon(out, 50);
     //mg_create_hallway_dungeon(out, 50);
 
     tp_destroy();
@@ -380,8 +381,8 @@ int coord_get_y(struct coord *coord)
 
 void mg_create_recursive_dungeon(struct map *map, int maxrooms)//not a recursive function, just starts with large rooms and reiterates with smaller room sizes
 {
-    //1690652793 -- currently fails delaunay
-    math_seed(0);
+    //1 -- currently fails delaunay
+    math_seed(690652793);
 
     struct room *rooms = NULL;//s_malloc(maxrooms * sizeof(struct room));
     int norooms = 0;
@@ -464,9 +465,9 @@ void mg_create_recursive_dungeon(struct map *map, int maxrooms)//not a recursive
     }
     //printf("%d %d %d %d\n", retries, norooms, nonodes, graph->novertices);
 
-    puts("before d");
+    //puts("before d");
     delaunay_triangulation(graph, coord_get_x, coord_get_y);
-    puts("after d");
+    //puts("after d");
 
     /*while(1)//FIX: do this because delaunay triangulation is hard
     {
@@ -495,12 +496,10 @@ void mg_create_recursive_dungeon(struct map *map, int maxrooms)//not a recursive
     }
 loopexit:*/
 
-    /*if(graph_is_connected(graph))
-        puts("graph is connected");
+    if(graph_is_connected(graph))
+        debug_printf("graph is connected\n");
     else
-        puts("graph is disconnected");*/
-
-    
+        debug_printf("graph is disconnected\n");
 
     struct edge **mst = graph_mst(graph);//set of edges is directional i.e. no two edges u->v and v->u
     struct edge *hall = NULL;
@@ -529,16 +528,17 @@ loopexit:*/
 
     map->graph = graph;
     map->rooms = rooms;
-    //s_free(nodes, NULL);//FIX: remove this later, free in map_destroy
+    s_free(nodes, NULL);//FIX: remove this later, free in map_destroy
 }
 
-#define DISABLEWALLS 1
+#define DISABLEWALLS 0
 void mg_add_path(struct map *map, struct coord *path, int count, int width)
 {
     struct tile *temp = NULL;
     struct tile floor = *tp_get_tile(DT_FLOOR);
+    struct tile err = *tp_get_tile(DT_ERROR);
     int i, j, last;
-    int leftright = 0, updown = 0;
+    int right = 0, up = 0;
 
     if(path)
     {
@@ -558,17 +558,30 @@ void mg_add_path(struct map *map, struct coord *path, int count, int width)
                 if(!DISABLEWALLS && temp && temp->id == DT_EMPTY)
                     *temp = *tp_get_tile(DT_TOPWALL);
                 
-                /*if(updown)
+                if(up)
                 {
-                    temp = mg_get_tile_from_coordinate(map, path[count + 1].x, path[count + 1].y - 1);
+                    int pi = count == last ? last : count + 1;
+                    int newx = path[pi].x, newy = path[pi].y;
+                    for(i = 0; i <= width / 2; i++)
+                    {
+                        temp = mg_get_tile_from_coordinate(map, path[count].x, path[count].y - width / 2 - 1);
+                        if(!DISABLEWALLS && temp && temp->id == DT_EMPTY)
+                            *temp = *tp_get_tile(DT_BOTTOMWALL);
+
+                        for(j = -width / 2; j <= width / 2; j++)
+                            mg_update_tile(map, newx + j, newy + i * up, &floor);
+
+                        temp = mg_get_tile_from_coordinate(map, path[count].x, path[count].y + j);
+                        if(!DISABLEWALLS && temp && temp->id == DT_EMPTY)
+                            *temp = *tp_get_tile(DT_TOPWALL);
+                    }
+
+                    /*temp = mg_get_tile_from_coordinate(map, path[count + 1].x, path[count + 1].y + 1);
                     if(temp && temp->id != DT_EMPTY)
-                        *temp = *tp_get_tile(DT_BOTTOMWALL);
-                    temp = mg_get_tile_from_coordinate(map, path[count + 1].x, path[count + 1].y + 1);
-                    if(temp && temp->id != DT_EMPTY)
-                        *temp = *tp_get_tile(DT_TOPWALL);
-                }*/
-                leftright = 1;
-                updown = 0;
+                        *temp = *tp_get_tile(DT_TOPWALL);*/
+                }
+                right = path[count].x - path[count + 1].x > 0 ? 1 : -1;
+                up = 0;
             }
             else//path went up or down, add tiles left and right
             {
@@ -582,8 +595,18 @@ void mg_add_path(struct map *map, struct coord *path, int count, int width)
                 temp = mg_get_tile_from_coordinate(map, path[count].x + j, path[count].y);
                 if(!DISABLEWALLS && temp && temp->id == DT_EMPTY)
                     *temp = *tp_get_tile(DT_RIGHTWALL);
-
-                /*if(leftright)
+                
+                if(right)
+                {
+                    int pi = count == last ? last : count + 1;
+                    int newx = path[pi].x, newy = path[pi].y;
+                    for(i = 0; i <= width / 2; i++)
+                    {
+                        for(j = -width / 2; j <= width / 2; j++)
+                            mg_update_tile(map, newx + i * right, newy + j, &floor);
+                    }
+                }
+                /*if(right)
                 {
                     temp = mg_get_tile_from_coordinate(map, path[count + 1].x - 1, path[count + 1].y);
                     if(temp && temp->id != DT_EMPTY)
@@ -592,8 +615,8 @@ void mg_add_path(struct map *map, struct coord *path, int count, int width)
                     if(temp && temp->id != DT_EMPTY)
                         *temp = *tp_get_tile(DT_RIGHTWALL);
                 }*/
-                leftright = 0;
-                updown = 1;
+                right = 0;
+                up = path[count].y - path[count + 1].y > 0 ? 1 : -1;
             }
         }
         if(debug_get())
@@ -925,6 +948,11 @@ void mg_create_classic_dungeon(struct map *map, int maxrooms)
     
     mg_connect_rooms(map, graph, 1);
 
+    if(graph_is_connected(graph))
+        debug_printf("map is connected\n");
+    else
+        debug_printf("map is unconnected\n");
+
     map->graph = graph;
     map->rooms = rooms;
 }
@@ -1095,7 +1123,7 @@ struct tile *mg_update_tile(struct map *map, float x, float y, struct tile *tile
     if(!tile)
         return NULL;
 
-    struct tile *oldtile = map_get_tile_from_coordinate(map, x * 16.0f, y * 16.0f);
+    struct tile *oldtile = map_get_tile_from_coordinate(map, x * (float)map->tilesize, y * (float)map->tilesize);
     if(!oldtile)
         return NULL;
 

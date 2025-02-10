@@ -10,12 +10,19 @@
 #include "levelgenerator.h"
 #include "tilefunctions.h"
 #include "graph.h"
+#include "constellation.h"
 #include "entities/entities.h"
 #include "items/items.h"
+
+#define REGISTER_KNIGHT em_register_entity(knight_create, knight_behaviour, knight_destroy, CANHOLD | CIRCULARHITBOX);
+#define REGISTER_SWORD em_register_entity(sword_create, sword_behaviour, sword_destroy, ITEM | HOLDABLE);
+#define REGISTER_ORC em_register_entity(orc_create, orc_behaviour, orc_destroy, CANHOLD | CIRCULARHITBOX);
+#define REGISTER_KNIFE em_register_entity(knife_create, knife_behaviour, knife_destroy, ITEM | HOLDABLE);
 
 static struct dict *warptable;
 static struct entity *knight;
 static struct entity *sword;
+static struct sky *sky;
 void lg_add_enemies(struct map *map);
 int wte_comp(struct warptableentry *one, struct warptableentry *two);
 
@@ -24,33 +31,26 @@ struct map *lg_generate_level(char newmap)
 	warptable = dict_create(wte_comp);
     mm_add_tile_map_to_list("DungeonTilesetIItiles.png", 16);
 
-	/*struct map *island = mg_create_island_map(500, 500);
-	mm_add_map(island);
-	mm_set_top_map(0);
-    em_register_entity(knight_create, knight_behaviour, knight_destroy, 12);
-	knight = em_create_entity(0, 0, 0);
-	knight->health = 10;
-	em_add_entity_to_map(island, knight);
-	em_register_entity(lizard_create, lizard_behaviour, lizard_destroy, 12);
-	int r, c;
-	for(r = 0; r < island->height; r++)
-	{
-		for(c = 0; c < island->width; c++)
-		{
-			if(island->chunks[r][c].flags & MG_HABITABLE)
-			{
-				//em_add_entity_to_map(island, em_create_entity(1, c * island->chunksize * island->tilesize - island->width * island->tilesize / 2, -r * island->chunksize * island->tilesize - island->height * island->tilesize / 2));
-			}
-		}
-	}*/
-	
-	struct map *map = mg_create_map(500, 500);
+	REGISTER_KNIGHT
+	REGISTER_SWORD
+	REGISTER_ORC
+	REGISTER_KNIFE
+
+	struct map *map = mg_create_map(50, 50);
 	mm_add_map(map);
 	mm_set_top_map(0);
-    em_register_entity(knight_create, knight_behaviour, knight_destroy, 12);
-	knight = em_create_entity(0, 0, 0);
+	
+	struct room *center = &map->rooms[map->graph->novertices / 2];
+	knight = em_create_entity(0, 16.0f * mg_room_center_x(center), 16.0f * mg_room_center_y(center));
 	em_add_entity_to_map(map, knight);
 	knight->health = 10;
+	sword = em_create_entity(1, 16.0f * mg_room_center_x(center) + 16.0f, 16.0f * mg_room_center_y(center));
+	em_add_entity_to_map(map, sword);
+
+	/*sky = cons_create_sky();
+	cons_gen_sky(sky);
+	sm_add_sprite_to_layer(sky->canvas);*/
+	
     em_register_entity(orc_create, orc_behaviour, orc_destroy, 12);
 	em_register_entity(knife_create, knife_behaviour, knife_destroy, 3);
 
@@ -78,6 +78,7 @@ struct map *lg_generate_level(char newmap)
 void lg_tick()
 {
 	//sword->angvel += .02;
+	//sky->canvas->rot += .001;
 }
 
 struct dict *lg_get_warp_table()
@@ -148,4 +149,5 @@ void lg_destroy_level()
         s_free(warptable->p[i], NULL);
     }
     dict_destroy(warptable);
+	//cons_destroy_sky(sky);
 }

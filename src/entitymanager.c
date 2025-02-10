@@ -388,7 +388,7 @@ void em_do_movement(struct map *map, int currow, int curcolumn, struct entity *e
     chunk = map_get_chunk_from_coordinate(map, e->sprite->x, e->sprite->y);
 
     //do entity list management
-    if(chunk->index_x != curcolumn || chunk->index_y != currow)//FIX: segfault here when entity leaves map
+    if(chunk && (chunk->index_x != curcolumn || chunk->index_y != currow))//FIX: segfault here when entity leaves map
     {
         em_remove_entity_from_map(map, &map->chunks[currow][curcolumn], e);
         em_add_entity_to_map(map, e);

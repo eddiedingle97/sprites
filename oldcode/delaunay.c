@@ -169,27 +169,33 @@ static float get_angle(struct vertex *one, struct vertex *two, struct vertex *th
 
 float *angles = NULL;
 struct vertex **adj = NULL;
-struct vertex *center = NULL;
+struct vertex *center = NULL, *nbr = NULL;
 int ccccw = 0;
 static int candidate_compare(int *one, int *two)
 {
+    /*if(!angles)
+        return 0;
+    if(angles[*one] - angles[*two] > 0)
+        return 1;
+    if(angles[*one] - angles[*two] < 0)
+        return -1;*/
     //det = (a.x - center.x) * (b.y - center.y) - (b.x - center.x) * (a.y - center.y)
-    if(*one < 0 || *two < 0)
+    if(!adj[*one] || !adj[*two])
         return 0;
     long det =  (get_x(adj[*one]->p) - get_x(center->p)) * (get_y(adj[*two]->p) - get_y(center->p)) - 
                 (get_x(adj[*two]->p) - get_x(center->p)) * (get_y(adj[*one]->p) - get_y(center->p));
     if(ccccw)
     {
-        if(det < 0)
+        if(det > 0)
             return 1;
-        else 
+        else if(det != 0)
             return -1;
     }
     else
     {
-        if(det > 0)
+        if(det < 0)
             return 1;
-        else 
+        else if(det != 0)
             return -1;
     }
     return 0;
@@ -201,49 +207,47 @@ static struct vertex *get_candidate(struct graph *graph, struct vertex *target, 
     int i, j, outedge, *order, *taken;
     adj = s_malloc(target->noedges * sizeof(struct vertex *), NULL);
     order = s_malloc((target->noedges + 1) * sizeof(int), NULL);
+    //angles = s_malloc((target->noedges + 1) * sizeof(float), NULL);
+
+    /*if(ccw)
+        for(i = 0; i < target->noedges; i++)
+            angles[i] = get_angle(graph_get_next_vertex(graph, target, i), target, neighbor);
+    else
+        for(i = 0; i < target->noedges; i++)
+            angles[i] = get_angle(neighbor, target, graph_get_next_vertex(graph, target, i));*/
 
     center = target;
+    nbr = neighbor;
     ccccw = ccw;
 
     for(i = 0; i < target->noedges; i++)
-        adj[i] = graph_get_next_vertex(graph, target, i);// get all adjacent vertices
+        adj[i] = graph_get_next_vertex(graph, target, i);
 
-    for(i = 0; i < target->noedges; i++)// mark vertices whose angles are < 0 or > 180 wrt target - neighbor as invalid, mark neighbor as invalid
-    {
-        if(!adj[i] || adj[i] == neighbor)
-        {
-            order[i] = -1;
-            continue;
-        }
+    for(i = 0; i < target->noedges + 1; i++)
+        order[i] = i;
 
-        //det = (a.x - center.x) * (b.y - center.y) - (b.x - center.x) * (a.y - center.y)
-        long det = (get_x(adj[i]->p) - get_x(target->p)) * (get_y(neighbor->p) - get_y(target->p)) - 
-                   (get_x(neighbor->p) - get_x(target->p)) * (get_y(adj[i]->p) - get_y(target->p));
-        if(ccw)
-        {
-            if(det < 0)
-                order[i] = i;
-            else
-                order[i] = -1;
-        }
-        else
-        {
-            if(det > 0)
-                order[i] = i;
-            else
-                order[i] = -1;
-        }
-    }
-    order[target->noedges] = -2;// order size == target->noedges + 1, do this to simplify for loop below
-
-    math_mergesort(order, target->noedges, candidate_compare, sizeof(int));// sort valid vertices from lowest to smallest angle
+    math_mergesort(order, target->noedges, candidate_compare, sizeof(int));
     
-    for(i = 0; i < target->noedges; i++)// pick candidate vertex, get next in list, if next is not valid output candidate, delete invalid edges if found
+    printf("%p %d %d\n", target, get_x(target->p), get_y(target->p));
+    for(i = 0; i < target->noedges + 1; i++)
+    {
+        if(order[i] == target->noedges)
+        {
+            printf("end\n");
+            break;
+        }
+            
+        if(adj[order[i]] == neighbor)
+            printf("neighbor ");
+        printf("%p %d %d\n", adj[order[i]], get_x(adj[order[i]]->p), get_y(adj[order[i]]->p));
+    }
+
+    for(i = 0; i < target->noedges; i++)
     {
         out = graph_get_next_vertex(graph, target, order[i]);
         if(!out)
             continue;
-        if(out == neighbor)
+        if(out == neighbor /*|| angles[order[i]] >= 180 || angles[order[i]] < 0*/)
         {
             out = NULL;
             continue;
@@ -254,12 +258,17 @@ static struct vertex *get_candidate(struct graph *graph, struct vertex *target, 
         if(next == neighbor)
             continue;
 
+        /*if(angles[order[i + 1]] >= 180 || angles[order[i + 1]] == -1)
+            break;*/
+        if(i + 1 == target->noedges)
+            break;
+
         if(!next)
             break;
 
         if(ccw)
         {
-            if(inside_circumcircle(out->p, target->p, neighbor->p, next->p))
+            if(inside_circumcircle(out->p, target->p, neighbor->p, next->p))//inside_circumcircle(out->p, target->p, neighbor->p, next->p)
             {
                 graph_remove_edge(graph, graph_get_edge(graph, target, order[i]));
                 out = NULL;
@@ -268,7 +277,7 @@ static struct vertex *get_candidate(struct graph *graph, struct vertex *target, 
         }
         else
         {
-            if(inside_circumcircle(neighbor->p, target->p, out->p, next->p))
+            if(inside_circumcircle(neighbor->p, target->p, out->p, next->p))//inside_circumcircle(neighbor->p, target->p, out->p, next->p)
             {
                 graph_remove_edge(graph, graph_get_edge(graph, target, order[i]));
                 out = NULL;
@@ -281,7 +290,8 @@ static struct vertex *get_candidate(struct graph *graph, struct vertex *target, 
     s_free(order, NULL);
     s_free(adj, NULL);
     adj = NULL;
-    order = NULL;
+    //s_free(angles, NULL);
+    //angles = NULL;
 
     return out;
 }
@@ -724,20 +734,20 @@ static struct vertex *get_candidate_debug(struct graph *graph, struct vertex *ta
 
 static int inside_circumcircle(void *one, void *two, void *three, void *four)//one two and three must be in ccw order
 {
-    long x2 = get_x(four);
+    float x2 = get_x(four);
     x2 *= x2;
-    long y2 = get_y(four);
+    float y2 = get_y(four);
     y2 *= y2;
-    long a = get_x(one) - get_x(four);
-    long b = get_y(one) - get_y(four);
-    long c = (get_x(one) * get_x(one) - x2) + (get_y(one) * get_y(one) - y2);
-    long d = get_x(two) - get_x(four);
-    long e = get_y(two) - get_y(four);
-    long f = (get_x(two) * get_x(two) - x2) + (get_y(two) * get_y(two) - y2);
-    long g = get_x(three) - get_x(four);
-    long h = get_y(three) - get_y(four);
-    long i = (get_x(three) * get_x(three) - x2) + (get_y(three) * get_y(three) - y2);
-    long orientation = a * e * i + b * f * g + c * d * h - c * e * g - f * h * a - i * b * d;
+    float a = get_x(one) - get_x(four);
+    float b = get_y(one) - get_y(four);
+    float c = (get_x(one) * get_x(one) - x2) + (get_y(one) * get_y(one) - y2);
+    float d = get_x(two) - get_x(four);
+    float e = get_y(two) - get_y(four);
+    float f = (get_x(two) * get_x(two) - x2) + (get_y(two) * get_y(two) - y2);
+    float g = get_x(three) - get_x(four);
+    float h = get_y(three) - get_y(four);
+    float i = (get_x(three) * get_x(three) - x2) + (get_y(three) * get_y(three) - y2);
+    float orientation = a * e * i + b * f * g + c * d * h - c * e * g - f * h * a - i * b * d;
     if(debug_get())
     {
         double dorientation = (double)a * e * i + (double)b * f * g + (double)c * d * h - (double)c * e * g - (double)f * h * a - (double)i * b * d;
