@@ -29,6 +29,11 @@ static void delaunay_triangulation_f(struct vertex *vertices, int size, struct g
 
     if(size == 3)
     {
+        if((get_x(vertices[0].p) * (get_y(vertices[1].p) - get_y(vertices[2].p)) + get_x(vertices[1].p) * (get_y(vertices[2].p) - get_y(vertices[0].p)) + get_x(vertices[2].p) * (get_y(vertices[0].p) - get_y(vertices[1].p))) == 0)//collinear check
+        {
+            graph_add_edge_v(graph, &vertices[0], &vertices[1], math_get_distance(get_x(vertices[0].p) - get_x(vertices[1].p), get_y(vertices[0].p) - get_y(vertices[1].p)));
+            graph_add_edge_v(graph, &vertices[1], &vertices[2], math_get_distance(get_x(vertices[1].p) - get_x(vertices[2].p), get_y(vertices[1].p) - get_y(vertices[2].p)));
+        }
         graph_add_edge_v(graph, &vertices[0], &vertices[1], math_get_distance(get_x(vertices[0].p) - get_x(vertices[1].p), get_y(vertices[0].p) - get_y(vertices[1].p)));
         graph_add_edge_v(graph, &vertices[1], &vertices[2], math_get_distance(get_x(vertices[1].p) - get_x(vertices[2].p), get_y(vertices[1].p) - get_y(vertices[2].p)));
         graph_add_edge_v(graph, &vertices[2], &vertices[0], math_get_distance(get_x(vertices[2].p) - get_x(vertices[0].p), get_y(vertices[2].p) - get_y(vertices[0].p)));
@@ -84,12 +89,12 @@ static void delaunay_triangulation_f(struct vertex *vertices, int size, struct g
         if(counter_clockwise(lowr, lowl, lowlnextv) > 0)
         {
             lowl = lowlnextv;
-            lowlnextv = get_next_vertex_from_vertical(graph, lowlnextv, 0);
+            lowlnextv = get_next_vertex_from_vertical(graph, lowlnextv, 1);
         }
         else if(counter_clockwise(lowl, lowrnextv, lowr) > 0)
         {
             lowr = lowrnextv;
-            lowrnextv = get_next_vertex_from_vertical(graph, lowrnextv, 1);
+            lowrnextv = get_next_vertex_from_vertical(graph, lowrnextv, 0);
         }
         else
             break;
@@ -174,8 +179,10 @@ int ccccw = 0;
 static int candidate_compare(int *one, int *two)
 {
     //det = (a.x - center.x) * (b.y - center.y) - (b.x - center.x) * (a.y - center.y)
-    if(*one < 0 || *two < 0)
-        return 0;
+    if(*one < 0)
+        return 1;
+    if(*two < 0)
+	return -1;
     long det =  (get_x(adj[*one]->p) - get_x(center->p)) * (get_y(adj[*two]->p) - get_y(center->p)) - 
                 (get_x(adj[*two]->p) - get_x(center->p)) * (get_y(adj[*one]->p) - get_y(center->p));
     if(ccccw)
@@ -394,13 +401,23 @@ void delaunay_triangulation_debug(ALLEGRO_THREAD *thread, struct delaunaydata *d
     cond = data->cond;
     printf("%p %p %p %p\n", mutex, cond, get_x, get_y);
 
-    delaunay_triangulation_f_debug(data->graph->vertices, data->graph->novertices, data->graph);
-    if(graph_is_connected(data->graph))
+    if(debug_get())
+    {
+        int i;
+        FILE *pointfile = fopen("points.csv", "w");
+        for(i = 0; i < data->graph->novertices; i++)
+            fprintf(pointfile, "%d, %d\n", get_x(data->graph->vertices[i].p), get_y(data->graph->vertices[i].p));
+        fclose(pointfile);
+    }
+
+    if(data->graph->novertices > 1)
+    	delaunay_triangulation_f_debug(data->graph->vertices, data->graph->novertices, data->graph);
+    /*if(graph_is_connected(data->graph))
     {
         puts("graph is connected");
     }
     else
-        puts("graph is not connected");
+        puts("graph is not connected");*/
     puts("done");
 }
 
@@ -447,9 +464,9 @@ struct vertex *get_next_vertex_from_vertical(struct graph *graph, struct vertex 
             else
                 angle = math_arccos(inter);
 
-            if(ccw && get_x(w->p) > vx)
+            if(ccw && get_x(w->p) < vx)
                 angle += (M_PI - angle);
-            else if(!ccw && get_x(w->p) < vx)
+            else if(!ccw && get_x(w->p) > vx)
                 angle += (M_PI - angle);
 
             if(angle < smallestangle)
@@ -458,7 +475,7 @@ struct vertex *get_next_vertex_from_vertical(struct graph *graph, struct vertex 
                 smallestanglei = i;
             }
 
-            //printf("%.2f %d : %.2f %d %d %.2f %d, %.2f, %.2f, %.2f, %.10f\n", angle, i, smallestangle, smallestanglei, get_x(w->p), vx, get_x(w->p) < vx, d12, d23, d13,(d12 * d12 + d23 * d23 - d13 * d13) / (2 * d12 * d23));
+            //printf("%.2f %d %ld: %.2f %d %d %.2f %d, %.2f, %.2f, %.2f, %.10f\n", angle, i, w - graph->vertices, smallestangle, smallestanglei, get_x(w->p), vx, get_x(w->p) < vx, d12, d23, d13,(d12 * d12 + d23 * d23 - d13 * d13) / (2 * d12 * d23));
         }
     }
     return graph_get_next_vertex(graph, v, smallestanglei);
@@ -487,12 +504,27 @@ static void delaunay_triangulation_f_debug(struct vertex *vertices, int size, st
         al_lock_mutex(mutex);
         al_wait_cond(cond, mutex);
         al_unlock_mutex(mutex);
-        line = sm_draw_line(get_x(vertices[0].p) * 16.0f, get_y(vertices[0].p) * 16.0f, get_x(vertices[1].p) * 16.0f, get_y(vertices[1].p) * 16.0f);
-        graph_add_edge_vp(graph, &vertices[0], &vertices[1], math_get_distance(get_x(vertices[0].p) - get_x(vertices[1].p), get_y(vertices[0].p) - get_y(vertices[1].p)), line);
-        line = sm_draw_line(get_x(vertices[1].p) * 16.0f, get_y(vertices[1].p) * 16.0f, get_x(vertices[2].p) * 16.0f, get_y(vertices[2].p) * 16.0f);
-        graph_add_edge_vp(graph, &vertices[1], &vertices[2], math_get_distance(get_x(vertices[1].p) - get_x(vertices[2].p), get_y(vertices[1].p) - get_y(vertices[2].p)), line);
-        line = sm_draw_line(get_x(vertices[2].p) * 16.0f, get_y(vertices[2].p) * 16.0f, get_x(vertices[0].p) * 16.0f, get_y(vertices[0].p) * 16.0f);
-        graph_add_edge_vp(graph, &vertices[2], &vertices[0], math_get_distance(get_x(vertices[2].p) - get_x(vertices[0].p), get_y(vertices[2].p) - get_y(vertices[0].p)), line);
+
+	printf("collinear check %d %d %d %d\n", get_x(vertices[0].p), get_x(vertices[1].p), get_x(vertices[2].p), (get_x(vertices[0].p) * (get_y(vertices[1].p) - get_y(vertices[2].p)) + get_x(vertices[1].p) * (get_y(vertices[2].p) - get_y(vertices[0].p)) + get_x(vertices[2].p) * (get_y(vertices[0].p) - get_y(vertices[1].p))));
+
+
+	if((get_x(vertices[0].p) * (get_y(vertices[1].p) - get_y(vertices[2].p)) + get_x(vertices[1].p) * (get_y(vertices[2].p) - get_y(vertices[0].p)) + get_x(vertices[2].p) * (get_y(vertices[0].p) - get_y(vertices[1].p))) == 0)//collinear check
+        {
+	    printf("collinear points found %ld %ld %ld\n", &vertices[0] - graph->vertices, &vertices[1] - graph->vertices, &vertices[2] - graph->vertices);
+            line = sm_draw_line(get_x(vertices[0].p) * 16.0f, get_y(vertices[0].p) * 16.0f, get_x(vertices[1].p) * 16.0f, get_y(vertices[1].p) * 16.0f);
+            graph_add_edge_vp(graph, &vertices[0], &vertices[1], math_get_distance(get_x(vertices[0].p) - get_x(vertices[1].p), get_y(vertices[0].p) - get_y(vertices[1].p)), line);
+            line = sm_draw_line(get_x(vertices[1].p) * 16.0f, get_y(vertices[1].p) * 16.0f, get_x(vertices[2].p) * 16.0f, get_y(vertices[2].p) * 16.0f);
+            graph_add_edge_vp(graph, &vertices[1], &vertices[2], math_get_distance(get_x(vertices[1].p) - get_x(vertices[2].p), get_y(vertices[1].p) - get_y(vertices[2].p)), line);
+        }
+	else
+	{
+            line = sm_draw_line(get_x(vertices[0].p) * 16.0f, get_y(vertices[0].p) * 16.0f, get_x(vertices[1].p) * 16.0f, get_y(vertices[1].p) * 16.0f);
+            graph_add_edge_vp(graph, &vertices[0], &vertices[1], math_get_distance(get_x(vertices[0].p) - get_x(vertices[1].p), get_y(vertices[0].p) - get_y(vertices[1].p)), line);
+            line = sm_draw_line(get_x(vertices[1].p) * 16.0f, get_y(vertices[1].p) * 16.0f, get_x(vertices[2].p) * 16.0f, get_y(vertices[2].p) * 16.0f);
+            graph_add_edge_vp(graph, &vertices[1], &vertices[2], math_get_distance(get_x(vertices[1].p) - get_x(vertices[2].p), get_y(vertices[1].p) - get_y(vertices[2].p)), line);
+            line = sm_draw_line(get_x(vertices[2].p) * 16.0f, get_y(vertices[2].p) * 16.0f, get_x(vertices[0].p) * 16.0f, get_y(vertices[0].p) * 16.0f);
+            graph_add_edge_vp(graph, &vertices[2], &vertices[0], math_get_distance(get_x(vertices[2].p) - get_x(vertices[0].p), get_y(vertices[2].p) - get_y(vertices[0].p)), line);
+	}
         return;
     }
 
@@ -546,16 +578,19 @@ static void delaunay_triangulation_f_debug(struct vertex *vertices, int size, st
     {
         if(counter_clockwise(lowr, lowl, lowlnextv) > 0)
         {
+	    puts("ccw 1");
             lowl = lowlnextv;
-            lowlnextv = get_next_vertex_from_vertical(graph, lowlnextv, 0);
+            lowlnextv = get_next_vertex_from_vertical(graph, lowlnextv, 1);
+	    printf("in ccw check: %ld\n", lowlnextv - graph->vertices);
         }
         else if(counter_clockwise(lowl, lowrnextv, lowr) > 0)
         {
+	    puts("ccw 2");
             lowr = lowrnextv;
-            lowrnextv = get_next_vertex_from_vertical(graph, lowrnextv, 1);
+            lowrnextv = get_next_vertex_from_vertical(graph, lowrnextv, 0);
         }
         else
-            break;
+	    break;
     }
 
     printf("lowl %ld lowlnextv %ld lowr %ld lowrnextv %ld\n", lowl - graph->vertices, lowlnextv - graph->vertices, lowr - graph->vertices, lowrnextv - graph->vertices);
@@ -626,59 +661,72 @@ static void delaunay_triangulation_f_debug(struct vertex *vertices, int size, st
     //both candidates null
 }
 
+long calc = 0;
+
 static struct vertex *get_candidate_debug(struct graph *graph, struct vertex *target, struct vertex *neighbor, int ccw)
 {
     struct vertex *out = NULL, *next = NULL;
-    int i, j, outedge, *order;
+    int i, j, outedge, *order, *taken;
+    adj = s_malloc(target->noedges * sizeof(struct vertex *), NULL);
     order = s_malloc((target->noedges + 1) * sizeof(int), NULL);
-    angles = s_malloc((target->noedges + 1) * sizeof(float), NULL);
 
-    if(ccw)
-        for(i = 0; i < target->noedges; i++)
-            angles[i] = get_angle(graph_get_next_vertex(graph, target, i), target, neighbor);
-    else
-        for(i = 0; i < target->noedges; i++)
-            angles[i] = get_angle(neighbor, target, graph_get_next_vertex(graph, target, i));
-            
-    for(i = 0; i < target->noedges + 1; i++)
-        order[i] = i;
+    center = target;
+    ccccw = ccw;
 
-    math_mergesort(order, target->noedges, candidate_compare, sizeof(int));
+    for(i = 0; i < target->noedges; i++)
+        adj[i] = graph_get_next_vertex(graph, target, i);// get all adjacent vertices
+
+    for(i = 0; i < target->noedges; i++)// mark vertices whose angles are < 0 or > 180 wrt target - neighbor as invalid, mark neighbor as invalid
+    {
+        if(!adj[i] || adj[i] == neighbor)
+        {
+            order[i] = -2;
+            continue;
+        }
+
+        //det = (a.x - center.x) * (b.y - center.y) - (b.x - center.x) * (a.y - center.y)
+        long det = (get_x(adj[i]->p) - get_x(target->p)) * (get_y(neighbor->p) - get_y(target->p)) - 
+                   (get_x(neighbor->p) - get_x(target->p)) * (get_y(adj[i]->p) - get_y(target->p));
+        if(ccw)
+        {
+            if(det < 0)
+                order[i] = i;
+            else
+                order[i] = -1;
+        }
+        else
+        {
+            if(det > 0)
+                order[i] = i;
+            else
+                order[i] = -1;
+        }
+    }
+    order[target->noedges] = -2;// order size == target->noedges + 1, do this to simplify for loop below
+
+    math_mergesort(order, target->noedges, candidate_compare, sizeof(int));// sort valid vertices from lowest to smallest angle
     
-    angles[target->noedges] = -1;
-    order[target->noedges] = target->noedges;
-
+    printf("vertices and orders: ");
     for(i = 0; i < target->noedges; i++)
-        printf("%.2f\n", angles[order[i]]);
-
-    /*if(ccw)
-        puts("left candidate");
-    else
-        puts("right candidate");
-
-    for(i = 0; i < target->noedges; i++)
-        printf("%.2f\n", angles[order[i]]);*/
+    	printf("%ld %d,", adj[order[i]] - graph->vertices, order[i]);
+    puts("");
 
     for(i = 0; i < target->noedges; i++)
     {
         out = graph_get_next_vertex(graph, target, order[i]);
         if(!out)
             continue;
-        if(out == neighbor || angles[order[i]] >= 180 || angles[order[i]] < 0)
+        if(out == neighbor)
         {
             out = NULL;
             continue;
         }
-        if(!ccw)
-            printf("out vertex: %ld, angle: %.2f\n", out - graph->vertices, angles[order[i]]);
 
         next = graph_get_next_vertex(graph, target, order[i + 1]);
 
         if(next == neighbor)
             continue;
 
-        if(angles[order[i + 1]] >= 180 || angles[order[i + 1]] == -1)
-            break;
         if(!next)
             break;
 
@@ -717,7 +765,9 @@ static struct vertex *get_candidate_debug(struct graph *graph, struct vertex *ta
     }
 
     s_free(order, NULL);
-    s_free(angles, NULL);
+    s_free(adj, NULL);
+    adj = NULL;
+    order = NULL;
 
     return out;
 }
@@ -744,6 +794,7 @@ static int inside_circumcircle(void *one, void *two, void *three, void *four)//o
         if((dorientation > 0) ^ (orientation > 0))
             debug_printf("likely precision error in inside_circumcircle function in delaunay.c %.2f, %.2f\n", dorientation, orientation);
     }
+    calc = orientation;
     return orientation > 0;
 }
 

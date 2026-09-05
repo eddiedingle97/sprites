@@ -238,7 +238,6 @@ void em_do_speed(struct entity *e, float dx, float dy)
     e->speedy = e->speedy + dy;
 }
 
-#define WALLCOLLISION 0
 void em_do_movement(struct map *map, int currow, int curcolumn, struct entity *e, float *dx, float *dy)
 {
     int i, j, wallcollide = 0, ecollide = 0;
@@ -254,7 +253,7 @@ void em_do_movement(struct map *map, int currow, int curcolumn, struct entity *e
     */
 
     struct tile *currenttile = map_get_tile_from_coordinate(map, e->sprite->x, e->sprite->y);
-    if(currenttile && WALLCOLLISION)
+    if(currenttile && !debug_get())
     {
         struct tile *nexttile = map_get_tile_from_coordinate(map, e->sprite->x + *dx, e->sprite->y);
         if(nexttile && nexttile->type & SOLID)

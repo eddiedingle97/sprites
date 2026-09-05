@@ -884,7 +884,7 @@ void mg_create_hallway_dungeon(struct map *map, int maxrooms)//WIP...
 
 void mg_create_classic_dungeon(struct map *map, int maxrooms)
 {
-    math_seed(1676594803);//1643581891//1649730122//1649739262//1649800390//1650157911//
+    math_seed(0);
 
     int norooms = 1 + math_get_random(maxrooms);
 
@@ -944,6 +944,7 @@ void mg_create_classic_dungeon(struct map *map, int maxrooms)
     /*for(j = 0; j < i; j++)
         debug_printf("%d %d\n", mg_room_center_x(&rooms[j]), mg_room_center_y(&rooms[j]));*/
 
+    #ifndef DELAUNAYDEBUG
     delaunay_triangulation(graph, mg_room_center_x, mg_room_center_y);
     
     mg_connect_rooms(map, graph, 1);
@@ -952,6 +953,7 @@ void mg_create_classic_dungeon(struct map *map, int maxrooms)
         debug_printf("map is connected\n");
     else
         debug_printf("map is unconnected\n");
+    #endif
 
     map->graph = graph;
     map->rooms = rooms;

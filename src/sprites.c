@@ -8,7 +8,7 @@
 #include <allegro5/allegro_font.h>
 #include <allegro5/allegro_ttf.h>
 #include <allegro5/allegro_primitives.h>
-#include <mimalloc.h>
+//#include <mimalloc.h>
 #include "sprites.h"
 #include "keyboard.h"
 #include "alobj.h"

@@ -5,7 +5,7 @@ export LDLIBRARYPATH=$LDLIBRARYPATH:/usr/local/lib
 
 if [ $# -eq "0" ] 
 then
-    make sprites
+    make debug
 else
     make all
 fi

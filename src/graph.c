@@ -80,13 +80,6 @@ struct edge *graph_add_edge_v(struct graph *graph, struct vertex *source, struct
 struct edge *graph_add_edge_vp(struct graph *graph, struct vertex *source, struct vertex *dest, int weight, void *p)
 {
     struct edge *e = graph_add_edge_p(graph, source - graph->vertices, dest - graph->vertices, weight, p);
-    e->p = p;
-    if(!(graph->type & DIRECTED))
-    {
-        e += 1;
-        e->p = p;
-    }
-    
     return e;
 }
 

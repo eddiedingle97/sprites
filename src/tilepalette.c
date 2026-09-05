@@ -20,7 +20,7 @@ void tp_change_palette(char *configfile, int type)
     unsigned short z = mm_add_tile_map_to_list(al_get_config_value(cfg, "", "spritesheet"), tilesize);
     tilesize = tilesize ? tilesize : 1;//set to 1 if not found in config file
 
-    printf("tile map z in tpcp %d\n", z);
+    //printf("tile map z in tpcp %d\n", z);
 
     int i;
     switch(type)

@@ -29,12 +29,12 @@ int wte_comp(struct warptableentry *one, struct warptableentry *two);
 struct map *lg_generate_level(char newmap)
 {
 	warptable = dict_create(wte_comp);
-    mm_add_tile_map_to_list("DungeonTilesetIItiles.png", 16);
+        mm_add_tile_map_to_list("DungeonTilesetIItiles.png", 16);
 
 	REGISTER_KNIGHT
-	REGISTER_SWORD
-	REGISTER_ORC
-	REGISTER_KNIFE
+	//REGISTER_SWORD
+	//REGISTER_ORC
+	//REGISTER_KNIFE
 
 	struct map *map = mg_create_map(50, 50);
 	mm_add_map(map);
@@ -44,15 +44,15 @@ struct map *lg_generate_level(char newmap)
 	knight = em_create_entity(0, 16.0f * mg_room_center_x(center), 16.0f * mg_room_center_y(center));
 	em_add_entity_to_map(map, knight);
 	knight->health = 10;
-	sword = em_create_entity(1, 16.0f * mg_room_center_x(center) + 16.0f, 16.0f * mg_room_center_y(center));
-	em_add_entity_to_map(map, sword);
+	//sword = em_create_entity(1, 16.0f * mg_room_center_x(center) + 16.0f, 16.0f * mg_room_center_y(center));
+	//em_add_entity_to_map(map, sword);
 
 	/*sky = cons_create_sky();
 	cons_gen_sky(sky);
 	sm_add_sprite_to_layer(sky->canvas);*/
 	
-    em_register_entity(orc_create, orc_behaviour, orc_destroy, 12);
-	em_register_entity(knife_create, knife_behaviour, knife_destroy, 3);
+        //em_register_entity(orc_create, orc_behaviour, orc_destroy, 12);
+	//em_register_entity(knife_create, knife_behaviour, knife_destroy, 3);
 
 	//lg_add_enemies(map);
 

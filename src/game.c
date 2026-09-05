@@ -26,8 +26,8 @@ static char mode;
 char buf[64];
 static char *gt = NULL;
 
-/*ALLEGRO_COND *delcond;
-ALLEGRO_MUTEX *delmut;*/
+ALLEGRO_COND *delcond;
+ALLEGRO_MUTEX *delmut;
 
 static int coord_get_x(struct coord *coord)
 {
@@ -50,15 +50,18 @@ void game_init(char gamemode, char newmap, int width, int height)
             em_init();
             tm_init();
             struct map *map = lg_generate_level(newmap);
-            /*delcond = al_create_cond();
+
+	    #ifdef DELAUNAYDEBUG
+            delcond = al_create_cond();
             delmut = al_create_mutex();
             struct delaunaydata *ddata = s_malloc(sizeof(struct delaunaydata), NULL);
             ddata->cond = delcond;
             ddata->mutex = delmut;
             ddata->graph = map->graph;
-            ddata->get_x = coord_get_x;
-            ddata->get_y = coord_get_y;
-            tm_queue_thread(delaunay_triangulation_debug, ddata);*/
+            ddata->get_x = mg_room_center_x;
+            ddata->get_y = mg_room_center_y;
+            tm_queue_thread(delaunay_triangulation_debug, ddata);
+            #endif
 
             break;
         case REG:
@@ -145,10 +148,12 @@ void game_get_actions()
     if(kb_get_toggle_debug())
         debug_toggle_sprites();
         
-    /*if(kb_get_key(SPACE) || kb_get_single_key(NEXTTILEMENU))
+    #ifdef DELAUNAYDEBUG
+    if(kb_get_key(SPACE) || kb_get_single_key(NEXTTILEMENU))
     {
         al_signal_cond(delcond);
-    }*/
+    }
+    #endif
 
     if(kb_get_gettext())
     {
