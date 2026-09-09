@@ -15,6 +15,7 @@
 #include "list.h"
 #include "debug.h"
 #include "perlin.h"
+#include "ht.h"
 
 enum DIR {UP, DOWN, LEFT, RIGHT};
 enum EXITENUM {TO, FROM};
@@ -934,6 +935,9 @@ void mg_create_classic_dungeon(struct map *map, int maxrooms)
     printf("%.2f %.2f\n", ((float)rooms[0].x + rooms[0].w - 3.0f) * 16.0f, ((float)rooms[0].y - rooms[0].h + 3.0f) * 16.0f);
     printf("%d %d\n", rooms[0].x + rooms[0].w - 3, rooms[0].y - rooms[0].h + 3);*/
     math_mergesort(rooms, i, room_comp, sizeof(struct room));
+
+    debug_printf("mg after sort\n");
+
     int j;
     for(j = 0; j < i; j++)
     {
@@ -941,13 +945,19 @@ void mg_create_classic_dungeon(struct map *map, int maxrooms)
         mg_put_room_on_map(map, &rooms[j]);
     }
 
+    debug_printf("mg after room place\n");
+
     /*for(j = 0; j < i; j++)
         debug_printf("%d %d\n", mg_room_center_x(&rooms[j]), mg_room_center_y(&rooms[j]));*/
 
     #ifndef DELAUNAYDEBUG
     delaunay_triangulation(graph, mg_room_center_x, mg_room_center_y);
+
+    debug_printf("mg after delaunay\n");
     
     mg_connect_rooms(map, graph, 1);
+
+    debug_printf("mg after connect rooms\n");
 
     if(graph_is_connected(graph))
         debug_printf("map is connected\n");
@@ -1286,17 +1296,34 @@ struct coord *mg_a_star(struct map *map, struct coord *start, struct coord *end,
         return NULL;
 
     struct pq *frontier = pq_create(10);
-    struct dict *camefrom = dict_create(compare_coords);
-    struct dict *costsofar = dict_create(compare_coords);
+    //struct dict *camefrom = dict_create(compare_coords);
+    Ht(struct coord *, struct coord *) camefrom =
+    {
+        .count = 0,
+        .hasheq = ht_mem_hasheq,
+        .impl_filled_slots = 0,
+        .impl_capacity = 0,
+    };
+    //struct dict *costsofar = dict_create(compare_coords);
+    Ht(struct coord *, float *) costsofar =
+    {
+        .count = 0,
+        .hasheq = ht_mem_hasheq,
+        .impl_filled_slots = 0,
+        .impl_capacity = 0,
+    };
+
     float *dist = NULL;
     int i;
     *no = 0;
     pq_insert(frontier, 0, start);
 
-    dict_add_entry(camefrom, start, start);
+    //dict_add_entry(camefrom, start, start);
+    *ht_put(&camefrom, start) = start;
     dist = s_malloc(sizeof(float), NULL);
     *dist = 0;
-    dict_add_entry(costsofar, start, dist);
+    //dict_add_entry(costsofar, start, dist);
+    *ht_put(&costsofar, start) = dist;
     struct coord next;
     struct coord *out = NULL;
 
@@ -1312,12 +1339,12 @@ struct coord *mg_a_star(struct map *map, struct coord *start, struct coord *end,
         {
             out = s_realloc(out, ++(*no) * sizeof(struct coord), NULL);
             out[0] = *end;
-            struct coord *c = dict_get_entry(camefrom, end);
+            struct coord *c = *ht_find(&camefrom, end);//dict_get_entry(camefrom, end);
             while(c != start)
             {
                 out = s_realloc(out, ++(*no) * sizeof(struct coord), NULL);
                 out[*no - 1] = *c;
-                c = dict_get_entry(camefrom, c);
+                c = *ht_find(&camefrom, c);//dict_get_entry(camefrom, c);
             }
 
             out = s_realloc(out, ++(*no) * sizeof(struct coord), NULL);
@@ -1350,10 +1377,10 @@ struct coord *mg_a_star(struct map *map, struct coord *start, struct coord *end,
                     break;
             }
 
-            float *csf = dict_get_entry(costsofar, cur);
+            float *csf = *ht_find(&costsofar, cur);//dict_get_entry(costsofar, cur);
             float newcost = *csf + 1;
-            struct coord *c = dict_get_entry(camefrom, &next);
-            float *curcost = dict_get_entry(costsofar, &next);
+            struct coord *c = *ht_find(&camefrom, &next);//dict_get_entry(camefrom, &next);
+            float *curcost = *ht_find(&costsofar, &next);//dict_get_entry(costsofar, &next);
             if(!c)
             {
                 csf = s_malloc(sizeof(float), NULL);
@@ -1361,30 +1388,41 @@ struct coord *mg_a_star(struct map *map, struct coord *start, struct coord *end,
                 c = s_malloc(sizeof(struct coord), NULL);
                 *c = next;
                 
-                dict_add_entry(costsofar, c, csf);
-                dict_add_entry(camefrom, c, cur);
+                *ht_put(&costsofar, c) = csf;//dict_add_entry(costsofar, c, csf);
+                *ht_put(&camefrom, c) = cur;//dict_add_entry(camefrom, c, cur);
                 
                 pq_insert(frontier, newcost + grid_heur(c->x, c->y, end->x, end->y), c);
             }
             else if(curcost && newcost < *curcost)
             {
                 *curcost = newcost;
-                dict_add_entry(camefrom, &next, cur);
+                *ht_put(&camefrom, &next) = cur;//dict_add_entry(camefrom, &next, cur);
 
                 pq_insert(frontier, newcost + grid_heur(c->x, c->y, end->x, end->y), c);
             }
         }
     }
 
-    for(i = 0; i < costsofar->size; i++)
+    /*for(i = 0; i < costsofar->size; i++)
     {
         if(costsofar->keys[i] != start && costsofar->keys[i] != end)
             s_free(costsofar->keys[i], NULL);
 
         s_free(costsofar->p[i], NULL);
+    }*/
+
+    ht_foreach(value, &camefrom)
+    {
+        if(value != start && value != end)
+            s_free(value, NULL);
     }
-    dict_destroy(camefrom);
-    dict_destroy(costsofar);
+    ht_foreach(value, &costsofar)
+    {
+        s_free(value, NULL);
+    }
+
+    //dict_destroy(camefrom);
+    //dict_destroy(costsofar);
     pq_destroy(frontier);
     return out;
 }

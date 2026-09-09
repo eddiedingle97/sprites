@@ -8,7 +8,7 @@
 #include "../util.h"
 #include "../item.h"
 
-static ALLEGRO_BITMAP *potionanimations = NULL;
+static struct animation *potionanimations = NULL;
 static ALLEGRO_CONFIG *potioncfg = NULL;
 static int nopotions = 0;
 

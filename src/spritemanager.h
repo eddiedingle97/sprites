@@ -38,7 +38,7 @@ struct sprite
 		};
 		struct//selfdraw 16 bytes
 		{
-			void (*draw)();
+			void (*draw)(struct sprite *);
 			float x2, y2;
 		};
 	};
